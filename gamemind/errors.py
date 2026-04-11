@@ -69,7 +69,7 @@ class DXGIFrameGrabError(GameMindError):
     fix = "Retry with jitter; if persistent, swap to WGC if the target is windowed."
 
 
-class BlackFrameThreshold(GameMindError):
+class BlackFrameThresholdError(GameMindError):
     code = "E104"
     label = "Capture backend returned black frames above threshold"
     fix = "Selector will swap backends. If both return black, the game may be minimized."
@@ -90,13 +90,13 @@ class OllamaConnectionError(GameMindError):
     fix = "Run `ollama serve` in a separate terminal; default host is http://127.0.0.1:11434."
 
 
-class OllamaModelMissing(GameMindError):
+class OllamaModelMissingError(GameMindError):
     code = "E107"
     label = "Ollama does not have the required model loaded"
     fix = "Run `ollama pull qwen3-vl:8b-instruct-q4_K_M` and verify with `ollama list`."
 
 
-class OllamaOOM(GameMindError):
+class OllamaOOMError(GameMindError):
     code = "E108"
     label = "Ollama ran out of GPU memory during inference"
     fix = "Close other GPU-heavy processes or drop to a smaller model via --model."
@@ -114,7 +114,7 @@ class PerceptionJSONError(GameMindError):
     fix = "Retry once at temperature=0; if sustained, check <think> tag leakage (model variant)."
 
 
-class PerceptionBacklogWarning(GameMindError):
+class PerceptionBacklogError(GameMindError):
     code = "E111"
     label = "Perception tick latency p90 exceeded freshness budget"
     fix = "Enforce latest-wins queue per Amendment A1; drop-oldest policy is in gamemind/perception/daemon.py."
@@ -147,7 +147,7 @@ class BrainResponseError(GameMindError):
     fix = "Check the prompt template against `docs/protocols.md` LLMResponse schema."
 
 
-class AnthropicSafetyRefusal(GameMindError):
+class AnthropicSafetyRefusalError(GameMindError):
     code = "E116"
     label = "Anthropic safety system refused the request"
     fix = "Adjust prompt to avoid unsafe content; log the refusal to events.jsonl."
@@ -198,35 +198,35 @@ class InputFocusError(GameMindError):
 # ---------- Verify layer -----------------------------------------------
 
 
-class TemplateAssetMissing(GameMindError):
+class TemplateAssetMissingError(GameMindError):
     code = "E123"
     label = "Verify predicate referenced a template asset that does not exist"
     fix = "Check the adapter's template_match references; assets live under adapters/<name>/templates/."
 
 
 __all__ = [
-    "GameMindError",
-    "WGCInitError",
-    "DXGIInitError",
-    "DXGIFrameGrabError",
-    "BlackFrameThreshold",
-    "WindowNotFoundError",
-    "OllamaConnectionError",
-    "OllamaModelMissing",
-    "OllamaOOM",
-    "OllamaTimeoutError",
-    "PerceptionJSONError",
-    "PerceptionBacklogWarning",
-    "AnthropicRateLimitError",
-    "AnthropicServiceError",
-    "AnthropicTimeoutError",
-    "BrainResponseError",
-    "AnthropicSafetyRefusal",
-    "AdapterYAMLParseError",
+    "AdapterPathTraversalError",
     "AdapterPyInjectionError",
     "AdapterSchemaError",
-    "AdapterPathTraversalError",
-    "InputTargetLostError",
+    "AdapterYAMLParseError",
+    "AnthropicRateLimitError",
+    "AnthropicSafetyRefusalError",
+    "AnthropicServiceError",
+    "AnthropicTimeoutError",
+    "BlackFrameThresholdError",
+    "BrainResponseError",
+    "DXGIFrameGrabError",
+    "DXGIInitError",
+    "GameMindError",
     "InputFocusError",
-    "TemplateAssetMissing",
+    "InputTargetLostError",
+    "OllamaConnectionError",
+    "OllamaModelMissingError",
+    "OllamaOOMError",
+    "OllamaTimeoutError",
+    "PerceptionBacklogError",
+    "PerceptionJSONError",
+    "TemplateAssetMissingError",
+    "WGCInitError",
+    "WindowNotFoundError",
 ]

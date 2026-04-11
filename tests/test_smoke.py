@@ -9,13 +9,18 @@ implementations in subsequent commits.
 from __future__ import annotations
 
 import pytest
+from fastapi.testclient import TestClient
 
 import gamemind
 from gamemind import errors
 from gamemind.capture import CaptureBackend, CaptureResult
 from gamemind.capture.backend import CaptureResult as CaptureResult2
 from gamemind.capture.dxgi_backend import DXGIBackend
-from gamemind.capture.selector import CaptureSelector, BLACK_FRAME_THRESHOLD, VARIANCE_FLOOR
+from gamemind.capture.selector import (
+    BLACK_FRAME_THRESHOLD,
+    VARIANCE_FLOOR,
+    CaptureSelector,
+)
 from gamemind.capture.wgc_backend import WGCBackend
 from gamemind.cli import _build_parser, main
 from gamemind.daemon.main import app
@@ -26,7 +31,8 @@ def test_package_version() -> None:
 
 
 def test_all_errors_are_gamemind_errors() -> None:
-    assert len(errors.__all__) == 24  # 1 base + 23 subclasses
+    # 1 base + 23 subclasses = 24 exports
+    assert len(errors.__all__) == 24
     for name in errors.__all__:
         cls = getattr(errors, name)
         assert issubclass(cls, errors.GameMindError)
@@ -42,7 +48,6 @@ def test_error_codes_are_unique_and_well_formed() -> None:
         assert cls.code.startswith("E") and cls.code[1:].isdigit()
         assert cls.code not in codes, f"duplicate error code: {cls.code}"
         codes.add(cls.code)
-    # 23 subclasses, codes E101-E123
     assert len(codes) == 23
 
 
@@ -67,7 +72,6 @@ def test_capture_result_is_dataclass() -> None:
     )
     assert result.frame_age_ms == 12.5
     assert result.capture_backend == "WGC"
-    # Re-import alias check
     assert CaptureResult is CaptureResult2
 
 
@@ -88,10 +92,9 @@ def test_dxgi_backend_stub_raises() -> None:
 
 
 def test_capture_backend_protocol_satisfied() -> None:
-    # Pyright / mypy structural check — runtime assertion is tautological
-    _: CaptureBackend = WGCBackend()
-    _2: CaptureBackend = DXGIBackend()
-    assert _ is not _2
+    a: CaptureBackend = WGCBackend()
+    b: CaptureBackend = DXGIBackend()
+    assert a is not b
 
 
 def test_selector_constants() -> None:
@@ -106,22 +109,20 @@ def test_selector_constructs() -> None:
 
 def test_cli_parser_builds() -> None:
     parser = _build_parser()
-    # daemon subcommand
     args = parser.parse_args(["daemon", "start"])
     assert args.command == "daemon"
     assert args.daemon_cmd == "start"
-    # doctor --all
     args = parser.parse_args(["doctor", "--all"])
     assert args.command == "doctor"
     assert args.all is True
-    # run
-    args = parser.parse_args(["run", "--adapter", "adapters/minecraft.yaml", "--task", "chop 3 logs"])
+    args = parser.parse_args(
+        ["run", "--adapter", "adapters/minecraft.yaml", "--task", "chop 3 logs"]
+    )
     assert args.command == "run"
     assert args.task == "chop 3 logs"
 
 
-def test_cli_main_no_args_prints_help_returns_zero() -> None:
-    # No-args path prints help and exits 0 (not 2)
+def test_cli_main_no_args_returns_zero() -> None:
     rc = main([])
     assert rc == 0
 
@@ -134,3 +135,28 @@ def test_cli_doctor_no_mode_returns_two() -> None:
 def test_daemon_app_has_healthz_route() -> None:
     routes = {route.path for route in app.routes}
     assert "/healthz" in routes
+
+
+def test_healthz_returns_ok_or_degraded() -> None:
+    """Ollama is not running in CI — /healthz should return degraded, not crash."""
+    with TestClient(app) as client:
+        response = client.get("/healthz")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] in {"ok", "degraded"}
+        assert "ollama_reachable" in data
+        assert "model_loaded" in data
+
+
+def test_v1_endpoint_rejects_unauthenticated() -> None:
+    """Bearer token middleware should 401 unauth requests to /v1/*."""
+    with TestClient(app) as client:
+        response = client.post("/v1/doctor/capture", json={})
+        assert response.status_code in {401, 404}
+
+
+def test_origin_header_rejected() -> None:
+    """Browser-origin requests must be rejected per Amendment A3."""
+    with TestClient(app) as client:
+        response = client.get("/healthz", headers={"Origin": "http://evil.example"})
+        assert response.status_code == 403

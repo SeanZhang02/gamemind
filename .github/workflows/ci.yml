@@ -24,11 +24,11 @@ jobs:
 
       - name: Ruff lint
         working-directory: phase-c-0
-        run: uv tool run ruff@latest check probe/
+        run: uv tool run ruff@0.14.0 check probe/
 
       - name: Ruff format check
         working-directory: phase-c-0
-        run: uv tool run ruff@latest format --check probe/
+        run: uv tool run ruff@0.14.0 format --check probe/
 
       - name: Import check
         working-directory: phase-c-0
@@ -55,10 +55,10 @@ jobs:
         run: uv sync --extra dev
 
       - name: Ruff lint
-        run: uv tool run ruff@latest check gamemind/ tests/
+        run: uv tool run ruff@0.14.0 check gamemind/ tests/
 
       - name: Ruff format check
-        run: uv tool run ruff@latest format --check gamemind/ tests/
+        run: uv tool run ruff@0.14.0 format --check gamemind/ tests/
 
       - name: Import check
         run: |

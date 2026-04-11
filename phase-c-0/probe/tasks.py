@@ -13,8 +13,9 @@ that returns a float in [0.0, 1.0].
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -49,9 +50,10 @@ def score_t2_inventory(pred: dict[str, Any], gt: dict[str, Any]) -> float:
         if gt_item is None and p_item is None:
             correct += 1
             continue
-        if _norm(p_item) == _norm(gt_item):
-            if gt_item is None or p.get("count") == gt_entry.get("count"):
-                correct += 1
+        if _norm(p_item) == _norm(gt_item) and (
+            gt_item is None or p.get("count") == gt_entry.get("count")
+        ):
+            correct += 1
     return correct / len(gt_slots)
 
 

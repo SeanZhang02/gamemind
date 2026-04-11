@@ -2,7 +2,7 @@
 
 Per §6 Step 1, the selector:
   1. Tries WGC primary. If it returns N consecutive black frames, swap.
-  2. Falls over to DXGI. If DXGI also fails, raise BlackFrameThreshold.
+  2. Falls over to DXGI. If DXGI also fails, raise BlackFrameThresholdError.
 
 "Black frame" is defined as `variance < VARIANCE_FLOOR` (downsampled
 greyscale per-pixel variance). Default `VARIANCE_FLOOR = 0.02`.
@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from gamemind.capture.backend import CaptureBackend, CaptureResult
-from gamemind.errors import BlackFrameThreshold
+from gamemind.errors import BlackFrameThresholdError
 
 VARIANCE_FLOOR = 0.02
 BLACK_FRAME_THRESHOLD = 5
@@ -45,7 +45,7 @@ class CaptureSelector:
                 self._state.using_fallback = True
                 return self._fallback.capture(hwnd, timeout_ms=timeout_ms)
         elif self._state.using_fallback and result.variance < VARIANCE_FLOOR:
-            raise BlackFrameThreshold(
+            raise BlackFrameThresholdError(
                 cause="Both WGC and DXGI produced black frames above threshold",
                 hwnd=hwnd,
                 variance=result.variance,

@@ -61,9 +61,34 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_daemon(args: argparse.Namespace) -> int:
-    print(f"[gamemind daemon {args.daemon_cmd}] — Step 1 scaffold stub")
-    print("  TODO: wire to gamemind.daemon.main:app via uvicorn in next commit")
-    return 0
+    if args.daemon_cmd == "start":
+        # Late import so `gamemind --version` doesn't pull in uvicorn.
+        import uvicorn  # noqa: PLC0415
+
+        from gamemind.daemon.main import app  # noqa: PLC0415
+
+        # Per Amendment A3: bind ONLY to 127.0.0.1. Never 0.0.0.0.
+        print("[gamemind daemon start] binding to http://127.0.0.1:8766")
+        print("  (Ctrl+C to stop; /healthz is unauthenticated, /v1/* requires bearer token)")
+        uvicorn.run(app, host="127.0.0.1", port=8766, log_level="info")
+        return 0
+    if args.daemon_cmd == "status":
+        import httpx  # noqa: PLC0415
+
+        try:
+            response = httpx.get("http://127.0.0.1:8766/healthz", timeout=2.0)
+            response.raise_for_status()
+            print("[gamemind daemon status] UP:", response.json())
+            return 0
+        except httpx.HTTPError as exc:
+            print(f"[gamemind daemon status] DOWN: {exc}")
+            return 1
+    if args.daemon_cmd == "stop":
+        # Phase C Step 1 scaffold: no PID file yet, so stop is advisory.
+        # Real PID-file-based stop lands in the next commit on this branch.
+        print("[gamemind daemon stop] Ctrl+C the daemon process; PID-file stop in next commit")
+        return 0
+    return 2
 
 
 def _cmd_doctor(args: argparse.Namespace) -> int:

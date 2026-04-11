@@ -21,7 +21,8 @@ import secrets
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, Header, HTTPException, Request
+import httpx
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 
@@ -41,18 +42,49 @@ def _get_or_create_session_token() -> str:
     return token
 
 
+OLLAMA_HOST_ENV = "GAMEMIND_OLLAMA_HOST"
+OLLAMA_MODEL_ENV = "GAMEMIND_OLLAMA_MODEL"
+DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
+DEFAULT_OLLAMA_MODEL = "qwen3-vl:8b-instruct-q4_K_M"
+
+
+async def _check_ollama(host: str, model: str) -> tuple[bool, bool]:
+    """Ollama liveness probe for /healthz (Amendment A6 partial).
+
+    Returns (reachable, model_loaded). Never raises: on any HTTP or parse
+    error, returns (False, False). This is intentionally permissive so
+    /healthz stays snappy and never blocks on a dead Ollama.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=1.0) as client:
+            resp = await client.get(f"{host}/api/tags")
+            resp.raise_for_status()
+            data = resp.json()
+            tags = {entry.get("name", "") for entry in data.get("models", [])}
+            return True, model in tags
+    except (httpx.HTTPError, ValueError, KeyError):
+        return False, False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Daemon lifecycle.
+    """Daemon lifecycle per Amendment A3 + A6 partial.
 
     Phase C Step 1 scope:
-      - Generate/load session token
-      - TODO next commit: warm Ollama + check model loaded (Amendment A6)
-      - TODO: DPI awareness (Windows ctypes call)
+      - Generate/load session token (Amendment A3)
+      - Probe Ollama liveness + model loaded (Amendment A6 partial)
+
+    Still TODO (next commit on this branch):
+      - DPI awareness via Windows ctypes SetProcessDpiAwareness call
+      - `gamemind/daemon/lifespan.py` split from this file
+      - Ollama warmup with the probe/client.py two-phase pattern
     """
     app.state.session_token = _get_or_create_session_token()
-    app.state.ollama_reachable = False  # wired up in next commit
-    app.state.model_loaded = False      # wired up in next commit
+    app.state.ollama_host = os.environ.get(OLLAMA_HOST_ENV, DEFAULT_OLLAMA_HOST)
+    app.state.ollama_model = os.environ.get(OLLAMA_MODEL_ENV, DEFAULT_OLLAMA_MODEL)
+    reachable, loaded = await _check_ollama(app.state.ollama_host, app.state.ollama_model)
+    app.state.ollama_reachable = reachable
+    app.state.model_loaded = loaded
     yield
     # Shutdown: nothing yet
 
@@ -96,13 +128,28 @@ async def enforce_local_auth(request: Request, call_next):
 async def healthz(request: Request) -> dict:
     """Minimal liveness info per Amendment A3.
 
+    Re-probes Ollama each call (cheap — 1s timeout) so /healthz reflects
+    the current state, not the startup state. If Ollama crashes mid-session,
+    /healthz goes from ok → degraded without needing daemon restart.
+
     Returns:
-        {"status": "ok", "model_loaded": bool, "ollama_reachable": bool}
+        {"status": "ok" | "degraded",
+         "model_loaded": bool,
+         "ollama_reachable": bool,
+         "ollama_host": str,
+         "ollama_model": str}
     """
+    host = request.app.state.ollama_host
+    model = request.app.state.ollama_model
+    reachable, loaded = await _check_ollama(host, model)
+    request.app.state.ollama_reachable = reachable
+    request.app.state.model_loaded = loaded
     return {
-        "status": "ok",
-        "model_loaded": request.app.state.model_loaded,
-        "ollama_reachable": request.app.state.ollama_reachable,
+        "status": "ok" if (reachable and loaded) else "degraded",
+        "model_loaded": loaded,
+        "ollama_reachable": reachable,
+        "ollama_host": host,
+        "ollama_model": model,
     }
 
 
