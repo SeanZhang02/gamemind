@@ -1,0 +1,52 @@
+# Minecraft Java Edition adapter — v1 scope, chop_logs task only.
+#
+# Phase C Step 1 iter-3 ships this as a skeleton to validate the
+# loader and schema end-to-end. Phase C Step 3 fills in the complete
+# action set + inventory_ui + additional goal grammars (water_crops
+# is Stardew's, not Minecraft's; this file intentionally scoped narrow).
+
+schema_version: 1
+display_name: "Minecraft Java Edition"
+
+perception:
+  freshness_budget_ms: 750.0
+  tick_hz: 2.0
+
+actions:
+  forward: "W"
+  backward: "S"
+  strafe_left: "A"
+  strafe_right: "D"
+  jump: "Space"
+  sneak: "LeftShift"
+  sprint: "LeftControl"
+  attack: "MouseLeft"
+  use_item: "MouseRight"
+  open_inventory: "E"
+  drop_item: "Q"
+  chat: "T"
+  third_person: "F5"
+  debug: "F3"
+
+world_facts:
+  axe_crafting: "Two planks vertical in a crafting table yield one stick; three planks over two sticks yield an axe."
+  log_source: "Oak, birch, spruce, jungle, acacia, dark oak, mangrove, and cherry trees each produce corresponding log blocks when attacked repeatedly."
+  inventory_layout: "Hotbar is 9 slots at the bottom of the HUD. Full inventory (E) shows 3 rows of 9 storage slots plus the hotbar row."
+
+goal_grammars:
+  chop_logs:
+    description: "Collect N logs of any wood type by attacking tree trunks."
+    preconditions:
+      - "a log-bearing tree is visible in the current frame"
+    success_check:
+      predicate:
+        type: inventory_count
+        target: "log"
+        operator: ">="
+        value: 3
+    abort_conditions:
+      - type: health_threshold
+        operator: "<"
+        value: 0.3
+      - type: time_limit
+        seconds: 600
