@@ -1,0 +1,20 @@
+# CODEOWNERS — auto-requested reviewers for every PR
+#
+# Format: <path pattern>    <github username(s)>
+# Later patterns override earlier ones. Wildcards follow gitignore syntax.
+#
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+
+# Default: Sean owns everything
+*                               @SeanZhang02
+
+# Design authority — the authoritative doc
+/docs/final-design.md           @SeanZhang02
+/docs/sean-approval-package.md  @SeanZhang02
+
+# CI and repo discipline
+/.github/                       @SeanZhang02
+/CLAUDE.md                      @SeanZhang02
+
+# Phase C-0 probe is a regression asset; changes here need extra care
+/phase-c-0/                     @SeanZhang02
