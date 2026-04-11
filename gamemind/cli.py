@@ -103,7 +103,9 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         if args.live_perception:
             modes.append("live-perception")
     if not modes:
-        print("gamemind doctor: pick at least one of --capture / --input / --live-perception / --all")
+        print(
+            "gamemind doctor: pick at least one of --capture / --input / --live-perception / --all"
+        )
         return 2
     print(f"[gamemind doctor] modes: {', '.join(modes)}")
     print("  TODO: implement each doctor sub-check in follow-up commits")

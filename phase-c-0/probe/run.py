@@ -47,9 +47,7 @@ NON_BLOCKING_CATEGORIES = {"t2_inventory"}
 def _load_groundtruth(path: Path) -> list[dict[str, Any]]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
-        raise ValueError(
-            f"groundtruth file must be a JSON list, got {type(data).__name__}"
-        )
+        raise ValueError(f"groundtruth file must be a JSON list, got {type(data).__name__}")
     return data
 
 
@@ -176,9 +174,7 @@ def run_probe(
     p50 = _percentile(all_latencies, 0.50) if all_latencies else float("nan")
     p90 = _percentile(all_latencies, 0.90) if all_latencies else float("nan")
     p99 = _percentile(all_latencies, 0.99) if all_latencies else float("nan")
-    p90_blocking = (
-        _percentile(blocking_latencies, 0.90) if blocking_latencies else float("nan")
-    )
+    p90_blocking = _percentile(blocking_latencies, 0.90) if blocking_latencies else float("nan")
     json_reliability = json_ok_count / total_calls if total_calls else float("nan")
 
     # status is "pass" | "fail" | "skip" (skip = no samples, does not affect overall)
@@ -189,11 +185,7 @@ def run_probe(
         if stats["n"] == 0:
             gate_checks.append((f"{cat}_accuracy", "skip", "no samples"))
             continue
-        threshold = (
-            THRESHOLDS["t1_floor"]
-            if cat == "t1_block"
-            else THRESHOLDS["per_category_min"]
-        )
+        threshold = THRESHOLDS["t1_floor"] if cat == "t1_block" else THRESHOLDS["per_category_min"]
         meets_threshold = stats["mean_score"] >= threshold
         if cat in NON_BLOCKING_CATEGORIES:
             mark = "info" if meets_threshold else "info"
@@ -219,9 +211,7 @@ def run_probe(
     gate_checks.append(
         (
             "json_reliability",
-            "pass"
-            if json_reliability >= THRESHOLDS["json_reliability_min"]
-            else "fail",
+            "pass" if json_reliability >= THRESHOLDS["json_reliability_min"] else "fail",
             f"{json_reliability:.1%} vs min {THRESHOLDS['json_reliability_min']:.0%}",
         )
     )

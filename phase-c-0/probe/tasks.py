@@ -35,9 +35,7 @@ def score_t1_block(pred: dict[str, Any], gt: dict[str, Any]) -> float:
 
 def score_t2_inventory(pred: dict[str, Any], gt: dict[str, Any]) -> float:
     gt_slots = {s["slot"]: s for s in gt.get("hotbar", [])}
-    pred_slots = {
-        s.get("slot"): s for s in pred.get("hotbar", []) if isinstance(s, dict)
-    }
+    pred_slots = {s.get("slot"): s for s in pred.get("hotbar", []) if isinstance(s, dict)}
     if not gt_slots:
         return 0.0
     correct = 0

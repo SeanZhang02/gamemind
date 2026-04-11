@@ -177,7 +177,9 @@ class AdapterSchemaError(GameMindError):
 class AdapterPathTraversalError(GameMindError):
     code = "E120"
     label = "Adapter referenced a path outside the project root"
-    fix = "All adapter-referenced paths must be relative to the project root; symlinks are rejected."
+    fix = (
+        "All adapter-referenced paths must be relative to the project root; symlinks are rejected."
+    )
 
 
 # ---------- Layer 4: Input errors --------------------------------------
