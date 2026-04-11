@@ -13,8 +13,9 @@ that returns a float in [0.0, 1.0].
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -34,9 +35,7 @@ def score_t1_block(pred: dict[str, Any], gt: dict[str, Any]) -> float:
 
 def score_t2_inventory(pred: dict[str, Any], gt: dict[str, Any]) -> float:
     gt_slots = {s["slot"]: s for s in gt.get("hotbar", [])}
-    pred_slots = {
-        s.get("slot"): s for s in pred.get("hotbar", []) if isinstance(s, dict)
-    }
+    pred_slots = {s.get("slot"): s for s in pred.get("hotbar", []) if isinstance(s, dict)}
     if not gt_slots:
         return 0.0
     correct = 0
@@ -49,9 +48,10 @@ def score_t2_inventory(pred: dict[str, Any], gt: dict[str, Any]) -> float:
         if gt_item is None and p_item is None:
             correct += 1
             continue
-        if _norm(p_item) == _norm(gt_item):
-            if gt_item is None or p.get("count") == gt_entry.get("count"):
-                correct += 1
+        if _norm(p_item) == _norm(gt_item) and (
+            gt_item is None or p.get("count") == gt_entry.get("count")
+        ):
+            correct += 1
     return correct / len(gt_slots)
 
 
