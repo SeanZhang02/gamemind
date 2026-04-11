@@ -1663,3 +1663,497 @@ Subagent F5 split replay row; A1-A13 add ~12-18h of pre-Step-1 design doc amendm
 3. **events.jsonl schema evolution across 5 writers**: initial 2h → probable 10h spread across Step 3-5 → **Amendment A2 front-loads the schema decision**
 
 **Phase 3 TRULY complete.** Moving to Phase 3.5 DX Review.
+
+---
+
+## 10.7 Phase 3.5: DX Review (DX POLISH mode)
+
+GameMind IS a developer framework — devs install, configure via YAML adapters, extend via Protocol implementors, run via CLI + HTTP. Phase 0 detected 49 DX-scope matches. This review runs at full depth under DX POLISH mode (default for iteration on existing product).
+
+### 10.7.A Step 0A — Developer Persona
+
+**Primary persona (v1 — locked by §2 OQ-6 "personal tool" framing)**: **Sean Zhang + Phase C agent team (including future Claude sessions)**.
+- Who: Sean (CS+Business undergrad → accounting grad, AI-native thinking, learned gstack end-to-end) + Phase C Claude Code sessions working autonomously under Sean's direction.
+- Context: Sean runs `gamemind run` on his RTX 5090 on his own Minecraft session; agent teams contribute adapters and backends via feature-branch PRs per the GitHub agency contract.
+- Tolerance: HIGH — Sean has read the 656-line design doc and will debug at source level. Claude sessions tolerate any friction as long as error messages have enough signal to self-correct.
+- Expects: git-clone + uv sync works on Windows, Ollama preinstalled + model pulled, `gamemind doctor --all` passes before attempting a run, `runs/<session>/events.jsonl` readable by `jq`, Python 3.11 + FastAPI conventions, Three Design Rules enforced via CI.
+
+**Secondary persona (v2 — deferred, only if v2-T3 community trigger fires)**: **Game-agent researcher / Windows gamedev builder**.
+- Who: Researcher or hobbyist who saw GameMind cited/forked and wants to try it on their own game.
+- Context: First 30 minutes deciding "is this framework worth my time."
+- Tolerance: LOW-to-MED — docs must explain the wedge in 2 minutes, `gamemind doctor` must succeed on first try.
+- Expects: README with "install in 5 minutes," working `adapters/minecraft.yaml` example, at least one non-Minecraft adapter as proof of universality.
+
+**Persona card (v1 primary)**:
+```
+TARGET DEVELOPER PERSONA — v1 (LOCKED)
+=======================================
+Who:       Sean + Phase C agent team (Claude autonomous sessions)
+Context:   Sean's RTX 5090 Windows desktop; private repo
+Tolerance: HIGH (both read source; Claude self-corrects from errors)
+Expects:   uv + Ollama + FastAPI patterns, CI-enforced Three Design Rules,
+           events.jsonl readable by jq, clear error messages for 2am debug
+```
+
+### 10.7.B Step 0B — Developer Empathy Narrative
+
+*First-person, from Sean's Phase C Day 1 perspective, tracing what happens on the current design doc:*
+
+> It's Monday morning. Phase C-0 gate PASSED last Friday, autoplan review is merged, and I'm kicking off Phase C Step 1. I open `gamemind/CLAUDE.md` — it says "invoke /autoplan first before writing code" — good, that's already done. I open `docs/final-design.md` and scroll to §6 Step 1. The scope list is clear: pyproject.toml, daemon/main.py, lifespan.py, capture/backend.py, two backend impls, selector, five endpoints, cli.py.
+>
+> I `mkdir gamemind` and `uv init` inside phase-c/ — wait, the design doc says `gamemind/daemon/main.py` but doesn't say whether that's `gamemind/gamemind/daemon/main.py` (src layout) or `gamemind/daemon/main.py` flat. I guess src layout per uv convention.
+>
+> I start with `capture/backend.py` Protocol. The design doc names 14 exception classes in §10 autoplan review but they're not declared anywhere. Do I write `errors.py` first or inline them as needed? Autoplan amendment A1 says write the perception freshness contract BEFORE Step 1 — do I amend the design doc first or just code against the amendment text inline? Probably amend the doc first as a docs PR.
+>
+> I try `ollama serve` — already running from Phase C-0. `ollama list` shows qwen3-vl:8b-instruct-q4_K_M ✓. I write a minimal `/healthz` endpoint. `uv run gamemind daemon start` — oh, there's no `gamemind` console_script entry yet. Where do I declare that? `pyproject.toml [project.scripts]`. Add `gamemind = "gamemind.cli:main"`. `uv sync`. Retry. It works. `/healthz` returns 200 but there's no check for Ollama liveness (amendment A2 said add it). Add it. Now /healthz = 200 only if Ollama reachable AND model loaded.
+>
+> It's 90 minutes in and I haven't touched capture yet. The design doc assumed "implementer just starts writing code" but the autoplan amendments require ~12-18h of pre-Step-1 spec work first. I start Amendment A1 (freshness contract) in a new doc, then A2 (events.jsonl schema). These are 2-3 hour design writes, not 15 minutes each.
+
+**What the narrative reveals**:
+1. Package layout (src vs flat) unspecified → ambiguity at first mkdir
+2. `pyproject.toml [project.scripts]` entry point not named in §6 Step 1 scope
+3. Autoplan amendments A1-A15 need to be applied as docs PR before code PR
+4. The `errors.py` module from §10.2.E is not explicitly named as a Step 1 artifact (was it supposed to precede Step 1 or be written lazily?)
+5. Live-perception spike (§6 Step 1 new gate from autoplan §10.1.B) references `probe/tasks.py` T1 prompt but doesn't say how to invoke it from the new `gamemind doctor --live-perception` (reuse probe? copy? reimplement?)
+
+**Auto-decision**: All 5 DX gaps from the empathy narrative are logged as Phase C Step 0 doc-PR additions. Log to audit trail.
+
+### 10.7.C Step 0C — Competitive DX Benchmark
+
+Competitors in the "game agent framework with declarative adapters" space are sparse. Use reference benchmarks:
+
+| Tool | TTHW | Notable DX | Audience fit |
+|---|---|---|---|
+| Stripe API | 30s | `curl` 1-liner with test key | Backend dev, not gamedev |
+| Vercel | 2 min | `npm i -g vercel && vercel` | Frontend dev |
+| Ollama | 3 min | `brew install ollama && ollama run llama3` | ML builder — RELEVANT REFERENCE |
+| Cradle (BAAI) | 30-60 min | git clone + conda env + OpenAI API key + RDR2 install | Research, high friction |
+| UI-TARS-desktop | 10-20 min | npm pkg + model download + GUI | General UI automation |
+| Claude Computer Use | ~5 min | Anthropic API key + sample script | General computer control |
+| **GameMind v1 (projected)** | **30-60 min (Sean)** | **git clone + uv sync + Ollama + model pull + Minecraft save + `gamemind doctor --all`** | Sean only |
+| **GameMind v2 (projected)** | **20-40 min (external dev)** | **same + README reading** | Researcher/hobbyist |
+
+**TTHW tier**: v1 projects to **Needs Work (5-10 min+)** territory for Sean (who has Ollama already); **Red Flag (>10 min)** for anyone without Ollama. v2 could hit **Competitive (2-5 min)** via a `uvx gamemind doctor --all` one-liner if we published to PyPI.
+
+**Auto-decision**: Target **Competitive tier** for v1 Sean (acceptable for personal tool); **Competitive tier** for v2 external dev (bar for open release). Current design trajectory = Needs Work. Gaps to close at Phase C Step 1:
+- Doctor command prints actionable error messages for missing Ollama / missing model / missing Minecraft window
+- `gamemind doctor --all` auto-suggests install commands for missing deps
+- README.md draft at Phase C Step 3 (after first working run) with copy-paste install sequence
+- v2 only: `pipx install gamemind` or `uvx gamemind` entry point (deferred to v2-S1)
+
+### 10.7.D Step 0D — Magical Moment Design
+
+**The magical moment**: Sean runs `gamemind run --adapter adapters/minecraft.yaml --task "chop 3 oak logs"` and watches his Minecraft character autonomously walk to a tree, mine it, and collect 3 logs while the terminal streams SSE events like `[wake w1] planning: approach the oak tree at 2.3 o'clock…` and `[wake w5] success check fired: inventory_count(log) >= 3`.
+
+**Delivery vehicle options** (auto-decided per P5 explicit over clever):
+
+| # | Delivery vehicle | Effort (CC) | Impact | Decision |
+|---|---|---|---|---|
+| A | Video/GIF walkthrough in README | ~1 hr CC | High for v2 external devs | **DEFER to v2-S1** |
+| B | Copy-paste demo command (one terminal command producing magic) | ~30 min CC | High for v1 Sean | **APPROVE** — `gamemind run --scenario mc-000-first-log` from Step 6 scenario work; Step 3 minimum is `gamemind run --adapter adapters/minecraft.yaml --task "chop 3 oak logs"` |
+| C | Interactive playground/sandbox (hosted) | 1 week CC | Low for private v1 | REJECT (wrong audience) |
+| D | Guided tutorial with dev's own game save | ~2 hours CC | Med for v2 | DEFER |
+
+**Auto-decision**: Option B for v1, Option A deferred to v2-S1. Log to audit trail.
+
+### 10.7.E Step 0E — Mode Selection
+
+**DX POLISH confirmed** — baseline is §6 Step 1-3 + autoplan cherry-picks + DX amendments below. No DX EXPANSION (would reopen v2-S1 strategic framing; Sean's Option C is locked).
+
+### 10.7.F Step 0F — Developer Journey Trace (9 stages)
+
+| # | Stage | Developer does | Friction | Status |
+|---|---|---|---|---|
+| 1 | Discovery | v1: Sean himself; v2: reads a blog post or paper citing GameMind | v1: N/A. v2: no README yet | v1 OK; v2 DEFER to v2-S1 |
+| 2 | Install prereqs | `winget install ollama.ollama`, `ollama pull qwen3-vl:8b-instruct-q4_K_M`, `winget install astral-sh.uv` | Prereq list not documented in README | **DX-F1 MED** — add `docs/install.md` at Phase C Step 3 |
+| 3 | Clone + install | `git clone git@github.com:SeanZhang02/gamemind.git && cd gamemind && uv sync` | Private repo access for v1; uv sync pulls deps | v1 OK (Sean has access); v2 deferred |
+| 4 | First doctor run | `gamemind doctor --all` | **DX-F2 HIGH** — `--all` subcommand not in §6 Step 1 scope until autoplan cherry-pick (e5/D1 runbook); must add to Step 1 | AMEND Step 1 scope |
+| 5 | Read design doc | Opens `docs/final-design.md`, scrolls to §6 or §2 OQ-6 for wedge | 656 lines + §10 review is a lot | **DX-F3 LOW** — add a `docs/README.md` with a 5-section reading order (Exec Summary → Architecture → Design Rules → Build Steps → Errors) |
+| 6 | First agent run | `gamemind run --adapter adapters/minecraft.yaml --task "chop 3 oak logs"` | Requires running Minecraft windowed, Ollama model loaded, warmup done | **DX-F4 LOW** — `gamemind run` pre-check fires `doctor --all` if not passed in last 10 min |
+| 7 | Write new adapter | Copy `adapters/minecraft.yaml`, edit fields, run with `--adapter adapters/<new>.yaml` | YAML schema not documented beyond pydantic; no `gamemind adapter validate <path>` subcommand | **DX-F5 MED** — add `gamemind adapter validate <path>` to Step 3 scope (cherry-pick e3 adjacent) |
+| 8 | First run of own adapter | Same as 6 with new YAML | Predicate syntax must be learned by reading Minecraft adapter + schema source | **DX-F6 MED** — add `docs/adapter-schema.md` at Phase C Step 3 with 1 annotated example |
+| 9 | Contribute back (v2 only) | Fork → PR → CI passes | No CONTRIBUTING.md yet; CODEOWNERS exists (from `a1935e8`) | v1 OK (Sean self-merge); v2 needs CONTRIBUTING update |
+
+**Auto-decisions**: DX-F1, F2, F3, F4, F5, F6 all approved into Phase C Step 1-3 scope as ~3-5 hours total CC work. Small price to pay for the DX tier upgrade from Needs Work → Competitive.
+
+### 10.7.G Step 0G — First-Time Developer Confusion Report
+
+Synthetic Phase C Day 1 Claude session (not Sean — a fresh Claude instance doing Phase C Step 1):
+
+```
+T+0:00   Reads CLAUDE.md → sees "invoke /autoplan first". Autoplan was done,
+         good, skip. Opens docs/final-design.md §6.
+T+0:02   Scrolls §6 Step 1 scope. Sees `gamemind/daemon/main.py` etc.
+T+0:03   Runs `git checkout -b feat/phase-c-layer0-skeleton`. Starts scaffolding.
+T+0:05   CONFUSION #1: `gamemind/daemon/main.py` — is this src layout or flat?
+         pyproject.toml needs a [project.scripts] entry. Autoplan review §10 doesn't
+         say. Guesses flat. Writes `gamemind/daemon/main.py` at repo root.
+T+0:10   pyproject.toml added with `gamemind = "gamemind.cli:main"`, `uv sync`.
+         Starts FastAPI skeleton. Ollama import needed — which lib? requests? ollama?
+         Checks probe/client.py → uses plain requests. Copy pattern.
+T+0:20   CONFUSION #2: autoplan amendment A1 "Perception Freshness Contract" —
+         should the implementer write this AS A DESIGN DOC EDIT first, then start
+         coding? Or inline the spec as a docstring on PerceptionBackend? Autoplan
+         §10.6.C says "apply at Phase C Step 0" but doesn't name the delivery.
+         Guesses: docs PR first, then code PR.
+T+0:25   Starts drafting §1.1.A Perception Freshness Contract amendment text.
+T+0:45   CONFUSION #3: `gamemind/errors.py` with 14 exception classes (§10.2.E) —
+         write it all now or lazily? Autoplan review lists 14 classes but doesn't
+         say "Phase C Step 1 implements errors.py." Guesses: write all 14 upfront
+         per P1 completeness.
+T+1:00   Runs `gamemind doctor --all` — subcommand doesn't exist yet. Autoplan
+         review cherry-pick e5 says add it but §6 Step 1 original scope doesn't
+         include `--all`. Adds it.
+T+1:30   Starts capture/wgc_backend.py. windows-capture lib pattern — examples
+         in the pypi README.
+T+2:00   First capture works. Next: `gamemind doctor --live-perception` — how?
+         autoplan said "uses probe/tasks.py T1 prompt" but imports across
+         phase-c-0/probe and gamemind/perception feel hacky. Probably should
+         inline the prompt via reference.
+T+3:00   Live spike runs on a fake grey image. p90=1200ms looks plausible.
+         Asks Sean for a windowed Minecraft session for the real spike.
+```
+
+**Top 3 confusion points**:
+1. **Package layout** (src vs flat) — 5 min lost
+2. **Amendment application delivery** (docs PR first? docstrings? defer?) — 30 min lost weighing options
+3. **Cross-directory imports between `phase-c-0/probe/` and `gamemind/perception/`** — 15 min lost building mental model
+
+**Auto-decisions** from the confusion report:
+- Add to Phase C Step 0 doc-PR checklist: package layout decision (flat, per uv defaults); amendment application order (all 15 amendments → single docs PR before code starts); `phase-c-0/probe/` stays a standalone package, `gamemind/perception/` re-implements prompts inline (no cross-package imports).
+
+### 10.7.H Review Passes 1-8 (DX POLISH)
+
+**Pass 1: Getting Started** — 5/10 (current trajectory) → 7/10 (post autoplan)
+- Evidence: 30-60 min TTHW for Sean, >60 min for v2 external. Ollama pull + model pull is the tall pole.
+- A 10 would be: `pipx install gamemind && gamemind doctor --all && gamemind run-demo`. Requires PyPI publish (v2-S1). Not attainable in v1.
+- Gap fix (approved): add `docs/install.md` (DX-F1), `gamemind doctor --all` (DX-F2), `gamemind run-demo` convenience subcommand (deferred to v2).
+- Post-autoplan score: **7/10** (Competitive tier for Sean, Needs Work for v2 external dev until PyPI).
+
+**Pass 2: API/CLI/SDK Design** — 6/10 (current trajectory) → 7/10
+- Evidence: CLI naming is consistent (`gamemind <verb> [--flag]`), YAML adapter schema is declarative but sparsely documented. HTTP endpoints follow REST-ish `/v1/session/start` patterns. Python Protocol abstractions are clean.
+- A 10 would be: `gamemind adapter validate <path>`, `gamemind adapter new --game stardew --template minimal`, `gamemind run --dry-run`, `gamemind events tail <session>`.
+- Gap fix: adapter validate subcommand approved (DX-F5), others deferred to Step 4+.
+- Post-autoplan score: **7/10**.
+
+**Pass 3: Error Messages & Debugging** — 4/10 (current trajectory) → 8/10 (post autoplan errors.py + A6)
+- Evidence: design doc mentions `outcome: success`, `outcome: runaway`, `outcome: perception_disagreement_unresolvable` but no error message patterns. The 22-row §10.2.E table names exception classes but not user-facing messages.
+- A 10 would be Tier 2 (Rust-style): error code + primary label + help text + doc link. E.g., `OllamaConnectionError [E101]: Cannot reach Ollama at http://localhost:11434. Did you run 'ollama serve'? See docs/errors.md#E101.`
+- Gap fix: `gamemind/errors.py` writes Tier 2 messages for all 14 exception classes + `docs/errors.md` numbered reference. Approved as Step 1 mandatory scope (lifted from Phase 1 Finding).
+- Post-autoplan score: **8/10** — Tier 2 is attainable without building a web docs site.
+
+**Pass 4: Documentation & Learning** — 3/10 → 6/10
+- Evidence: `docs/final-design.md` (656 lines) + `docs/sean-approval-package.md` (~400 lines) + `phase-c-0/C0_CLOSEOUT.md`. Dense. Zero copy-paste examples. No adapter tutorial.
+- A 10 would be: README.md with 1-minute pitch, getting-started.md with copy-paste install, adapter-schema.md with annotated example, errors.md numbered reference, architecture.md visual overview.
+- Gap fix: README.md (Step 3 min viable), adapter-schema.md (DX-F6), errors.md (Pass 3 fix). Full tutorial polish deferred to v2-S1.
+- Post-autoplan score: **6/10** (Acceptable for v1, would need more for v2 external audience).
+
+**Pass 5: Upgrade & Migration Path** — 4/10 → 7/10 (post amendment A1 schema_version)
+- Evidence: design doc has NO version field on YAML adapter; any field rename silently breaks adapters.
+- A 10 would be: semver on `schema_version`, migration script scaffolding, deprecation warnings emitted by loader, `gamemind adapter migrate <path>` subcommand.
+- Gap fix: Amendment A1 in §10.6.C adds `schema_version: int` to adapter schema; FINDING A1 from Phase 1 aligns. `gamemind adapter migrate` deferred to v2.
+- Post-autoplan score: **7/10**.
+
+**Pass 6: Developer Environment & Tooling** — 6/10 → 7/10
+- Evidence: Python 3.11 + uv + Ollama + Windows-only. Cross-platform is NOT a v1 goal (Windows-only per §2 OQ-3). CI runs Ubuntu for lint+imports but capture layer manual-test only. Editor integration: pydantic types → good IntelliSense in VS Code.
+- A 10 would be: Ubuntu Docker image with Ollama + DXCAM alternative for headless Linux testing. Not realistic for v1 (Windows Graphics Capture is Windows-only).
+- Gap fix: N/A. Current 6/10 is acceptable; the Windows-lock is architectural, not DX laziness.
+- Post-autoplan score: **7/10** (marginally up from the pydantic type coverage).
+
+**Pass 7: Community & Ecosystem** — 2/10 (v1) / 6/10 (v2 post-S1)
+- Evidence: v1 is private repo. CODEOWNERS exists, LICENSE/CONTRIBUTING from `a1935e8`. No community channels.
+- A 10 would be: public repo, Discord/GitHub Discussions, example gallery, third-party adapter showcase.
+- Gap fix: v1 = N/A (wrong audience); v2 = blocked on v2-S1 promotion trigger.
+- Post-autoplan score: **2/10** for v1 (correctly scoped low), **6/10 projection** for v2.
+
+**Pass 8: DX Measurement & Feedback Loops** — 3/10 → 5/10
+- Evidence: events.jsonl and brain_calls.jsonl provide a measurement substrate (post A2). No TTHW instrumentation, no user interviews, no survey.
+- A 10 would be: `gamemind doctor --all` prints a TTHW timestamp on first success; weekly retro skill monitors phase-c commits; Sean self-reports friction points to TODOS.md.
+- Gap fix: `gamemind doctor --all` emits `first_success_timestamp` to `~/.gamemind/first-success.json`, and `/retro` skill reads it. Small add. Approved.
+- Post-autoplan score: **5/10** (Acceptable for a personal tool; would need 7+ for public v2).
+
+### 10.7.I DX Scorecard
+
+```
++====================================================================+
+|              DX PLAN REVIEW — SCORECARD                             |
++====================================================================+
+| Dimension            | Pre-AP | Post-AP | Trend | Tier             |
+|----------------------|--------|---------|-------|------------------|
+| Getting Started      | 5/10   | 7/10    | ↑2    | Needs→Competitive|
+| API/CLI/SDK          | 6/10   | 7/10    | ↑1    | Competitive      |
+| Error Messages       | 4/10   | 8/10    | ↑4    | Good             |
+| Documentation        | 3/10   | 6/10    | ↑3    | Acceptable       |
+| Upgrade Path         | 4/10   | 7/10    | ↑3    | Competitive      |
+| Dev Environment      | 6/10   | 7/10    | ↑1    | Competitive      |
+| Community (v1/v2)    | 2/6    | 2/6     | —     | v1 N/A, v2 defer |
+| DX Measurement       | 3/10   | 5/10    | ↑2    | Acceptable       |
++--------------------------------------------------------------------+
+| TTHW (Sean)          | 30-60m | 10-20m  | ↑    |
+| TTHW (v2 external)   | 60m+   | 20-40m  | ↑    |
+| Competitive Rank     | Needs Work → Competitive (Sean) / Needs Work (v2)|
+| Magical Moment       | designed via Option B (copy-paste command)   |
+| Product Type         | Python framework + CLI + HTTP daemon         |
+| Mode                 | DX POLISH                                    |
+| Overall DX (v1)      | 4.1/10 → 6.6/10  ↑2.5                        |
++====================================================================+
+| DX PRINCIPLE COVERAGE                                               |
+| Zero Friction        | partial (install is multi-step)             |
+| Learn by Doing       | partial (no playground, minimal examples)   |
+| Fight Uncertainty    | covered (errors.py Tier 2 + docs/errors.md) |
+| Opinionated + Escape | covered (Protocols + config overrides)      |
+| Code in Context      | partial (README pending Step 3)             |
+| Magical Moments      | covered (copy-paste demo command post-Step-3)|
++====================================================================+
+```
+
+**Post-autoplan overall v1 DX: 6.6/10** — Acceptable tier, above the "developers tolerate it" line (5-6), below "good" (7-8). Biggest wins: errors from 4→8 (Tier 2 structured messages), Documentation from 3→6 (README + errors.md + adapter-schema.md adds), Upgrade from 4→7 (schema_version field).
+
+### 10.7.J DX Implementation Checklist (Phase C Step 0-3)
+
+```
+DX IMPLEMENTATION CHECKLIST
+============================
+[ ] Time to hello world < 20 min for Sean (post install)
+[ ] `gamemind doctor --all` subcommand exists
+[ ] `gamemind adapter validate <path>` subcommand exists
+[ ] errors.py implements 14 exception classes with Tier 2 messages
+[ ] docs/install.md (prereqs + uv sync + Ollama + model pull)
+[ ] docs/errors.md (error code numbered reference E101-E122)
+[ ] docs/adapter-schema.md (annotated example YAML)
+[ ] docs/README.md (5-section reading order for design-doc)
+[ ] README.md (project root, 1-min pitch + quickstart)
+[ ] Phase C Step 0 applies autoplan amendments A1-A15 as docs PR
+[ ] `gamemind doctor --all` pre-runs before `gamemind run` if >10 min stale
+[ ] `gamemind doctor --all` emits first_success_timestamp on first PASS
+[ ] events.jsonl schema v1 (A2) documented in docs/events-schema.md
+[ ] schema_version field (A1 + Finding A1) on adapter schema
+[ ] LLMBackend / CaptureBackend / InputBackend Protocol signatures
+    documented in docs/protocols.md with 1 example each
+[ ] pyproject.toml [project.scripts] gamemind = "gamemind.cli:main"
+[ ] package layout = flat (not src) per uv default convention
+```
+
+17 checkboxes. Estimated effort: ~6-10 hours CC (small docs + subcommand adds, no new architecture). All auto-approved to Phase C Step 0-3 scope.
+
+### 10.7.K Required Outputs Roundup
+
+- **Developer persona card**: §10.7.A ✓
+- **Empathy narrative**: §10.7.B ✓
+- **Competitive benchmark**: §10.7.C ✓
+- **Magical moment spec**: §10.7.D ✓
+- **Developer journey map**: §10.7.F ✓
+- **First-time dev confusion report**: §10.7.G ✓
+- **NOT in scope (DX)**: Interactive playground (v2-S1), pipx/uvx (v2), Linux Docker (architecturally locked to Windows), community channels (v2-S1)
+- **What already exists (DX)**: CODEOWNERS + LICENSE + CONTRIBUTING (from `a1935e8`), CLAUDE.md project guidance, CI with Rule 1/2/3 enforcement
+- **TODOS.md additions (DX)**: 17 checklist items above become TODOS.md seed entries at Phase C Step 1
+- **DX Scorecard**: §10.7.I ✓
+- **DX Implementation Checklist**: §10.7.J ✓
+
+### 10.7.L Phase 3.5 Completion Summary + Dual Voice Integration Pending
+
+```
++====================================================================+
+|         PHASE 3.5 DX REVIEW — COMPLETION SUMMARY                    |
++====================================================================+
+| Mode                  | DX POLISH (auto)                            |
+| Persona               | Sean + Phase C agent team (v1 LOCKED)       |
+| Magical Moment        | copy-paste `gamemind run --adapter ...`     |
+| TTHW v1 (Sean)        | 30-60m → 10-20m                             |
+| TTHW v2 (external)    | 60m+ → 20-40m                               |
+| Pass 1 Getting Started| 5/10 → 7/10                                  |
+| Pass 2 API/CLI/SDK    | 6/10 → 7/10                                  |
+| Pass 3 Errors         | 4/10 → 8/10 (biggest jump)                   |
+| Pass 4 Docs           | 3/10 → 6/10                                  |
+| Pass 5 Upgrade        | 4/10 → 7/10                                  |
+| Pass 6 Env/Tooling    | 6/10 → 7/10                                  |
+| Pass 7 Community      | 2/6 v1/v2 (deferred)                         |
+| Pass 8 Measurement    | 3/10 → 5/10                                  |
+| Overall DX (v1)       | 4.1/10 → 6.6/10 (+2.5)                       |
++--------------------------------------------------------------------+
+| DX amendments to Phase C Step 0-3: 17 checklist items (~6-10h CC) |
+| DX subagent dual voice: PENDING (integration below when returns)  |
++====================================================================+
+```
+
+Phase 3.5 main review complete. DX subagent dual voice integration follows in §10.8 when the background agent returns.
+
+## 10.8 Phase 3.5 Dual Voice Integration (DX subagent, 2026-04-11)
+
+Codex unavailable → `[subagent-only]` mode. DX subagent returned 1 scorecard + 3 top-confusion-points + 1 magical-moment reframe + 1 worst-regret after ~140s. Lower scores than my Phase 3.5 across most dimensions — reflects less credit for the post-autoplan amendments (subagent rates trajectory, not endpoint).
+
+### 10.8.A DX Dual Voices Consensus Table
+
+```
+DX DUAL VOICES — CONSENSUS TABLE [subagent-only]:
+═══════════════════════════════════════════════════════════════
+  Dimension                  Claude(v1) Sub(v1) Claude(v2) Sub(v2)  Consensus
+  ─────────────────────────  ────────── ─────── ────────── ─────── ─────────
+  1. Getting Started         7/10       5/10    —          3/10    DISAGREE
+  2. API/CLI/SDK             7/10       7/10    —          7/10    CONFIRMED
+  3. Errors                  8/10 (post) 3/10   —          3/10    DISAGREE (trajectory vs current)
+  4. Docs                    6/10       4/10    —          2/10    DISAGREE (post-amendment vs current)
+  5. Upgrade                 7/10 (post) 2/10   —          2/10    DISAGREE (schema_version amendment credit)
+  6. Env/Tooling             7/10       6/10    —          4/10    CONFIRMED (partial)
+  7. Community               2/10       5/10    6/10 def   4/10    DISAGREE (my v1 too low, sub's too high)
+  8. DX Measurement          5/10       4/10    —          2/10    CONFIRMED (partial)
+═══════════════════════════════════════════════════════════════
+Overall v1: Claude 6.6/10 vs Subagent 4.5/10 — ΔDisagreement 2.1 points.
+Overall v2: Claude deferred vs Subagent 3.4/10 — ΔDisagreement substantial.
+```
+
+**Meta-observation**: my Phase 3.5 scores assume autoplan amendments A1-A15 land as Phase C Step 0 docs-PR and the 17-item DX checklist executes. Subagent scores the current on-disk state as if amendments don't land. **Subagent is right that "committed scope" is different from "planned scope."** Adjust my v1 overall from 6.6 → 5.5 post-moderation (credit for trajectory but honest about current commit state).
+
+### 10.8.B DX Subagent Findings (integrated)
+
+**[CONFIRMED — both models] DX-SUB-1 schema_version missing is a ticking time bomb**
+- Subagent: "Worst DX regret: The adapter YAML has no `schema_version:` field, and nobody's planning to add one. Sean will hit this around month 4 when he tries to onboard game #3. The fix is cheap and must happen BEFORE v1 ships: add `schema_version: 1` as a required field on day 1 of Step 3."
+- My review: FINDING A1 in §10.1.I Section 1 PLUS Amendment A1 in §10.6.C.
+- **Consensus: CONFIRMED.** Both flagged the same issue. Auto-decision: the schema_version field is already promoted to mandatory Step 3 scope via Amendment A1. Nothing to change.
+
+**[CONFIRMED — both models] DX-SUB-2 doctor --all + error messages is Step 1 mandatory**
+- Subagent: "`gamemind doctor --all` is a §10.5 FINDING D1 not a committed feature. First doctor run will fail on a fresh machine and error messages are gap-flagged. Commit doctor --all with scripted remediation text for the top 5 failure modes as Step 1 acceptance."
+- My review: Finding D1 (Phase 1 §10.1.I Section 9) + DX-F2 (Phase 3.5 §10.7.F).
+- **Consensus: CONFIRMED + extended.** Subagent's "top 5 failure modes with scripted remediation" is more specific than my checklist. Auto-decision: UPGRADE the DX checklist item `gamemind doctor --all` to include the 5 remediations: (a) Ollama down → `ollama serve`, (b) model not pulled → `ollama pull qwen3-vl:8b-instruct-q4_K_M`, (c) API key missing → `export ANTHROPIC_API_KEY=sk-ant-...`, (d) Minecraft window not focused → "focus the Minecraft window within 10 seconds," (e) wrong HWND picked → `--window-title Minecraft*`. Log to audit trail.
+
+**[CONFIRMED — both models] DX-SUB-3 replay harness magical-moment promotion**
+- Subagent: "Target magical moment: 'I changed one line of YAML, re-ran `gamemind replay <run_id> --only-brain`, and in 8 seconds saw my new plan diff against the old plan.' Risk: Step 4 is deferred past Step 1-3 critical path. Promote a minimal `--only-brain` replay harness from Step 4 into Step 3 so Sean's own dev-loop speedup exists before integration hell starts."
+- My review: Accepted Option B "copy-paste demo command" as magical moment (simpler than replay harness).
+- **Consensus: CONFIRMED that replay harness is the higher-value magical moment. Disagreement on timing — subagent wants Step 3 promotion, my review accepted Step 4 placement.**
+- Auto-decision (per Sean's default-to-my-recommendation): Stand on Option B for v1 magical moment, BUT ADD the minimal `--only-brain` replay harness PROMOTION to Step 3 scope as a DX cherry-pick. The subagent is right that a 5-minute-per-iteration dev loop hurts velocity for the full 9-11 week build. Promoting the minimal record+replay primitives (not the semantic diff UI, which subagent also flagged as complexity hot spot #1) buys Sean's own iteration speed without the 15-25h diff UI budget. **ACCEPT**: revised Phase C §6 Step 3 scope adds "minimal `gamemind replay <run_id> --only-brain --frame <n>` that re-runs brain on recorded perception output and prints decision + diff vs baseline, ~4-6h CC." Log to audit trail. Also noted in Amendment A5 (which previously deferred only semantic diff, not record/load).
+
+**[SUBAGENT-ONLY — HIGH] DX-SUB-4 CONTRIBUTING.md adapter-ban contradiction**
+- Subagent: "CONTRIBUTING.md at line 114 lists 'New game adapters beyond Minecraft (v2 scope)' as NOT accepted. This is exactly the contribution the framework architecturally invites. Catch-22."
+- My review: Did not flag. I accepted CONTRIBUTING as-is.
+- **Verified**: grep confirms `CONTRIBUTING.md:114` says `- New game adapters beyond Minecraft (v2 scope)` — subagent is correct.
+- Auto-decision: For v1 this is ACCURATE — the v1 charter explicitly defers third-game adapters to v2-T1 trigger. But the wording creates a DX trap. **APPROVE** softening the CONTRIBUTING.md language: change line 114 from "not accepted" to "deferred; v2-T1 promotion trigger unlocks community adapter PRs." TODO #16 at Phase C Step 1.
+
+**[SUBAGENT-ONLY — MEDIUM] DX-SUB-5 Cross-platform is a v2 market killer**
+- Subagent: "Windows + 24GB VRAM excludes every Mac/Linux researcher. Effective reachable audience for v2 TTHW <12 hours is <1% of Python game-AI researchers. Fine for research artifact, not fine if the framing is universal."
+- My review: Accepted v1 Windows lock as architecturally correct. I did NOT think hard about v2 audience math.
+- **Consensus extension**: Subagent's audience math is sobering. For v2, the Windows-only + high VRAM requirement collapses the addressable audience to mostly internal researchers with RTX 4090/5090 on Windows. This is compatible with Option C "research artifact upgrade" framing, but it means v2-T3 (community fork / external cite) becomes much harder.
+- Auto-decision: **FLAG AT FINAL GATE** as a v2 strategy observation, not a v1 action item. Add TODO #17: "Pre-v2 trigger check: if v2-T3 is the lever, does the Windows/5090 audience gate block it? Consider Linux DXcam alternative (via `windows-capture-wsl-bridge` or `mss` fallback) as a post-v1 spike."
+
+**[SUBAGENT-ONLY — FALSE POSITIVE] DX-SUB-FP1 `probe/client.py:22 DEFAULT_MODEL = "qwen2.5vl:7b"`**
+- Subagent cited this as a doc-code divergence. **This was already fixed in commit `ade48e1`.** Subagent read a stale content representation. Noting for the record — not actionable, the fix is live on branch.
+
+**[SUBAGENT-ONLY — META] DX-SUB-6 "DX review section was never written"**
+- Subagent: "§10 autoplan marked 'Phase 3.5 DX Review runs' and the doc ends at line 1665 before that phase was written — the DX review itself is a stub."
+- **Status**: Subagent started its review while the plan file was mid-write. By the time it submitted, §10.7 was populated but the subagent's read was cached earlier. This is a timing artifact of parallel execution — the DX review IS now written (§10.7 + this §10.8 integration).
+
+### 10.8.C Revised DX Scorecard (post dual-voice moderation)
+
+```
++====================================================================+
+|        DX SCORECARD — POST DUAL VOICE MODERATION                    |
++====================================================================+
+| Dimension            | Claude-only | Post-moderate  | Trend         |
+|----------------------|-------------|----------------|---------------|
+| Getting Started      | 7/10        | 6/10           | ↓1 (subagent)|
+| API/CLI/SDK          | 7/10        | 7/10           | —             |
+| Error Messages       | 8/10        | 6/10           | ↓2 (trajectory|
+|                      |             |                | vs commit)    |
+| Documentation        | 6/10        | 5/10           | ↓1            |
+| Upgrade Path         | 7/10        | 6/10           | ↓1            |
+| Dev Environment      | 7/10        | 6/10           | ↓1            |
+| Community (v1)       | 2/10        | 3/10           | ↑1 (CONTRIB  |
+|                      |             |                | honesty)      |
+| DX Measurement       | 5/10        | 4/10           | ↓1            |
++--------------------------------------------------------------------+
+| TTHW Sean            | 10-20m      | 10-20m ACHIEVABLE if A1-A15   |
+|                      |             | amendments execute             |
+| TTHW v2 external     | 20-40m      | 2-4h realistic (subagent)     |
+| Overall v1 DX        | 6.6/10      | 5.4/10 (post-moderation)      |
+| Overall v2 DX        | deferred    | 3.4/10 (subagent projection)  |
++====================================================================+
+```
+
+**5.4/10 is the honest v1 score.** Acceptable tier, above "developers tolerate it" but below "good." Getting Documentation + Error Messages + Upgrade from 5-6 → 7+ is the highest-leverage DX work in Phase C Step 0-3.
+
+**Phase 3.5 TRULY complete.** Moving to Phase 4 Final Approval Gate under autonomous-mode default-to-my-recommendation per Sean's delegation.
+
+---
+
+## 10.9 Phase 4: Final Approval Gate (auto-approved)
+
+**Mode**: Autonomous — Sean delegated "默认选择你推荐的" (default to my recommendation) for the duration of the ~2-hour session. The Phase 4 AskUserQuestion is therefore answered as Option A (Approve as-is) with all strategic taste decisions and user-challenge-single-model findings preserved for Sean's post-return review.
+
+### 10.9.A Plan Summary
+
+GameMind Phase C build is approved to start under SELECTIVE EXPANSION mode with the Phase B design doc as the authoritative spec PLUS 15 autoplan amendments (A1-A15) to be applied as a docs-PR at Phase C Step 0 before any `gamemind/` code is written. Total effort envelope: **223-339 hours** (was 205-315; +12-18h autoplan amendment work, +5-6h cherry-picks, −0 deferrals). Red line unchanged at 350h. Phase C-0 gate is PASSED (qwen3-vl:8b-instruct-q4_K_M locked). Phase B premises all accepted with two pre-Phase-C mitigations already committed (P4 doc-code divergence fix + P2 live-perception SPIKE added to §6 Step 1 acceptance).
+
+### 10.9.B Decisions Made — Final Tally
+
+**Total decisions**: 37 (30 auto-decided via 6 principles + 7 user-challenge-single-model findings preserved for Sean).
+
+Auto-decided (30):
+- 3 intake decisions (UI=no, DX=yes, Mode=SELECTIVE EXPANSION)
+- 4 Phase 1 cherry-picks approved (e2 CI fanout, e3 events schema, e4 replay determinism, e5 disagreement runbook)
+- 4 Phase 1 cherry-picks deferred (e1 Stardew spike, e6 Gemini eager, e7 skill lib eager, e8 public adapter schema)
+- 2 Phase 1 doc amendments applied (P4 §2 OQ-1 fix, P2 §6 Step 1 live-spike)
+- 15 Phase 3 design amendments (A1-A15) to apply at Phase C Step 0 as docs-PR
+- 17 Phase 3.5 DX checklist items to apply at Phase C Step 0-3
+
+Single-model findings preserved for Sean's strategic review (7):
+- SUB-F1: Option C staging is commitment-dodge — strategic reframe question
+- SUB-F2: MC+SV cherry-picked, not minimal-universality — wedge calibration question
+- SUB-F3 / TODO #13: Competitive kill-switch (Claude 5, Gemini 3, UI-TARS 2.0 release risk)
+- SUB-F4: QA reframing opportunity — 10x audience pivot
+- SUB-F5: Alternative analysis (Mineflayer+SMAPI, Anthropic Computer Use) under-evaluated
+- SUB-F8: **Career alignment** — GameMind vs audit-automation same-architecture-different-domain — highest-priority Sean-level decision
+- SUB-F9 / TODO #14: No-progress kill clause (2-week tripwire)
+
+**No User Challenge triggers** — no finding where BOTH models agreed Sean's stated direction should change. All strategic dissent came from the subagent only, which means Sean's direction stands unless he revisits.
+
+### 10.9.C Review Scores
+
+| Phase | Claude score | Subagent score | Consensus |
+|---|---|---|---|
+| Phase 1 CEO | 6 premises accepted, 4 cherry-picks | 10 findings (2 CRIT strategic + 3 CONFIRMED eng + 5 SUB-ONLY) | 0/6 confirmed |
+| Phase 2 Design | SKIPPED (no UI) | — | N/A |
+| Phase 3 Eng | 4/4 mandatory outputs produced | 15 findings (3 CRIT + 6 HIGH + 4 MED + 2 LOW), all 15 applied as Amendments A1-A15 | 6/6 confirmed (partial, ~1pt delta) |
+| Phase 3.5 DX | Overall v1 6.6/10 → moderated 5.4/10 | Overall v1 4.5/10 | 3/8 confirmed |
+
+**Cross-phase themes** (flagged in 2+ phases' dual voices independently):
+1. **schema_version field missing** — flagged in Phase 1 (FINDING A1), Phase 3 (Amendment A1), Phase 3.5 (DX-SUB-1). High-confidence signal. **Applied as mandatory Phase C Step 3 scope.**
+2. **Error message quality gap** — flagged in Phase 1 §10.2.E, Phase 3 Amendment A8 (py-rejector fix), Phase 3.5 DX-SUB-2 (doctor --all + remediation text). High-confidence signal. **Applied as mandatory Phase C Step 1 scope.**
+3. **Replay harness complexity underestimated** — flagged in Phase 3 F5 (2x light estimate) and Phase 3.5 DX-SUB-3 (promote minimal version to Step 3). **Applied as split-row in Amendment A5.**
+
+### 10.9.D Suggested Next Action
+
+**Per autoplan workflow**: `/ship` to create the autoplan review PR, then `/land-and-deploy` to merge after CI. Under Sean's autonomous delegation, I will do:
+1. Commit Phase 4 completion to branch `chore/phase-c-autoplan-review`
+2. Push + create PR via `gh`
+3. Switch to new branch `feat/phase-c-step1-layer0-skeleton` off `main`
+4. Begin Phase C Step 1 build (package layout, errors.py, capture Protocol + stubs, daemon/main.py FastAPI skeleton, CLI entry point)
+5. Push intermediate commits so Sean has visible progress when he returns
+6. Open draft PR for Phase C Step 1 first-slice scaffold
+
+Phase C Step 1 full acceptance (Dead Cells DXGI smoke + live-perception spike + Minecraft doctor --capture) requires Sean's Windows desktop with running games — **impossible for Claude to complete autonomously**. Claude produces the code + tests + docs; Sean's first-return task is to run the doctor commands against real game windows and report.
+
+### 10.9.E Phase 4 Completion Summary
+
+```
++====================================================================+
+|               AUTOPLAN PHASE 4 — FINAL APPROVAL GATE                |
++====================================================================+
+| Status                     | AUTO-APPROVED (Sean delegation)       |
+| Total decisions            | 37 (30 auto + 7 sean-level surfaced)  |
+| Phase 1 CEO                | COMPLETE                               |
+| Phase 2 Design             | SKIPPED (no UI scope)                  |
+| Phase 3 Eng                | COMPLETE (15 amendments)               |
+| Phase 3.5 DX               | COMPLETE (17 checklist items)          |
+| Dual voices                | subagent-only mode (Codex unavail)    |
+| Cross-phase themes         | 3 (schema_version, errors, replay)    |
+| Effort envelope            | 223-339h (from 205-315h baseline)     |
+| Red line                   | 350h (unchanged)                      |
+| v1 DX overall              | 5.4/10 (acceptable, not best-in-class)|
+| Critical GAPs closed       | 7 via errors.py Step 1 mandatory      |
+| Amendments to apply        | A1-A15 at Phase C Step 0 docs-PR      |
+| Sean-level decisions       | 7 flagged (SUB-F1/2/4/5/8, A1, A2)    |
+| Next action                | Commit → push → PR → Phase C Step 1   |
+|                            | scaffold on feat/phase-c-step1-layer0 |
++====================================================================+
+```
+
+**Autoplan complete.** This document is frozen at this commit as the authoritative Phase C kickoff spec. Phase C Step 0 applies the 15 amendments as a subsequent docs-PR. Phase C Step 1 implementation begins on a new feature branch.
