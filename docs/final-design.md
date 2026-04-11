@@ -1,3 +1,4 @@
+<!-- /autoplan restore point: ~/.gstack/projects/SeanZhang02-gamemind/chore-phase-c-autoplan-review-autoplan-restore-20260411-133010.md -->
 # GameMind — Final Design Document
 
 **Status**: DRAFT COMPLETE (Phase B, architect deliverable, ready for parallel audit + `/plan-eng-review`)
@@ -219,8 +220,8 @@ The architecture has two inference engines (Layer 1 Qwen local + Layer 3 Claude 
 - Vision-researcher supplemental on 7B-for-planning: Orak shows 7B-class VLMs 20-40% vs Claude 4.5 60-80% on multi-step game planning (2-3x gap). Game-TARS needed 72B for 72% embodied. No published 7B agent completes comparable Minecraft tasks. **Claude is necessary for Layer 3 planning; Qwen is necessary for Layer 1 perception; both are required**.
 - Phase A research pack errors corrected: Orak's Claude 75.0 Minecraft score was TEXT-STATE, not vision. Claude-on-game-vision has no strong public benchmark. Hence SPIKE-0 gate.
 
-**Primary stack**: Qwen2.5-VL-7B (Apache 2.0, ~20GB VRAM BF16) on Ollama native Windows + Claude Sonnet 4.5/4.6 via OpenAI-compat backend.
-**Fallback stack** (if SPIKE-0 fails): UI-TARS-1.5-7B → GLM-4.6V-Flash (free tier) → Doubao-1.5-vision-pro API.
+**Primary stack** (post-Phase-C-0, amended 2026-04-11 by autoplan review §10.1.B P4): `qwen3-vl:8b-instruct-q4_K_M` on Ollama 0.13.1 native Windows + Claude Sonnet 4.5/4.6 via OpenAI-compat backend. Phase C-0 gate results locked this choice over the original Qwen2.5-VL-7B baseline: T1 block 83.3% vs 66.7%, T3 UI 100% vs 25%, T4 spatial 91.7% vs 75%, p90 1353ms vs 1256ms. See `phase-c-0/C0_CLOSEOUT.md` for the full comparison table. T2 hotbar OCR is non-blocking per the Layer 6 game-state-aware verification wedge (this doc §OQ-6). **Original baseline (superseded, historical only)**: Qwen2.5-VL-7B Apache 2.0 ~20GB VRAM BF16. Retained in Ollama registry for regression comparisons.
+**Fallback stack** (if in-service regression): `qwen3-vl:8b-thinking-q4_K_M` (already pulled as Ollama D2 fallback; **Phase-C-0 showed thinking variant p90 2100ms exceeds 1500ms gate — must run with `think: false` flag via Ollama API**, see `probe/client.py` `think=False` implementation). Further fallbacks if D2 also fails: UI-TARS-1.5-7B → GLM-4.6V-Flash (free tier) → Doubao-1.5-vision-pro API.
 **Gemini 2.5 Pro** reserved as secondary critic for hard cases, NOT as primary brain (cost-killer at $5.16/1K).
 
 ### OQ-2: Fork Cradle, learn from Cradle, or ignore Cradle?
@@ -557,8 +558,11 @@ Assumes Phase C-0 passes. If it fails, replace with the selected descope branch.
 - `gamemind doctor --capture` on a running **exclusive-fullscreen Dead Cells** session prints `{wgc_ok: false_or_black, dxgi_ok: true, selected: "DXGIBackend", sample_frame: <path>, variance: 0.61}` and writes a PNG that visibly contains the Dead Cells frame (this is the DXGI fallback smoke test task #13 — a HARD gate on Step 1)
 - The selector auto-fails-over without human intervention when WGC returns black frames
 - `gamemind daemon stop` terminates without zombie processes
+- **`gamemind doctor --live-perception` live 2-3 Hz spike (added 2026-04-11 by autoplan review §10.1.B P2 mitigation)**: runs a 60-second continuous capture + perception loop against a windowed Minecraft Java session at 2-3 Hz using `qwen3-vl:8b-instruct-q4_K_M` via Ollama + the `probe/tasks.py` T1 block prompt, and reports: (a) end-to-end tick duration p50/p90/p99 including capture + encode + inference + parse, (b) backlog metric (frames dropped vs processed when inference slower than tick interval), (c) JSON parse reliability across ≥120 ticks, (d) `<think>` tag leak count. This is the first validation that the Phase C-0 static-fixture PASS generalizes to live streams. **Acceptance gate**: end-to-end p90 ≤ 1500ms AND backlog drop rate ≤ 10% AND JSON parse ≥95%. Failure here is a P2-premise-violation signal; selection path is (i) re-run with prompt trimming to reduce input tokens, (ii) drop target Hz to 1.5 Hz, (iii) escalate to D1-D2 fallback chain from §5 before continuing to Step 2. This spike is mandatory gate for Step 1 completion, not optional.
 
 **Why Dead Cells specifically**: Sean owns Dead Cells on Steam (confirmed 2026-04-10). It runs exclusive-fullscreen by default on Steam, which is the harder case for screen capture libraries. If DXGI backend works on Dead Cells, we have high confidence it will work on any exclusive-fullscreen indie game. If Step 1 passes Minecraft but NOT Dead Cells, that's a Layer 0 bug and Step 1 is not done.
+
+**Why the live-perception spike**: Phase C-0 validated perception on 18 curated static screenshots. The Phase C daemon will run perception continuously at 2-3 Hz against live gameplay with motion, weather, rapid state changes, and latency budgets that stack against a 400-500ms tick. The live spike de-risks the "static → live" generalization before integration code starts assuming a working perception loop. Without this spike, the first time we discover live latency problems is at Step 3 integration-time, where they blend into five other sources of bugs. With this spike, a live latency problem is a single-variable investigation.
 
 ### Step 2: Input backend + end-to-end "press W for 1 second" loopback test (~10-15 hours)
 
@@ -654,3 +658,76 @@ Neither item blocks `/plan-eng-review`. This document is READY for task #7.
 ---
 
 **Status**: DRAFT COMPLETE, all blocking stubs flipped. Ready to ship to `/plan-eng-review` (task #7) and to parallel audit by cradle-evaluator and adversarial-critic.
+
+---
+
+## 10. Phase C Autoplan Review (2026-04-11)
+
+**Reviewer**: Claude Opus 4.6 via gstack `/autoplan` v0.16.3.0 on branch `chore/phase-c-autoplan-review`.
+**Mode**: SELECTIVE EXPANSION (default for "feature enhancement / iteration on existing system"; the plan file itself is the target of review, not the source of a new feature). Full CEO + Eng + DX review chain. UI review skipped (no frontend scope).
+**Plan file under review**: this document (`docs/final-design.md`), at commit `a1935e8` before autoplan edits.
+**Restore point**: `~/.gstack/projects/SeanZhang02-gamemind/chore-phase-c-autoplan-review-autoplan-restore-20260411-133010.md`
+
+### 10.0 Decision Audit Trail
+
+Every auto-decision is logged here. The two non-auto-decided gates are the Premise Gate (Phase 1 Step 0A) and the Final Approval Gate (Phase 4). Everything else uses the 6 autoplan principles.
+
+| # | Phase | Decision | Classification | Principle | Rationale | Rejected |
+|---|-------|----------|----------------|-----------|-----------|----------|
+| 1 | intake | UI scope = NO | mechanical | P3 pragmatic | 13 grep matches, all game-context (screen capture, component table); zero dev-UI framework terms | Phase 2 design-review skipped |
+| 2 | intake | DX scope = YES | mechanical | P1 completeness | 49 matches; GameMind is a framework developers install and integrate (YAML adapters + LLMBackend) | Phase 3.5 devex-review runs |
+| 3 | intake | Mode = SELECTIVE EXPANSION | mechanical | P6 bias to action | Plan is iteration on locked Phase B design, not greenfield; default per autoplan override table | EXPANSION (too aggressive for locked design) |
+
+---
+
+### 10.1 Phase 1: CEO Review
+
+#### 10.1.A — Pre-Review System Audit
+
+Raw findings before any review section runs:
+
+- **git log**: 2 commits on main (`64c0a42` initial phase-c-0 baseline, `a1935e8` chore: LICENSE/CONTRIBUTING/CODEOWNERS). No stash. Branch `chore/phase-c-autoplan-review` is the working branch for this review; changes to this document land via PR.
+- **TODOS.md**: does not exist. Phase C will create it.
+- **Phase C package**: `gamemind/` does not exist yet. Only `phase-c-0/` empirical gate work is in the tree (the probe harness is a regression-test asset, not the Phase C codebase).
+- **CI enforcement**: `.github/workflows/ci.yml` already has linter jobs for Design Rules 1, 2, and 3. Rule 1 excludes `probe/`; Rule 2 guards `phase-c/adapters/` (path doesn't exist yet); Rule 3 is scoped to `phase-c/`. Baseline commit passes CI. **Design Rules have day-1 CI teeth, not just documentation.**
+- **Probe harness code smell — doc-code divergence**:
+  - `phase-c-0/probe/client.py:22` — `DEFAULT_MODEL = "qwen2.5vl:7b"`
+  - `phase-c-0/probe/run.py:316-317` — CLI `--model` default is `client.DEFAULT_MODEL`
+  - C0_CLOSEOUT.md (2026-04-11) — **locked** model is `qwen3-vl:8b-instruct-q4_K_M`
+  - `docs/final-design.md §2 OQ-1` — "Primary stack: Qwen2.5-VL-7B"
+  - Impact: a Phase C implementer reading the design doc and lifting `probe/client.py` gets the OLD model unless they also read C0_CLOSEOUT. The probe harness was not updated after C-0 closure.
+- **Probe warmup Rule-3 risk**: `phase-c-0/probe/client.py:140-143` — warmup prompt hardcodes `"Minecraft first-person screenshot"`. This is allowed under CI Rule 3 scoping (`probe/` is excluded), but if the warmup code is lifted to `phase-c/perception/` as-is without generic rewrite, it tripping Rule 3. Noting as a LIFT-TIME risk, not a current violation.
+- **Tracked stubs from §9 still open**:
+  1. Rule 1 four-clause revised wording from cradle-evaluator (cosmetic; CI test is final)
+  2. §4.1 component table — architect-interpolation, not cradle-evaluator stress-tested breakdown
+  3. Task #15 adversarial-critic findings integration
+
+#### 10.1.B — Step 0A Premise Challenge
+
+The design doc stands on seven load-bearing premises. Evaluated below with evidence-for / evidence-against / honest-state. **Premises are the ONE autoplan question that is never auto-decided — the next step is the premise gate where you (Sean) confirm, challenge, or amend.**
+
+| P# | Premise | Load-bearing? | Honest state | Action |
+|----|---------|--------------|--------------|--------|
+| P1 | Two-game cross-transfer (Minecraft + Stardew) is the right minimum test of universality | YES | LOAD-BEARING, UNTESTED — Stardew has zero empirical grounding in the repo | Keep, but treat Stardew end-to-end (Step 5 in §6) as the actual universality gate, not "the second game after MC works" |
+| P2 | Phase C-0 static-screenshot PASS generalizes to continuous 2-3 Hz live perception | YES | UNVALIDATED — static fixtures ≠ live stream with motion, weather, rapid transitions; p90 1353ms vs 400-500ms tick budget | Recommend a live perception spike EARLY in Step 1/2, not deferred to Step 3 |
+| P3 | 205-315h effort estimate is real, not architect-interpolation | YES | DIRECTIONALLY SOUND, ±30% component uncertainty; §4.1 is architect-interpolation, tracked stub still open | Acknowledge component uncertainty; keep 350h red line as hard anchor |
+| P4 | Design doc §2 OQ-1 "Primary stack: Qwen2.5-VL-7B" is current | NO (but high-friction) | DOC-CODE DIVERGENCE — C-0 locked qwen3-vl:8b-instruct-q4_K_M, probe harness never updated | **Amend §2 OQ-1 + update `probe/client.py:22` BEFORE Phase C kickoff.** Small chore, high leverage |
+| P5 | Layer 6 YAML + runtime grounding wedge is architecturally superior to Cradle's hand-drawn coords | YES | SOUND REASONING, NEEDS EMPIRICAL CORROBORATION — Cradle code citation is concrete (basic_skills.py:16), but the "better than Cradle" claim is theoretical until Stardew works end-to-end | Keep, flag as "architectural bet pending Phase C Step 5 validation" |
+| P6 | Max Plan ~$100/mo envelope covers v1 personal-tool usage | Medium | MATH IS SOUND, RUNTIME VALIDATION NEEDED — depends on stuck detector behaving as specified; if W2 over-fires, budget explodes | Add Layer 2 stuck detector calibration to Step 3 acceptance (not just W1 task-start wake) |
+| P7 | Sean's 5-10 week / ~25h/week commitment is achievable | YES (schedule) | OUT OF REVIEW SCOPE — Sean's call | No change; sean checkpoints at 350h red line are the tripwire |
+
+**Inversion reflex (Munger)**: What would make us FAIL on this design?
+1. Stardew adapter takes 40 hours instead of 8 (universality claim dies; v2-T1 trigger unreachable).
+2. Live 2-3 Hz perception saturates at 1500ms p90 → daemon backs up, stuck detector fires, wake budget blows up.
+3. Cradle-evaluator's tracked stubs (§4.1 component table, Rule 1 prose) stay unresolved and §4.1 shows +40% when the real breakdown lands, pushing estimate past 350h red line before Phase C even starts.
+4. Doc-code divergence on model name (P4) causes a Phase C implementer to spend time debugging qwen2.5vl:7b on new hard fixtures before realizing qwen3-vl-8b-instruct is the locked choice.
+
+None of these are fatal individually; combined they're the "expensive Minecraft hack" failure mode Phase B was supposed to prevent. The live perception spike and the Stardew adapter are the two highest-leverage risk reductions.
+
+**Focus-as-subtraction (Jobs)**: What can we *cut* from the Phase C scope to protect the wedge?
+- Nothing in §6 Steps 1-3 is obviously cuttable — they're the minimum integration path.
+- Step 1 Dead Cells DXGI smoke test is the one that could arguably defer (Layer 0 fallback validation) if Steps 1-3 are otherwise on fire. Keeping it because it's the only test for exclusive-fullscreen capture, which is a real Layer 0 requirement.
+- Skill library (Layer 5) is deferred to Step 4 per §6 — correct.
+- `@tarko/agent-snapshot` replay harness deferred to Step 4 — correct.
+
+**Premise gate**: next AskUserQuestion.
