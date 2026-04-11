@@ -79,6 +79,32 @@ jobs:
       - name: Pytest smoke tests
         run: uv run pytest tests/ -v
 
+  phase-c-0-regression:
+    name: phase-c-0 probe regression (perception/adapter changes)
+    # Amendment A11 — runs only when a PR is labelled 'perception' or
+    # 'adapter'. ubuntu-latest cannot host Ollama Windows; this job is a
+    # placeholder until Sean provisions a self-hosted Windows runner.
+    # Enabling real execution is a 3-line change documented in the step.
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' &&
+      (contains(join(github.event.pull_request.labels.*.name, ','), 'perception') ||
+       contains(join(github.event.pull_request.labels.*.name, ','), 'adapter'))
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder — real probe run requires Windows self-hosted runner
+        run: |
+          echo "phase-c-0-regression is in placeholder mode."
+          echo "When a Windows self-hosted runner is available, this step runs:"
+          echo "  uv run python -m probe.run --model qwen3-vl:8b-instruct-q4_K_M"
+          echo "with gates T1>=50%, T3>=70%, T4>=70%, p90<=1500ms, JSON>=95%."
+          echo ""
+          echo "To enable:"
+          echo "  1. add self-hosted Windows runner labelled 'windows-ollama'"
+          echo "  2. change runs-on to '[self-hosted, windows-ollama]'"
+          echo "  3. replace this step with the real probe invocation"
+          exit 0
+
   design-rules:
     name: Three Design Rules enforcement
     runs-on: ubuntu-latest
