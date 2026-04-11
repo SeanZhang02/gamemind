@@ -58,6 +58,20 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--adapter", type=Path, required=True, help="Path to adapter YAML")
     run.add_argument("--task", type=str, required=True, help="Task description in natural language")
 
+    # adapter
+    adapter = sub.add_parser("adapter", help="Inspect or validate adapter YAML files")
+    adapter_sub = adapter.add_subparsers(dest="adapter_cmd", required=True)
+    adapter_validate = adapter_sub.add_parser(
+        "validate", help="Validate an adapter YAML against the pydantic schema"
+    )
+    adapter_validate.add_argument("path", type=Path, help="Path to adapter YAML file")
+    adapter_validate.add_argument(
+        "--adapters-root",
+        type=Path,
+        default=None,
+        help="Directory adapters must live under (default: ./adapters)",
+    )
+
     return parser
 
 
@@ -220,6 +234,56 @@ def _cmd_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_adapter(args: argparse.Namespace) -> int:
+    """Handle `gamemind adapter <subcommand>`."""
+    if args.adapter_cmd == "validate":
+        return _cmd_adapter_validate(args.path, args.adapters_root)
+    return 2
+
+
+def _cmd_adapter_validate(path: Path, adapters_root: Path | None) -> int:
+    """Run `gamemind.adapter.loader.validate()` and print results.
+
+    Exit codes:
+      0 — valid, no errors
+      1 — invalid, errors printed
+      2 — file not found
+    """
+    # Late import so `gamemind --version` doesn't pull in pydantic/yaml
+    from gamemind.adapter.loader import load, validate  # noqa: PLC0415
+
+    if not path.exists():
+        print(f"[gamemind adapter validate] file not found: {path}")
+        return 2
+
+    errors = validate(path, adapters_root=adapters_root)
+    if not errors:
+        # Re-load to surface the actual model (for display)
+        try:
+            adapter = load(path, adapters_root=adapters_root)
+        except Exception as exc:  # noqa: BLE001
+            # validate() returned OK but load() raised — shouldn't happen,
+            # but keep the CLI robust.
+            print(f"[gamemind adapter validate] internal error: {exc}")
+            return 1
+        print(f"[gamemind adapter validate] OK: {path}")
+        print(f"  display_name:    {adapter.display_name}")
+        print(f"  schema_version:  {adapter.schema_version}")
+        print(f"  actions:         {len(adapter.actions)} bindings")
+        print(f"  goal_grammars:   {len(adapter.goal_grammars)} task templates")
+        print(f"  world_facts:     {len(adapter.world_facts)} entries")
+        print(f"  perception.hz:   {adapter.perception.tick_hz}")
+        print(f"  freshness_ms:    {adapter.perception.freshness_budget_ms}")
+        goal_names = ", ".join(sorted(adapter.goal_grammars.keys()))
+        print(f"  goals:           {goal_names}")
+        return 0
+
+    print(f"[gamemind adapter validate] FAILED: {path}")
+    for i, err in enumerate(errors, start=1):
+        print(f"  [{i}] {err}")
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -229,6 +293,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_doctor(args)
     if args.command == "run":
         return _cmd_run(args)
+    if args.command == "adapter":
+        return _cmd_adapter(args)
     parser.print_help()
     return 0
 
