@@ -17,6 +17,7 @@ Subcommand map:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -60,34 +61,126 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _cmd_daemon_start(daemon_host: str, daemon_port: int) -> int:
+    """Acquire PID file, bind uvicorn, release PID on shutdown.
+
+    Per Amendment A3: bind ONLY to 127.0.0.1. Never 0.0.0.0. The host
+    arg exists only to support tests that want a non-default loopback
+    port — all production starts hit 127.0.0.1:8766.
+    """
+    # Late imports so `gamemind --version` doesn't pull in uvicorn/anthropic.
+    import atexit  # noqa: PLC0415
+
+    import uvicorn  # noqa: PLC0415
+
+    from gamemind.daemon.main import app  # noqa: PLC0415
+    from gamemind.daemon.pid import acquire_pid_file, release_pid_file  # noqa: PLC0415
+
+    try:
+        pid_file = acquire_pid_file()
+    except RuntimeError as exc:
+        print(f"[gamemind daemon start] refused: {exc}")
+        return 1
+
+    print(f"[gamemind daemon start] bound to http://{daemon_host}:{daemon_port}")
+    print(f"  pid={os.getpid()} pid_file={pid_file}")
+    print("  (Ctrl+C to stop; /healthz is unauthenticated, /v1/* requires bearer token)")
+
+    # Register cleanup BEFORE uvicorn.run so a Ctrl+C or uvicorn shutdown
+    # still releases the PID file.
+    atexit.register(release_pid_file)
+
+    try:
+        uvicorn.run(app, host=daemon_host, port=daemon_port, log_level="info")
+    finally:
+        # Belt-and-suspenders — atexit also runs, but explicit release
+        # here covers the non-exit-path case.
+        release_pid_file()
+
+    return 0
+
+
+def _cmd_daemon_status(daemon_host: str, daemon_port: int) -> int:
+    """Check daemon health via /healthz."""
+    import httpx  # noqa: PLC0415
+
+    from gamemind.daemon.pid import is_daemon_running, read_pid  # noqa: PLC0415
+
+    pid = read_pid()
+    running = is_daemon_running()
+    if pid is None:
+        print("[gamemind daemon status] DOWN (no PID file)")
+        return 1
+    if not running:
+        print(f"[gamemind daemon status] STALE PID {pid} (process not alive)")
+        return 1
+
+    # PID file says running — verify via /healthz for the full truth.
+    try:
+        response = httpx.get(f"http://{daemon_host}:{daemon_port}/healthz", timeout=2.0)
+        response.raise_for_status()
+        print(f"[gamemind daemon status] UP pid={pid}")
+        print(f"  {response.json()}")
+        return 0
+    except httpx.HTTPError as exc:
+        print(f"[gamemind daemon status] PID {pid} alive but /healthz unreachable: {exc}")
+        return 1
+
+
+def _cmd_daemon_stop(daemon_host: str, daemon_port: int) -> int:  # noqa: ARG001
+    """Signal the running daemon to shut down.
+
+    Step 1 iter-8 scope: on Unix, sends SIGTERM to the PID in the PID file.
+    On Windows, uses CTRL_BREAK_EVENT via os.kill. If neither works (rare),
+    asks the user to Ctrl+C the foreground process. Real graceful shutdown
+    via a POST /v1/daemon/stop endpoint is a later iter.
+    """
+    import contextlib  # noqa: PLC0415
+    import signal  # noqa: PLC0415
+
+    from gamemind.daemon.pid import (  # noqa: PLC0415
+        DEFAULT_PID_FILE,
+        is_process_alive,
+        read_pid,
+    )
+
+    pid = read_pid()
+    if pid is None:
+        print("[gamemind daemon stop] no PID file — daemon is not running")
+        return 0
+    if not is_process_alive(pid):
+        print(f"[gamemind daemon stop] stale PID {pid} — removing PID file")
+        with contextlib.suppress(OSError):
+            DEFAULT_PID_FILE.unlink()
+        return 0
+
+    try:
+        if sys.platform == "win32":
+            # Windows: CTRL_BREAK_EVENT works for console-attached processes.
+            # If uvicorn is running in the foreground, this triggers its
+            # graceful shutdown. SIGTERM isn't a real signal on Windows.
+            os.kill(pid, signal.CTRL_BREAK_EVENT)
+        else:
+            os.kill(pid, signal.SIGTERM)
+        print(f"[gamemind daemon stop] sent shutdown signal to pid={pid}")
+        return 0
+    except (OSError, PermissionError) as exc:
+        print(f"[gamemind daemon stop] failed to signal pid={pid}: {exc}")
+        print("  (if the daemon is running in the foreground, Ctrl+C it directly)")
+        return 1
+
+
 def _cmd_daemon(args: argparse.Namespace) -> int:
+    # Default to 127.0.0.1:8766 per Amendment A3.
+    daemon_host = "127.0.0.1"
+    daemon_port = 8766
+
     if args.daemon_cmd == "start":
-        # Late import so `gamemind --version` doesn't pull in uvicorn.
-        import uvicorn  # noqa: PLC0415
-
-        from gamemind.daemon.main import app  # noqa: PLC0415
-
-        # Per Amendment A3: bind ONLY to 127.0.0.1. Never 0.0.0.0.
-        print("[gamemind daemon start] binding to http://127.0.0.1:8766")
-        print("  (Ctrl+C to stop; /healthz is unauthenticated, /v1/* requires bearer token)")
-        uvicorn.run(app, host="127.0.0.1", port=8766, log_level="info")
-        return 0
+        return _cmd_daemon_start(daemon_host, daemon_port)
     if args.daemon_cmd == "status":
-        import httpx  # noqa: PLC0415
-
-        try:
-            response = httpx.get("http://127.0.0.1:8766/healthz", timeout=2.0)
-            response.raise_for_status()
-            print("[gamemind daemon status] UP:", response.json())
-            return 0
-        except httpx.HTTPError as exc:
-            print(f"[gamemind daemon status] DOWN: {exc}")
-            return 1
+        return _cmd_daemon_status(daemon_host, daemon_port)
     if args.daemon_cmd == "stop":
-        # Phase C Step 1 scaffold: no PID file yet, so stop is advisory.
-        # Real PID-file-based stop lands in the next commit on this branch.
-        print("[gamemind daemon stop] Ctrl+C the daemon process; PID-file stop in next commit")
-        return 0
+        return _cmd_daemon_stop(daemon_host, daemon_port)
     return 2
 
 
