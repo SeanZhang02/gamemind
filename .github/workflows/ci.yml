@@ -40,6 +40,45 @@ jobs:
           print('imports ok:', probe.client.__name__, probe.tasks.__name__, probe.run.__name__)
           "
 
+  gamemind-package:
+    name: gamemind package — lint, format, import & smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install gamemind
+        run: uv sync --extra dev
+
+      - name: Ruff lint
+        run: uv tool run ruff@latest check gamemind/ tests/
+
+      - name: Ruff format check
+        run: uv tool run ruff@latest format --check gamemind/ tests/
+
+      - name: Import check
+        run: |
+          uv run python -c "
+          import gamemind
+          from gamemind import errors
+          from gamemind.capture import CaptureBackend, CaptureResult
+          from gamemind.capture.wgc_backend import WGCBackend
+          from gamemind.capture.dxgi_backend import DXGIBackend
+          from gamemind.capture.selector import CaptureSelector
+          from gamemind.cli import main as cli_main
+          from gamemind.daemon.main import app
+          print('imports ok: gamemind', gamemind.__version__)
+          print('error classes:', len(errors.__all__))
+          print('routes:', [r.path for r in app.routes])
+          "
+
+      - name: Pytest smoke tests
+        run: uv run pytest tests/ -v
+
   design-rules:
     name: Three Design Rules enforcement
     runs-on: ubuntu-latest
@@ -49,12 +88,13 @@ jobs:
       - name: Rule 1 — no hand-authored mouse coordinates
         run: |
           # Search for literal integer mouse_move calls in any action-layer code.
-          # Allowed: probe/ (historical) and docs/ (descriptive).
-          # Disallowed: phase-c/ (future), action/, adapters/.
+          # Allowed: probe/ (historical), docs/ (descriptive), tests/ (mocks).
+          # Disallowed: gamemind/, phase-c/, action/, adapters/.
           MATCHES=$(grep -rE "mouse_move\s*\(\s*-?[0-9]+\s*,\s*-?[0-9]+\s*\)" \
             --include="*.py" \
             --exclude-dir=probe \
             --exclude-dir=docs \
+            --exclude-dir=tests \
             --exclude-dir=.venv \
             . 2>/dev/null || true)
           if [ -n "$MATCHES" ]; then
@@ -67,14 +107,16 @@ jobs:
       - name: Rule 2 — no per-game Python conditionals in Layer 6 adapters
         run: |
           # Adapters should be pure YAML. No Python files under adapters/.
-          if [ -d "phase-c/adapters" ]; then
-            PY_IN_ADAPTERS=$(find phase-c/adapters -name "*.py" 2>/dev/null || true)
-            if [ -n "$PY_IN_ADAPTERS" ]; then
-              echo "❌ Rule 2 violation — Python files in adapters/:"
-              echo "$PY_IN_ADAPTERS"
-              exit 1
+          for adapter_dir in gamemind/adapters phase-c/adapters adapters; do
+            if [ -d "$adapter_dir" ]; then
+              PY_IN_ADAPTERS=$(find "$adapter_dir" -name "*.py" 2>/dev/null || true)
+              if [ -n "$PY_IN_ADAPTERS" ]; then
+                echo "❌ Rule 2 violation — Python files in $adapter_dir:"
+                echo "$PY_IN_ADAPTERS"
+                exit 1
+              fi
             fi
-          fi
+          done
           # And no `if game ==` / `if self.game ==` branches anywhere.
           MATCHES=$(grep -rE 'if\s+(self\.)?game\s*==' \
             --include="*.py" \
@@ -93,16 +135,18 @@ jobs:
           # Scan for hardcoded game names in prompt string literals.
           # This is a heuristic: flag lines containing BOTH a game name AND a
           # prompt-shape indicator (prompt= / "You are looking at" / etc.)
-          # Allowed: probe/tasks.py (Minecraft-specific fallback, v0).
-          # Disallowed: phase-c/**/*.py prompts.
-          if [ -d "phase-c" ]; then
-            MATCHES=$(grep -rniE '(prompt\s*=|"You are looking at).*(minecraft|delta force|stardew|factorio)' \
-              --include="*.py" \
-              phase-c/ 2>/dev/null || true)
-            if [ -n "$MATCHES" ]; then
-              echo "❌ Rule 3 violation — hardcoded game names in phase-c/ prompts:"
-              echo "$MATCHES"
-              exit 1
+          # Allowed: probe/tasks.py (Minecraft-specific, v0 historical).
+          # Disallowed: gamemind/**/*.py prompts.
+          for src_dir in gamemind phase-c; do
+            if [ -d "$src_dir" ]; then
+              MATCHES=$(grep -rniE '(prompt\s*=|"You are looking at).*(minecraft|delta force|stardew|factorio|dead ?cells|vampire survivors)' \
+                --include="*.py" \
+                "$src_dir/" 2>/dev/null || true)
+              if [ -n "$MATCHES" ]; then
+                echo "❌ Rule 3 violation — hardcoded game names in $src_dir/ prompts:"
+                echo "$MATCHES"
+                exit 1
+              fi
             fi
-          fi
-          echo "✓ Rule 3 pass (scoped to phase-c/)"
+          done
+          echo "✓ Rule 3 pass (scoped to gamemind/ and phase-c/)"
