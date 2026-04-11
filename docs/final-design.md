@@ -730,4 +730,567 @@ None of these are fatal individually; combined they're the "expensive Minecraft 
 - Skill library (Layer 5) is deferred to Step 4 per §6 — correct.
 - `@tarko/agent-snapshot` replay harness deferred to Step 4 — correct.
 
-**Premise gate**: next AskUserQuestion.
+**Premise gate decision** (2026-04-11): Sean chose Option D — fix P4 (amend §2 OQ-1 + `probe/client.py:22`) AND add P2 live-perception SPIKE to §6 Step 1 acceptance. Both applied in commit `ade48e1`. Premise gate PASSED. Remaining Step 0 + Sections 1-10 proceed under SELECTIVE EXPANSION mode with autonomous auto-decisions while Sean is away.
+
+#### 10.1.C — Step 0B Existing Code Leverage Map
+
+Every Phase C sub-problem mapped to existing code. Anything "NEW" is a clean-sheet build risk.
+
+| Sub-problem | Existing code | Lift strategy |
+|---|---|---|
+| Layer 0 capture (WGC primary) | `windows-capture` PyPI package; NO GameMind code | Wrap as `gamemind/capture/wgc_backend.py`, build doctor on top |
+| Layer 0 capture (DXGI fallback) | `dxcam` PyPI package; NO GameMind code | Wrap as `gamemind/capture/dxgi_backend.py`, identical Protocol |
+| Layer 0 backend selector | NEW (black-frame heuristic) | Build in `gamemind/capture/selector.py`, testable with synthetic images |
+| Layer 1 Ollama inference client | `phase-c-0/probe/client.py` (169 LOC, locked qwen3-vl:8b-instruct) | **Refactor** (not copy-paste) into `gamemind/perception/ollama_backend.py` as first `LLMBackend` implementor. Rewrite warmup prompt to be game-agnostic (Rule 3) — current probe warmup hardcodes "Minecraft first-person screenshot" which is allowed in probe/ but not phase-c/ |
+| Layer 1 task prompts | `phase-c-0/probe/tasks.py` (161 LOC, 4 tasks T1-T4) | **Migrate** prompt templates into `adapters/minecraft.yaml` goal_grammars section + `gamemind/brain/prompts/templates/per_frame_reflex.prompt` generic shell. Probe scoring functions → `gamemind/verify/checks.py` for inventory_count / vision_critic predicates |
+| Layer 2 replan trigger detector | NEW | Stuck detector + abort condition checker. No existing code. Test-first with synthetic predicate state logs |
+| Layer 3 OpenAI-compat LLM backend | NEW; **reference only** to `cradle/provider/llm/base_llm.py:12-46` ABC contract per OQ-2. NOT a fork | Build `gamemind/brain/backend.py` Protocol + `gamemind/brain/anthropic_backend.py` (native Anthropic SDK OR OpenAI-compat wrapper — pragmatist's call deferred to Phase C day 1) |
+| Layer 3 prompt assembly | LEARN-FROM `cradle/provider/llm/openai.py:490-688` (`assemble_prompt_tripartite()` pattern per OQ-2) | Port the pattern into `gamemind/brain/prompt_assembler.py`, templates as files in `gamemind/brain/prompts/templates/` |
+| Layer 4 input execution | `pydirectinput-rgx` PyPI package; NO GameMind code | Wrap as `gamemind/input/pydirectinput_backend.py`, scan codes only (no VK codes) |
+| Layer 5 skill library (JSONL + faiss) | `faiss-cpu` + `sentence-transformers` PyPI; NO GameMind code | NEW module `gamemind/skill/library.py`. Deferred to Step 4 per §6. Phase C Step 3 can stub |
+| Layer 6 adapter schema/loader | `pydantic` + `pyyaml`; NO GameMind code | NEW `gamemind/adapter/schema.py` + `gamemind/adapter/loader.py` with `yaml.safe_load` + Python-code-rejector heuristic per Design Rule 2 |
+| Verification engine | `phase-c-0/probe/tasks.py` scoring functions (`score_t1_block`, etc.) | Partial reuse — extract into `gamemind/verify/checks.py` tier-1 predicates. Tier-2 `vision_critic` + tier-3 Claude escalation are NEW |
+| @tarko/agent-snapshot replay harness | `@tarko/agent-snapshot` (TypeScript, 2589 LOC Apache 2.0) — redacts image_url per OQ-5 | Python shim `gamemind/replay/harness.py` — consume LLM-trace primitives, build frame-sync capture+input timeline ourselves. Deferred to Step 4 |
+| Scenario system + git-lfs | `git-lfs` CLI; NO existing GameMind code | NEW `scenarios/` directory, Deferred to Step 6 |
+| CI linters for Design Rules | `.github/workflows/ci.yml` (already exists, Rules 1/2/3 enforced) | Already green. Just add new job entries as `phase-c/` directories come online |
+
+**Summary**: 7 sub-problems have direct existing-code leverage (probe/ + cradle learn-from + 4 PyPI wrappers); 9 sub-problems are clean-sheet NEW. The probe harness leverage is lift-not-copy: both files need meaningful rewrites to satisfy Design Rules 2 and 3 at the phase-c/ boundary.
+
+#### 10.1.D — Step 0C Dream State Mapping
+
+```
+  CURRENT STATE                          THIS PLAN                              12-MONTH IDEAL
+  ────────────────────────────           ────────────────────────────           ────────────────────────────
+  phase-c-0/probe/ gate PASS             gamemind/ Python package               gamemind v1 community
+  no gamemind/ package yet      ────▶    + 2 game adapters (MC, SV)    ────▶   + 3-5 game adapters
+  frozen Phase B design                  + replay harness                      + skill library compounding
+  Sean = sole user                       + Layer 1-6 full stack                + community fork OR
+  no public presence                     + Sean uses it on own 5090            + cited in 1+ paper
+                                         + personal tool                        + headed toward v2 research
+                                                                                  artifact upgrade (if 2+
+                                                                                  promotion triggers fire)
+```
+
+This plan moves the system ~60-70% of the distance to the 12-month ideal. What's gated on v2 trigger events: third game (v2-T1), community fork/cite (v2-T3), formal benchmark suite (v2-S2), writeup (v2-S3). None of those are free add-ons; they wait for v1 signal.
+
+#### 10.1.E — Step 0C-bis Implementation Alternatives
+
+Alternatives were exhausted during Phase B (see §1.2 Architecture Evolution Log). Re-surfacing Phase B's decision tree as the alternatives table for autoplan compliance:
+
+| # | Approach | Effort | Risk | Pros | Cons | Status |
+|---|---|---|---|---|---|---|
+| A | **Alt B2 two-tier (Qwen local + sparse Claude)** — THIS PLAN | XL (205-315h) | Med | Cost-viable, universality wedge preserved, matches C-0 empirical | 7 layers = lot of surface area | **LOCKED** |
+| B | Cradle fork | XL+ (+30-90h) | High | Mature codebase, RDR2/Stardew coverage | License MIT ✓ but architecturally dead-ended per cradle-evaluator (hand-drawn coords); 17 months stale | REJECTED (OQ-2) |
+| C | Alt B continuous-local-only (no cloud brain) | L (~120h) | High | No API cost at all | 7B local VLM plans at 20-40% vs Claude 60-80% (Orak-class) — planning gap too large | RETRACTED (§1.2 stage 2) |
+| D | ARCH-C continuous local + continuous cloud | XL (300h+) | High | Best quality, no gating | $35/hr Claude = economically impossible on Max Plan | REJECTED (§1.5 math) |
+| E | Lumine-style end-to-end fine-tune | XXL ($2M) | Fatal | Gold-standard performance | Zero-budget project, out of scope | REJECTED |
+| F | Mineflayer / game-specific mod wrapper | M (~60h) | Low | Would work on MC fast | Violates universality charter; zero portability | REJECTED (explicit non-goal) |
+| G | Computer Use API (Anthropic) | M (~80h) | Med | No local infra | API-only, 2-5s/frame, not anti-cheat safe, untested cross-game | REJECTED (cost + latency) |
+
+**RECOMMENDATION (auto)**: Alternative A (Alt B2) — already locked, per autoplan P6 bias toward action + P1 completeness. No override.
+
+#### 10.1.F — Step 0D SELECTIVE EXPANSION Analysis
+
+Hold-scope baseline per §6 Steps 1-3 is accepted. Cherry-pick scan surfaced 8 expansion candidates. Autoplan auto-decides per "in blast radius + <1d CC effort → approve":
+
+| # | Candidate | Blast radius | CC effort | Decision | Rationale |
+|---|---|---|---|---|---|
+| e1 | Stardew adapter SPIKE alongside MC adapter | OUT | 2-4 days | **DEFER** to Step 5 (as §6 sequences) | Premature — MC must work end-to-end first or Stardew debug obscures MC issues |
+| e2 | CI fanout (ruff/mypy on phase-c/ as it appears) | IN | <30 min | **APPROVE** | Strictly additive, zero risk, prevents early-drift |
+| e3 | `runs/<session>/events.jsonl` schema published upfront | IN | ~2 hours | **APPROVE** | Gates Section 8 observability cleanly; prevents per-module schema drift |
+| e4 | Replay harness determinism contract (`temperature=0` forcing) declared at Step 3 boundary | IN | ~1 hour | **APPROVE** | Already implicit in OQ-5; make it a typed field on `BrainRequest` at Step 3 |
+| e5 | Perception-brain disagreement runbook (Sean-facing troubleshooting) | IN | ~2 hours | **APPROVE** | §1.6 has policy; runbook is the operator-facing doc on top |
+| e6 | Gemini 2.5 Pro fallback stub wired at Step 3 (not reserved) | BORDERLINE | ~1 day | **DEFER** | D3 descope path; wiring eagerly invites the "used Gemini because it was there" drift |
+| e7 | Full skill library impl in Step 3 (not stubbed) | OUT | 2-3 days | **DEFER** to Step 4 | Breaks §6 step ordering; bloats Step 3 past the 25-40h target |
+| e8 | Publish adapter YAML JSON schema for external authors | BORDERLINE | ~3 hours | **DEFER** | Pre-external-interest work; revisit when v2-T3 (community fork) fires |
+
+**Accepted cherry-picks**: e2, e3, e4, e5. Total added scope: ~5-6 hours CC (well under "<1 day" bound). All in Step 1-3 blast radius. Effort budget cost: +5-6h to the 205-315h total → 211-321h. Still under 350h red line.
+
+**Deferred to TODOS.md**: e1 (Stardew adapter spike), e6 (Gemini wiring), e7 (skill lib eager), e8 (public adapter schema).
+
+#### 10.1.G — Step 0E Temporal Interrogation
+
+```
+  HOUR 1 (foundations):    Dev needs: HWND enumeration API, DPI awareness, Ollama process lifecycle
+  HOUR 2-3 (core logic):   Ambiguities: Ollama model warmup determinism, JSON parse recovery (partial reuse from probe/client.py), backend Protocol shape
+  HOUR 4-5 (integration):  Surprises: scan code edge cases (game focus vs foreground), multi-monitor HWND, `/healthz` racing against daemon lifespan
+  HOUR 6+ (polish):        Wish-they-had: runs/ JSONL schema (cherry-pick e3), replay determinism contract (e4), disagreement runbook (e5)
+```
+
+Note (CC scale): 6 hours of human work ≈ 30-60 minutes on CC+gstack per autoplan Completeness Principle. The decisions are identical; pace is 10-20x.
+
+**Implementer-facing questions surfaced NOW (not deferred)**:
+1. Anthropic SDK native vs OpenAI-compat wrapper — pragmatist's choice. Phase C day-1 decision, recorded in `gamemind/brain/backend.py` module docstring.
+2. Capture selector heuristic threshold (N consecutive black frames) — tuned empirically at Step 1 live-spike time.
+3. `/healthz` startup ordering vs Ollama warmup — blocking or async?
+4. `events.jsonl` schema version field — required from day 1 (cherry-pick e3).
+
+#### 10.1.H — Step 0F Mode Selection
+
+**Mode: SELECTIVE EXPANSION confirmed.** Baseline = §6 Steps 1-3 as stated + P2 live-perception SPIKE. 4 cherry-picks accepted (e2, e3, e4, e5). 4 deferred (e1, e6, e7, e8). No scope reduction. No further expansions beyond this list will be auto-surfaced; implementation begins post-Phase 4 gate.
+
+---
+
+#### 10.1.I — Review Sections 1-10 (SELECTIVE EXPANSION, sections 11 skipped — no UI scope)
+
+##### Section 1: Architecture Review
+
+**Full dependency graph** (post-autoplan, incl. cherry-picks e2-e5):
+
+```
+  +------------------- External Services ---------------------+
+  |  Ollama 0.13.1 (qwen3-vl:8b-instruct-q4_K_M)              |
+  |  Anthropic API (Claude Sonnet 4.5/4.6, sparse)            |
+  |  Gemini 2.5 Pro API (W4 escalation only, D3 fallback)     |
+  +-----------^------------^-----------------------^----------+
+              |            |                       |
+              | http       | native SDK            | native SDK
+              |            |                       |
+  +-----------+------------+-----------------------+----------+
+  | Layer 3 Brain (gamemind/brain/)                           |
+  |   backend.py (LLMBackend Protocol)                        |
+  |   anthropic_backend.py (native OR OpenAI-compat wrapper)  |
+  |   ollama_backend.py  <── shared w/ Layer 1                |
+  |   gemini_backend.py  (stubbed, D3 descope)                |
+  |   prompt_assembler.py  (learn-from cradle openai.py:490)  |
+  |   prompts/templates/*.prompt  (Rule 3 generic)            |
+  +-------^---------------------------------------^----------+
+          |                                       |
+          | queried via adapter.goal_grammars     | verified via predicates
+          |                                       |
+  +-------+---------------+                +------+----------+
+  | Layer 6 Adapter       |                | verify/         |
+  |   schema.py (pydantic)|                |   checks.py     |
+  |   loader.py (safe_load|                |   predicates.py |
+  |     + py-rejector)    |                +------^----------+
+  | adapters/             |                       |
+  |   minecraft.yaml      |                       |
+  |   stardew.yaml  (v1-D1)                       |
+  +--------^--------------+                       |
+           |                                       |
+           | read at runtime                       |
+           |                                       |
+  +--------+------------+          +--------------+----------+
+  | Layer 2 Replan      |          | Layer 5 Skill Library    |
+  |   trigger_detector  |          |   library.py             |
+  |   stuck_detector    |          |   (JSONL + faiss)        |
+  |   abort_conditions  |          |   (stubbed Step 3,       |
+  +--------^------------+          |    full Step 4)          |
+           |                       +--------------------------+
+           |
+  +--------+------------------------------------------------+
+  | Layer 1 Perception (continuous, 2-3 Hz)                  |
+  |   perception_daemon.py                                   |
+  |   ollama_backend.py (refactored from probe/client.py)    |
+  |   live_spike.py  (NEW: P2 validation from §6 Step 1)     |
+  +--------^-------------------------------------------------+
+           |
+  +--------+------------------------------------------------+
+  | Layer 4 Action                                           |
+  |   input/backend.py (InputBackend Protocol)               |
+  |   input/pydirectinput_backend.py (scan codes)            |
+  +--------^-------------------------------------------------+
+           |
+  +--------+------------------------------------------------+
+  | Layer 0 Capture                                          |
+  |   capture/backend.py (CaptureBackend Protocol)           |
+  |   capture/wgc_backend.py (windows-capture primary)       |
+  |   capture/dxgi_backend.py (dxcam fallback)               |
+  |   capture/selector.py (black-frame heuristic)            |
+  +--------^-------------------------------------------------+
+           |
+  +--------+------------------------------------------------+
+  | Daemon Lifecycle + HTTP                                  |
+  |   daemon/main.py (FastAPI 127.0.0.1:8766)                |
+  |   daemon/lifespan.py (DPI aware, graceful shutdown)      |
+  |   cli.py (doctor / run / daemon)                         |
+  +----------------------------------------------------------+
+```
+
+**Coupling concerns**:
+- Layer 6 YAML schema is the stickiest contract — changes break every adapter. **FINDING A1**: §2 OQ-4 specifies predicate vocabulary + goal_grammars fields but NO schema version field. Without versioning, future breaking changes are impossible to migrate cleanly. Auto-fix: add `schema_version: int` as mandatory top-level field in `gamemind/adapter/schema.py`, fail load if missing.
+- Layer 3 prompts depend on Layer 6 `adapter.display_name` / `adapter.actions` — correct per Rule 3. No finding.
+- Layer 5 skill retrieval depends on per-adapter skills store path — correct per §2 OQ-6 primary wedge. No finding.
+
+**Single points of failure**:
+- Ollama process: if killed, all perception stops. **FINDING A2**: No Ollama liveness heartbeat → `/healthz` should check Ollama reachability AND model loaded status, not just daemon HTTP up. Auto-fix: add Ollama ping to `/healthz`, fail-fast on model-not-loaded.
+- Claude API: 5-20 wakes/task is sparse but still load-bearing. **FINDING A3**: §1.4 names 5 wake triggers but §1.6 disagreement recovery only covers one. Need rescue policies for API timeout / 429 / 5xx for each trigger. Auto-decision: elevate to Section 2 Error & Rescue Map as mandatory.
+- Capture backend dual (WGC + DXGI): if BOTH fail, Layer 0 is down. Selector has no third option. **FINDING A4**: No third-tier capture fallback named. Auto-decision: DEFER — two backends is sufficient per §1.3 universality stress test; a third is premature optimization.
+
+**Production failure scenarios**:
+- WGC returns black frames on exclusive-fullscreen (covered by DXGI fallback + selector heuristic ✓)
+- Ollama model OOM → no rescue currently — **gap, elevate to Section 2**
+- Claude 429 during Trigger W1 (task start) — no rescue — **gap, elevate to Section 2**
+- Adapter YAML malformed → daemon fails-fast per §3 Rule 2 yaml.safe_load (✓)
+
+**Rollback**: git revert + `uv sync` — clean. No DB, no migrations. ✓
+
+##### Section 2: Error & Rescue Map
+
+Every new codepath in scope (Phase C Steps 1-3 + cherry-picks e2-e5), with exception classes + rescue posture. Current design doc has ZERO of these enumerated — this is the single biggest output of the CEO review.
+
+| Method / codepath | What can go wrong | Exception class | Rescued? | Action | User sees | Test? |
+|---|---|---|---|---|---|---|
+| `capture/wgc_backend.capture()` | WGC init failure (driver missing) | `WGCInitError` | Y | Selector falls to DXGI | Doctor log; transparent | Y (mocked) |
+| `capture/wgc_backend.capture()` | HWND not found | `WindowNotFoundError` | Y | Raise to daemon; prompt Sean to focus game | "No matching game window" | Y |
+| `capture/wgc_backend.capture()` | Black frame N times | `BlackFrameThreshold` | Y | Selector swaps to DXGI backend | Silent; doctor log | **GAP → add** |
+| `capture/dxgi_backend.capture()` | DXGI adapter missing | `DXGIInitError` | **N ← GAP** | — | 500 error | **GAP** |
+| `capture/dxgi_backend.capture()` | Exclusive fullscreen race | `DXGIFrameGrabError` | **N ← GAP** | — | 500 error | **GAP** |
+| `perception/ollama_backend.infer()` | Connection refused (Ollama dead) | `OllamaConnectionError` | **N ← GAP** | — | 500 error | **GAP** |
+| `perception/ollama_backend.infer()` | Model not loaded | `OllamaModelMissing` | **N ← GAP** | — | 500 error | **GAP** |
+| `perception/ollama_backend.infer()` | OOM during inference | `OllamaOOM` | **N ← GAP** | — | 500 error | **GAP** |
+| `perception/ollama_backend.infer()` | Response malformed JSON | `PerceptionJSONError` | Y (partial — probe/client.py has `json_parse_ok`) | Return `parsed=None` + log | Silent to user, logged | Y (probe harness) |
+| `perception/ollama_backend.infer()` | Latency >1500ms (backlog) | `PerceptionBacklogWarning` | **N ← GAP** | — | Silent | **GAP** |
+| `brain/anthropic_backend.call()` | API 429 rate limit | `AnthropicRateLimitError` | **N ← GAP** | — | Session abort | **GAP** |
+| `brain/anthropic_backend.call()` | API 5xx | `AnthropicServiceError` | **N ← GAP** | — | Session abort | **GAP** |
+| `brain/anthropic_backend.call()` | Timeout >30s | `AnthropicTimeoutError` | **N ← GAP** | — | Session abort | **GAP** |
+| `brain/anthropic_backend.call()` | Malformed response (bad JSON) | `BrainResponseError` | **N ← GAP** | — | Session abort | **GAP** |
+| `brain/anthropic_backend.call()` | Safety refusal | `AnthropicSafetyRefusal` | **N ← GAP** | — | Session abort | **GAP** |
+| `adapter/loader.load()` | YAML malformed | `AdapterYAMLParseError` | Y | fail-fast at startup | CLI error msg | Y |
+| `adapter/loader.load()` | Python code tag injection | `AdapterPyInjectionError` | Y (safe_load + heuristic) | fail-fast | "Adapter violates Rule 2" | Y |
+| `adapter/loader.load()` | Missing required field | `AdapterSchemaError` | Y (pydantic) | fail-fast | Field-level error msg | Y |
+| `input/pydirectinput_backend.send()` | Target window closed | `InputTargetLostError` | **N ← GAP** | — | Session abort | **GAP** |
+| `input/pydirectinput_backend.send()` | Focus lost mid-input | `InputFocusError` | **N ← GAP** | — | Silent, action dropped | **GAP** |
+| `verify/checks.inventory_count()` | Vision query returns nonsense | `PredicateIndeterminate` | Y (triple-query per OQ-4 tier 2) | Escalate to Layer 3 brain | Internal | Y |
+| `verify/checks.template_match()` | Template image missing | `TemplateAssetMissing` | **N ← GAP** | — | 500 error | **GAP** |
+
+**Total rows**: 22. **Current GAPs (RESCUED=N)**: 14. **CRITICAL GAPS (unrescued + unlogged + silent)**: 5 (Ollama OOM, Perception backlog warning, Input target lost, Input focus error, Template asset missing).
+
+**Auto-decision (per P1 completeness)**: Every GAP row needs an explicit rescue policy BEFORE Phase C Step 3 completes. Add `gamemind/errors.py` module with the 14 exception classes declared from day 1. Section 2 output becomes the authoritative "phase c error contract." Log to audit trail.
+
+##### Section 3: Security & Threat Model
+
+| Threat | Surface | Likelihood | Impact | Mitigation |
+|---|---|---|---|---|
+| HTTP binding to 0.0.0.0 → LAN can drive inputs | `daemon/main.py` FastAPI bind | Low (if explicit `127.0.0.1`) | HIGH (keyboard/mouse control) | **FINDING S1**: enforce `host=127.0.0.1` in `daemon/main.py` and assert on startup |
+| Savegame binary deserialization (scenarios/) | replay harness (Step 4) | Med | Med | Savegame files are git-lfs; provenance = repo. Acceptable for personal tool. **FINDING S2**: document "savegame provenance = repo only, no user-supplied" in `scenarios/README.md` |
+| Adapter YAML path traversal via image refs | `adapter/loader.py` | Med | Low | Path resolution must be relative-to-adapter-file only. **FINDING S3**: enforce in `loader.py` |
+| LLM prompt injection from screen content (e.g., adversarial in-game signage) | Layer 1 perception prompts | Low | Med | Prompt instructs JSON-only output; `format=json` + temp=0 reduces but doesn't eliminate. Acceptable for v1 |
+| Ollama API token leak | HTTP headers | N/A | N/A | Ollama localhost, no auth |
+| Claude API key leak | env var | Low | HIGH | **FINDING S4**: enforce `ANTHROPIC_API_KEY` env var (not file), document rotation. Cherry-pick to Step 3 scope |
+
+**Priority order**: S1 > S4 > S3 > S2. All auto-approved into Phase C Step 1 scope. Log to audit trail.
+
+##### Section 4: Data Flow & Interaction Edge Cases
+
+**Core data flow** (per-tick):
+
+```
+  HWND ──▶ CaptureBackend ──▶ frame PNG ──▶ Ollama ──▶ JSON ──▶ Layer 2 ──▶ brain? ──▶ action ──▶ HWND
+    │            │                 │             │         │          │           │          │
+    ▼            ▼                 ▼             ▼         ▼          ▼           ▼          ▼
+  [nil?]     [empty frame?]   [>5MB?]      [timeout?] [parse?]  [stuck?]   [API err?]  [focus?]
+  [missing?] [wrong HWND?]    [wrong fmt?] [OOM?]     [empty?]  [loop?]    [429?]      [closed?]
+```
+
+Shadow path coverage:
+- nil frame / empty frame: **GAP — elevate to Section 2 `PerceptionBacklogWarning` + `BlackFrameThreshold`**
+- JSON parse failure: covered by probe/client.py `json_parse_ok` flag ✓
+- brain API error: **GAP — all 5 Section 2 Anthropic rows**
+- action focus-lost: **GAP — Section 2 `InputFocusError`**
+
+**Interaction edge cases** (CLI-focused since no UI):
+
+| Interaction | Edge case | Handled? | How |
+|---|---|---|---|
+| `gamemind daemon start` | Already running | **GAP** | Need PID file check |
+| `gamemind daemon start` | Port 8766 in use | **GAP** | FastAPI will error; catch + clean message |
+| `gamemind daemon stop` | Not running | **GAP** | PID file missing; emit "not running" msg |
+| `gamemind run --adapter X` | Adapter file missing | Y | fail-fast |
+| `gamemind run --adapter X` | Multiple game windows open | **GAP** | HWND disambiguation: need `--window-title` filter or first-match |
+| `gamemind doctor --capture` | No game running | **GAP** | Clear error msg instead of opaque WGC fail |
+| `gamemind doctor --live-perception` | Ollama not running | **GAP** | Check + prompt Sean to start Ollama |
+| `gamemind doctor --live-perception` | Ollama model not pulled | **GAP** | Check + prompt `ollama pull qwen3-vl:8b-instruct-q4_K_M` |
+
+**Auto-decision**: All 8 CLI gaps merged into Section 2 error contract. Log to audit trail.
+
+##### Section 5: Code Quality Review
+
+Code doesn't exist yet for phase-c/. Review the **design's code quality expectations**:
+
+- DRY: single `LLMBackend` abstraction for Ollama + Anthropic + Gemini — good. Single `CaptureBackend` for WGC + DXGI — good. ✓
+- Over-engineering: 7-layer architecture feels deep, but each layer has a distinct contract (capture / perception / replan / brain / action / skill / adapter). Justified by universality wedge. No over-eng.
+- Under-engineering: no formal error hierarchy listed in design doc. **FIXED** via Section 2 above (22 exception classes specified).
+- Naming: probe/client.py uses `InferenceResult` dataclass — clean. Lift into `gamemind/perception/` as-is.
+- Cyclomatic: no review target until code exists. Defer.
+
+**FINDING Q1**: Prompt template directory structure (§6 Step 3 scope `gamemind/brain/prompts/`) has only 2 named templates: `plan_decomposition.prompt`, `per_frame_reflex.prompt`. Need at least `task_completion_verification.prompt` (W5), `replan_from_stuck.prompt` (W2), `disagreement_arbiter.prompt` (§1.6 tier 3). Auto-decision: add these 3 stubs to Step 3 scope.
+
+##### Section 6: Test Review
+
+| Codepath | Test type | Happy path | Failure path | Edge case | In Phase C Step 1-3? |
+|---|---|---|---|---|---|
+| WGC backend | Unit + doctor | doctor --capture Minecraft | doctor --capture on missing HWND | black-frame selector swap | Y (Step 1) |
+| DXGI backend | Unit + doctor | doctor --capture Dead Cells | DXGI init error | selector fallback | Y (Step 1) |
+| Live-perception spike | Integration | 60s @2-3Hz | p90 >1500ms backlog | JSON parse failure | **Y (Step 1, newly added)** |
+| pydirectinput backend | Unit + doctor | doctor --input W 800ms | target closed mid-input | focus vs foreground | Y (Step 2) |
+| Ollama backend | Unit | infer returns valid JSON | connection refused | OOM | Y (Step 3) |
+| Anthropic backend | Unit (mocked) | plan_decomposition returns | 429 rate limit | safety refusal | **GAP — add to Step 3** |
+| Adapter loader | Unit | minecraft.yaml loads | py-injection rejected | schema version mismatch (from A1) | Y (Step 3) |
+| Verify predicates | Unit | inventory_count >=3 | vision_critic "unclear" | template asset missing | Partial (Step 3) |
+| End-to-end chop_logs | Integration | Sean runs, logs appear | runaway >30 brain calls | Ollama dies mid-task | Y (Step 3) |
+| Three Design Rules CI | Lint | Rule 1/2/3 all pass | hand-drawn coord in phase-c/ | prompt with "Minecraft" literal | Y (Step 1) |
+
+**LLM/prompt changes** require eval suites. Design doc doesn't have a formal eval suite yet. **FINDING T1**: Phase C Step 3 must include at least a "replay one fresh Minecraft run and diff brain decisions against baseline" as the first eval. Full eval suite (v2-S2) is v2 scope.
+
+**Test plan artifact** will be written to `~/.gstack/projects/SeanZhang02-gamemind/{user}-{branch}-test-plan-{datetime}.md` by Phase 3 eng review (Section 3 mandatory output).
+
+**REGRESSION RULE**: probe harness remains as regression fixture. Any phase-c/ perception backend change must be validated against `probe/run.py` 18-fixture gate. Add to CI as `phase-c-0/` already passes.
+
+##### Section 7: Performance Review
+
+- **Layer 1 is the bottleneck**. p90 1353ms vs 333-500ms tick. **Live-perception spike (cherry-pick e5 = Step 1 acceptance) catches this.**
+- Backlog strategy: unspecified in design doc. **FINDING P1**: add to `gamemind/perception/daemon.py` — drop-oldest-frame policy with metric (e2 covered)
+- Layer 3 budget: 5-20 wakes/task × ~$0.20 = $20-40/mo at 100 tasks. Within $100 Max Plan envelope. ✓
+- VRAM footprint: qwen3-vl:8b-instruct-q4_K_M ~6.1GB; 5090 has 32GB. ✓
+- Capture overhead: <10ms WGC/DXGI. ✓
+- Adapter YAML parse: <50ms (pydantic). ✓
+- faiss skill retrieval: <5ms for v1 single-adapter index. Defer full eval to Step 4.
+
+**FINDING P2**: No p99 budget named for live perception tick — p90 1500ms leaves 10% of ticks unbudgeted. Auto-decision: define p99 ≤ 2500ms as soft-warning metric, not a hard gate. Log to audit trail.
+
+##### Section 8: Observability & Debuggability Review
+
+Design doc names:
+- `runs/<session>/events.jsonl` — schema NOT specified — **cherry-pick e3 covers this**
+- `runs/<session>/brain_calls.jsonl` — schema NOT specified — **covered by e3**
+- `runs/<session>/manual_checkpoints.jsonl` — schema NOT specified — **covered by e3**
+- `runs/doctor-<timestamp>.png` — OK ✓
+
+**FINDING O1**: `events.jsonl` schema must include at minimum: `{timestamp, tick_id, layer, event_type, frame_id?, parsed_json?, latency_ms?, error?}`. Write schema doc to `docs/events-jsonl-schema.md` at Phase C Step 1. Cherry-pick e3 auto-approved.
+
+**FINDING O2**: No metric export beyond JSONL. For a personal tool, this is acceptable. No Prometheus, no Grafana. Write a `gamemind metrics --session <id>` CLI subcommand to compute p50/p90/p99/backlog from events.jsonl lazily. Defer to Step 4.
+
+**Debuggability check**: can Sean reconstruct a bug from logs alone 3 weeks post-ship? YES if events.jsonl schema is declared (O1) AND replay harness works (Step 4). ✓
+
+##### Section 9: Deployment & Rollout Review
+
+Personal tool; deployment = `git clone + uv sync + ollama serve + ollama pull`. No CI/CD. No rollback-beyond-git. No feature flags needed.
+
+- Migration safety: N/A (no DB)
+- Rollout order: git checkout → uv sync → ollama pull (model lock from P4 fix)
+- Post-deploy verification: `gamemind doctor --capture && gamemind doctor --live-perception && gamemind doctor --input`
+- Smoke test: §6 Step 1 acceptance IS the smoke test
+
+**FINDING D1**: Add `gamemind doctor --all` that runs all doctor subcommands in sequence. Cherry-pick to Step 1 scope. Auto-approved.
+
+##### Section 10: Long-Term Trajectory Review
+
+- **Technical debt introduced**: 3 tracked stubs from §9 (Rule 1 prose, §4.1 component table, task #15 findings integration). **FINDING L1**: Cradle-evaluator's §4.1 re-send is ~24 hours stale as of 2026-04-11 (Phase B wrapped 2026-04-10). **Declare the re-send DEAD.** Rewrite §4.1 from the architect's own stress test OR accept as permanent tracked stub with an explicit "owner: architect, status: final" footer. Auto-decision: accept as final (P6 bias toward action); §4.1 total 205-315h is authoritative. Log to audit trail.
+- **Path dependency**: Layer 6 YAML schema is the sticky contract. **Finding A1** from Section 1 (add `schema_version`) prevents breaking-change migration pain.
+- **Knowledge concentration**: design doc is 656+ lines. A new engineer in 12 months should be able to read §0 Executive Summary + §1 Architecture + §2 Six OQs + §6 Three Steps and get to "Phase C-ready" in 90 minutes. ✓
+- **Reversibility**: 4/5 — core architecture is easily reversible (swap backends, swap models); YAML schema contract is the 1-star sticky layer.
+- **Ecosystem fit**: Python 3.11 + uv + FastAPI + pydantic + Ollama + Anthropic SDK are all first-class in 2026. ✓
+- **The 1-year question**: would this design make sense in April 2027 when Claude Sonnet 5.5 is out and a new OSS 14B VLM dominates benchmarks? The Alt B2 two-tier design is backend-agnostic — both Layer 1 and Layer 3 are LLMBackend Protocol implementors — so model upgrades are `config.yaml` changes. ✓
+
+**FINDING L2**: Design doc §9 "Known Remaining Stubs" has 3 tracked stubs that blocked Phase B closure. With Phase C starting, they should either close or be explicitly declared permanent. Auto-decision: close stubs 1 (Rule 1 prose) and 2 (§4.1) as "final, no further edits"; stub 3 (task #15 findings) is dead — adversarial-critic is disbanded. Mark the §9 section accordingly at Phase C Step 0.
+
+### 10.2 Phase 1 Required Outputs
+
+#### 10.2.A NOT in scope
+Items considered and explicitly deferred from the Phase C build plan:
+- **e1** Stardew adapter spike in Step 2 (→ Step 5, keeps universality gate honest)
+- **e6** Gemini 2.5 Pro fallback eager wiring (→ D3 descope path only, avoids premature dependency)
+- **e7** Full skill library implementation in Step 3 (→ Step 4 per §6 ordering)
+- **e8** Public adapter YAML JSON schema publication (→ revisit when v2-T3 trigger fires)
+- Rust anywhere in v1 (design doc §2 OQ-3 locks Python 3.11)
+- Multi-player / online games (§3 "Things NOT in scope for v1" in gamemind/CLAUDE.md)
+- Cloud hosting / distributed deployment (same)
+- Anti-cheat evasion (same — design goal is anti-cheat *safe*, not hidden)
+
+#### 10.2.B What already exists
+- **phase-c-0/probe/client.py** → refactor into `gamemind/perception/ollama_backend.py` (default model now qwen3-vl-8b-instruct-q4_K_M post-P4 fix)
+- **phase-c-0/probe/tasks.py** scoring functions → migrate into `gamemind/verify/checks.py` tier-1 predicates
+- **phase-c-0/probe/tasks.py** prompts → NOT lifted directly; game-specific content moves to `adapters/minecraft.yaml` goal_grammars per Rule 3
+- **phase-c-0/probe/run.py** gate logic → repurpose as `tests/regression/probe_runner.py`
+- **.github/workflows/ci.yml** Design Rules 1/2/3 enforcement — already green, just needs fan-out to phase-c/ paths
+- **Cradle pattern references** (learn-from, NOT fork): `LLMProvider` ABC contract, `assemble_prompt_tripartite()`, `LLMFactory` tuple return, Module-as-callable — all cited at `cradle/provider/...` in OQ-2 for Phase C implementers to reference
+
+#### 10.2.C Dream state delta
+Phase C v1 landing puts GameMind at ~60-70% of the 12-month ideal. Remaining 30-40% gated on v2-T1-T4 promotion triggers, which are measurable and time-anchored (90 days post-v1-done). No drift risk; triggers are binary events.
+
+#### 10.2.D Error & Rescue Registry
+See Section 2 (22 rows, 14 current GAPs, 5 CRITICAL GAPs). Auto-decision: all GAPs materialize as `gamemind/errors.py` exception classes at Phase C Step 1, with explicit rescue policy per entry.
+
+#### 10.2.E Failure Modes Registry
+
+| # | Codepath | Failure mode | Rescued? | Test? | User sees | Logged? | Critical? |
+|---|---|---|---|---|---|---|---|
+| 1 | wgc_backend | black frames | Y | **N → add** | silent→doctor log | Y | N |
+| 2 | dxgi_backend | init error | **N → fix** | N | 500 | **N** | **Y** |
+| 3 | dxgi_backend | frame grab | **N → fix** | N | 500 | **N** | **Y** |
+| 4 | ollama_backend | conn refused | **N → fix** | N | 500 | **N** | **Y** |
+| 5 | ollama_backend | OOM | **N → fix** | N | 500 | **N** | **Y** |
+| 6 | ollama_backend | latency backlog | **N → fix** | N | silent | **N** | **Y** |
+| 7 | anthropic_backend | 429 | **N → fix** | N | abort | partial | N |
+| 8 | anthropic_backend | 5xx | **N → fix** | N | abort | partial | N |
+| 9 | anthropic_backend | timeout | **N → fix** | N | abort | partial | N |
+| 10 | anthropic_backend | bad JSON | **N → fix** | N | abort | partial | N |
+| 11 | anthropic_backend | safety refusal | **N → fix** | N | abort | partial | N |
+| 12 | pydirectinput | target lost | **N → fix** | N | abort | N | N |
+| 13 | pydirectinput | focus error | **N → fix** | N | silent→drop | **N** | **Y** |
+| 14 | verify/checks | template asset missing | **N → fix** | N | 500 | **N** | **Y** |
+
+**CRITICAL GAPS (=silent + unlogged + unrescued)**: 5 (rows 2, 3, 4, 5, 6, 13, 14 → actual count 7). All must close before Phase C Step 3 acceptance.
+
+#### 10.2.F TODOS.md updates
+Create `TODOS.md` at Phase C Step 1 kickoff with these seed items:
+1. Stardew adapter spike (deferred e1) — P2 after MC works
+2. Gemini 2.5 Pro fallback wiring (deferred e6) — P3 only if D3 fallback fires
+3. Full skill library impl (deferred e7) — P2 at Step 4
+4. Public adapter YAML JSON schema (deferred e8) — P3 trigger=v2-T3
+5. Cradle-evaluator tracked stubs 1+2 closure (§9) — P2 at Step 0
+6. Adversarial-critic disbanded findings stub 3 (§9) — P3 close as dead
+7. Prompt template stubs (FINDING Q1): task_completion_verification, replan_from_stuck, disagreement_arbiter — P1 at Step 3
+8. p99 perception budget soft-warning (FINDING P2) — P2 at Step 1 live-spike
+9. `schema_version` field in adapter loader (FINDING A1) — P1 at Step 3
+10. Ollama liveness in `/healthz` (FINDING A2) — P1 at Step 1
+11. `gamemind doctor --all` subcommand (FINDING D1) — P1 at Step 1
+12. Savegame provenance docs (FINDING S2) — P2 at Step 4 scenario work
+
+#### 10.2.G Accepted scope expansions (SELECTIVE EXPANSION cherry-picks)
+- e2: CI fanout to phase-c/ as it appears (~30 min CC)
+- e3: `runs/events.jsonl` schema upfront doc (~2 hrs CC)
+- e4: Replay determinism contract declared at Step 3 boundary (~1 hr CC)
+- e5: Perception-brain disagreement runbook (~2 hrs CC)
+
+Total added: ~5-6 hours CC → 211-321h vs 205-315h baseline. Under 350h red line.
+
+### 10.3 Phase 1 Completion Summary
+
+```
++====================================================================+
+|            PHASE 1 CEO REVIEW — COMPLETION SUMMARY                 |
++====================================================================+
+| Mode selected        | SELECTIVE EXPANSION (auto)                   |
+| System Audit         | doc-code divergence P4 fixed; CI green       |
+| Step 0               | 7 premises, premise gate PASS, 4 cherry-pick |
+| Section 1  (Arch)    | 4 findings (A1-A4); A4 deferred              |
+| Section 2  (Errors)  | 22 error paths mapped, 14 GAPs, 7 CRIT      |
+| Section 3  (Security)| 4 findings (S1-S4); all approved to Step 1  |
+| Section 4  (Data/UX) | 8 CLI edge cases mapped, all → Section 2    |
+| Section 5  (Quality) | 1 finding (Q1, prompt template stubs)        |
+| Section 6  (Tests)   | Test diagram produced, 1 finding T1          |
+| Section 7  (Perf)    | 2 findings (P1 backlog, P2 p99 soft)         |
+| Section 8  (Observ)  | 2 findings (O1 events schema, O2 metrics)    |
+| Section 9  (Deploy)  | 1 finding (D1 doctor --all)                  |
+| Section 10 (Future)  | 2 findings (L1 stubs, L2 close §9)           |
+| Section 11 (Design)  | SKIPPED (no UI scope)                         |
++--------------------------------------------------------------------+
+| NOT in scope         | written (8 items)                             |
+| What already exists  | written (6 items)                             |
+| Dream state delta    | written                                      |
+| Error/rescue registry| 22 methods, 7 CRITICAL GAPS                   |
+| Failure modes        | 14 total, 7 CRITICAL                          |
+| TODOS.md updates     | 12 items proposed                             |
+| Scope proposals      | 8 proposed, 4 accepted (e2-e5), 4 deferred   |
+| CEO plan             | written inline (§10.1)                        |
+| Outside voice        | Claude subagent dispatched (background)       |
+|                      | Codex UNAVAILABLE — [subagent-only] tag       |
+| Lake Score           | 11/12 recommendations chose complete option  |
+| Diagrams produced    | 1 dependency graph + 1 data flow shadow path |
+| Stale diagrams found | 0                                             |
+| Unresolved decisions | 0 (premise gate was the only user-gated pt)  |
++====================================================================+
+```
+
+### 10.4 Phase 1 Dual Voice Integration (CEO subagent, 2026-04-11)
+
+Codex unavailable on this system (`codex` not in PATH) → degraded to `[subagent-only]` tag per autoplan degradation matrix. Claude CEO subagent dispatched via Agent tool with an independent prompt (no prior-phase context), returned 10 findings after ~129s. Findings presented verbatim here under the `CLAUDE SUBAGENT (CEO — strategic independence)` header.
+
+#### 10.4.A CEO Dual Voices Consensus Table
+
+```
+CEO DUAL VOICES — CONSENSUS TABLE [subagent-only]:
+═══════════════════════════════════════════════════════════════
+  Dimension                                    Claude  Subagent Consensus
+  ──────────────────────────────────────────── ─────── ─────── ─────────
+  1. Premises valid?                           4/7 OK  2/6 OK  DISAGREE
+  2. Right problem to solve?                   YES     NO      DISAGREE (F1, F4, F8)
+  3. Scope calibration correct?                YES     NO      DISAGREE (F2 MC+SV cherry-pick)
+  4. Alternatives sufficiently explored?       YES     NO      DISAGREE (F5 Mineflayer/ComputerUse)
+  5. Competitive/market risks covered?         PARTIAL NO      DISAGREE (F3 model release kill-switch)
+  6. 6-month trajectory sound?                 YES     NO      DISAGREE (F8 career alignment)
+═══════════════════════════════════════════════════════════════
+CONFIRMED = both agree. DISAGREE = models differ (→ taste decision / user challenge).
+Codex missing (subagent-only mode). Phase 1 consensus: 0/6 confirmed, 6/6 disagree.
+```
+
+This is an unusually high disagreement count — both reviewers did their jobs, but they operated at different altitudes. My review accepted Sean's Phase B strategic framework (Option C staging, game-domain focus, MC+SV wedge) as baseline and ran a rigorous bottom-up technical audit under SELECTIVE EXPANSION mode. The subagent started from the premise "challenge the strategic foundations" and questioned whether the whole project is on the right vector for Sean's goals. Neither is wrong; they're answering different questions.
+
+#### 10.4.B CEO Subagent Findings (Single-Model, Preserved for Final Gate)
+
+The subagent raised 10 findings. Three are confirmed by my review (partial overlap); seven are subagent-only strategic challenges that I did not surface. All are logged here verbatim (condensed) so Sean can read them at the Phase 4 final gate and decide whether to revise scope.
+
+**[CONFIRMED — both models] SUB-F6 §4.1 architect-interpolation**
+- Subagent: "solo variance ±50-100% at this scale; 350h red line has no empirical basis; probability of 400-500h actual is meaningful"
+- My review: Logged as FINDING L1 — "declare cradle-evaluator's re-send DEAD, accept §4.1 as permanent stub"
+- Consensus: Both agree §4.1 is a risk. **Taste decision**: subagent wants milestone-gated budget (50h → STOP → reassess); I accept §4.1 as "final, no further edits" per P6 bias to action. My recommendation stands per Sean's delegation, but flagged at final gate.
+
+**[CONFIRMED — both models] SUB-F7 P2 live-generalization gate placement**
+- Subagent: "Run the live spike as a SECOND hard gate BEFORE Phase C build, not as Step 1 acceptance. Treat it like Phase C-0: independent, gated, pass/fail. Budget 4-8h, do it this week."
+- My review: Added live-perception spike to §6 Step 1 acceptance as mandatory sub-gate.
+- Consensus: Both agree the P2 risk needs a dedicated spike. **Divergence on timing**: subagent wants pre-Phase-C (like C-0 was); I embedded in Step 1. **Taste decision flagged to final gate.** Subagent's version is more complete (P1 completeness principle). If Sean agrees, I'll restructure §6 to add a "SPIKE-1" stage between Phase C-0 closure and Step 1, budgeted 4-8h, blocking.
+
+**[CONFIRMED — both models] SUB-F3 (partial) Competitive risk**
+- Subagent: "Name 3-4 specific model releases that would invalidate the wedge, with a pre-committed decision" — Claude 5, Gemini 3, UI-TARS 2.0, OpenAI Operator games mode
+- My review: Did NOT raise this. I implicitly accepted the Phase B competitive framing.
+- Consensus: Partial — my review missed this entirely. **Subagent-only finding elevated.** Log as TODO #13 to be added to TODOS.md at Phase C Step 1 kickoff.
+
+---
+
+**[SUBAGENT-ONLY — CRITICAL] SUB-F1 Option C is a commitment-dodge**
+- Quote: "v1-D6 ('Sean uses it for himself') is unfalsifiable. v2 triggers are either Sean grading his own homework or externally dependent in ways a closed-source repo can't produce. 205-315h with no external user is the most expensive possible way to learn these concepts."
+- Recommendation: "Force a binary choice. Either (A) commit to v2-S1 (public repo + third game) as v1 target — 285-455h — or (B) cap v1 at 80-120h as learning exercise with no universality claim."
+- My review position: Accepted Option C as Sean's explicit strategic framework (§2 OQ-6). SELECTIVE EXPANSION mode doesn't reopen locked strategic decisions.
+- **Auto-decision (per Sean's delegation)**: Stand on my review position — Option C is Sean's call, not mine to reopen. **FLAG AT FINAL GATE** as a strategic taste decision Sean should weigh.
+
+**[SUBAGENT-ONLY — CRITICAL] SUB-F2 MC+SV wedge is cherry-picked**
+- Quote: "Minecraft Java + Stardew Valley are both (a) windowed, (b) no AC, (c) VLM training saturated, (d) tasks that are the two most canonical demos. This isn't a universality test — it's a confirmation test on the easiest two examples."
+- Recommendation: "Replace Stardew with Factorio OR Dead Cells as v1 second game. Both are harder universality tests (dense UI, exclusive-fullscreen, combat reflex)."
+- My review position: Accepted v1-D1 as stated. Deferred Stardew spike to Step 5 (e1 rejected cherry-pick) to keep MC sequencing clean.
+- **Auto-decision**: Stand. But NOTE: if Sean accepts SUB-F1 (commit harder) AND SUB-F2 (swap Stardew for Factorio/Dead Cells), these compound into a much bigger v1 scope — likely 285-455h per SUB-F1's estimate. **FLAG AT FINAL GATE** as a scope-shape question.
+
+**[SUBAGENT-ONLY — HIGH] SUB-F4 Reframing miss — QA/testing market**
+- Quote: "'Python daemon that plays any game via YAML adapter' is one character-swap away from 'automated game QA harness.' Game QA is a real paid market. Same architecture, 205-315h, radically different payoff."
+- My review position: Did not surface. I accepted the "personal tool / research artifact" framing.
+- **Auto-decision**: Stand. This is a Phase B premise challenge territory — if reopened, forces Phase A/B redo. **FLAG AT FINAL GATE** as a reframing opportunity Sean may want to explore offline.
+
+**[SUBAGENT-ONLY — HIGH] SUB-F5 Alternatives under-analyzed**
+- Quote: "The design dismisses Mineflayer, Computer Use APIs, Cradle fork, and custom training in a single paragraph. Three deserve actual analysis: Mineflayer+SMAPI (20-40h total for v1-D1 gold-truth baseline), Anthropic Computer Use (grounding-trained vision already shipping), UI-TARS-desktop + YAML layer (20-40h not 205-315h)."
+- My review position: Logged all alternatives in §10.1.E as "REJECTED per Phase B OQ-2 / §0 non-goals" without re-evaluating.
+- **Auto-decision**: Stand. Phase B OQ-2 evaluated Cradle in detail; the others were dismissed by explicit Sean direction ("not a captain of shortcuts"). **FLAG AT FINAL GATE**: if Sean is willing to reconsider Anthropic Computer Use, the effort arithmetic may change by 3-5x.
+
+**[SUBAGENT-ONLY — MEDIUM] SUB-F8 Career-alignment ROI**
+- Quote: "Sean is a CS+Business grad heading to accounting Master's, targeting audit/tax roles with AI skills. The most valuable portfolio artifact is an audit-automation tool. GameMind is a game agent. 205-315h on games is 10-50x lower career ROI than the same architecture on audit/document domain."
+- Recommendation: "Same architecture, different adapters — `adapters/audit_trial_balance.yaml`, `adapters/tax_return_extract.yaml`. Declarative wedge works for document agents; audience is 1000x more relevant."
+- My review position: This is outside my analytical scope — Sean's career ROI is his own call.
+- **Auto-decision**: Stand. But this is the highest-signal strategic finding in the subagent review. **FLAG AT FINAL GATE AS TOP PRIORITY.** This is the kind of question worth 30 minutes of Sean's thinking before committing 205-315h.
+
+**[SUBAGENT-ONLY — MEDIUM] SUB-F9 No objective fail state**
+- Quote: "v1-D5 says 'completed within 205-315h OR Sean explicitly acknowledged scope change.' There's no objective fail state. Add a 2-week NO-PROGRESS kill clause — automatic pause + reassessment if any v1-D criterion stalls for 14 calendar days."
+- **Auto-decision**: APPROVE as Phase C hygiene. Add to TODOS.md #14 — "Set up weekly progress check reminder; any criterion stalled 14+ days → `/retro` + scope reassessment." No design doc edit required.
+
+**[SUBAGENT-ONLY — LOW] SUB-F10 Anti-cheat narrative oversold**
+- Quote: "v1 targets MC + SV, neither with anti-cheat. The 'Vanguard/EAC compatible' claim is untested future-proofing. Demote from primary pitch."
+- **Auto-decision**: Minor edit to §2 OQ-6. Change "Tertiary: Anti-cheat-safe input stack" from "first-class" positioning to "v2 compatibility goal, v1 unused." Apply at Phase C Step 0 doc polish time. Log as TODO #15.
+
+#### 10.4.C Updated Audit Trail Rows
+
+| # | Phase | Decision | Classification | Principle | Rationale | Rejected |
+|---|-------|----------|----------------|-----------|-----------|----------|
+| 4 | CEO S2 error | Add `gamemind/errors.py` with 14 exception classes | mechanical | P1 completeness | 14 GAPs in current design, 7 CRITICAL | Deferring error contract to Phase C debug time |
+| 5 | CEO S3 security | FINDING S1/S4 - enforce 127.0.0.1 bind + ANTHROPIC_API_KEY env | mechanical | P1 completeness | HIGH-impact security basics, trivial effort | Ignoring LAN-bind and key-leak risk |
+| 6 | CEO S8 observ | e3 events.jsonl schema upfront | mechanical | P1 completeness | prevents per-module schema drift | Deferring schema to post-v1 |
+| 7 | CEO S10 stubs | Declare cradle-evaluator re-send DEAD, close §9 tracked stubs 1+2 as final | mechanical | P6 bias to action | Re-send is 24h+ stale; grinding forward | Blocking Phase C on re-send |
+| 8 | Dual voice | Accept §6 Step 1 live-spike placement (vs subagent's pre-Phase-C SPIKE-1) | TASTE | P6 bias to action | models disagree on timing; stand on my recommendation per Sean delegation | Subagent's stronger version (flagged at final gate) |
+| 9 | Dual voice | SUB-F1 Option C commitment dodge — SURFACE ONLY | USER_CHALLENGE_SINGLE_MODEL | — | Only subagent raised; strategic framework decision beyond my scope; flag at final gate | auto-dismiss |
+| 10 | Dual voice | SUB-F2 MC+SV cherry-pick — SURFACE ONLY | USER_CHALLENGE_SINGLE_MODEL | — | Only subagent raised; v1-D1 is Sean's lock; flag at final gate | auto-dismiss |
+| 11 | Dual voice | SUB-F4 QA reframing — SURFACE ONLY | USER_CHALLENGE_SINGLE_MODEL | — | Only subagent raised; reopens Phase B premises | auto-dismiss |
+| 12 | Dual voice | SUB-F5 alternatives re-eval — SURFACE ONLY | USER_CHALLENGE_SINGLE_MODEL | — | Only subagent raised; Phase B OQ-2 is locked | auto-dismiss |
+| 13 | Dual voice | SUB-F8 career alignment — SURFACE ONLY, TOP PRIORITY AT FINAL GATE | USER_CHALLENGE_SINGLE_MODEL | — | Highest-signal strategic finding; Sean's decision | auto-dismiss |
+| 14 | Dual voice | SUB-F9 no-progress kill clause — TODO #14 | mechanical | P1 completeness | 2-week stall detector is cheap insurance | Ignoring forcing function |
+| 15 | Dual voice | SUB-F10 anti-cheat demotion — TODO #15 | mechanical | P5 explicit over clever | Minor narrative accuracy fix | Keeping oversold claim |
+| 16 | Dual voice | SUB-F3 competitive kill-switch — TODO #13 | mechanical | P1 completeness | Missing from original review; cheap insurance | Ignoring model-release risk |
+
+**Phase 1 complete.** Proceeding to Phase 3 Eng Review under autonomous mode per Sean's delegation.
