@@ -23,6 +23,8 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
+from gamemind.session import SessionManager
+
 SESSION_TOKEN_ENV = "GAMEMIND_SESSION_TOKEN"
 OLLAMA_HOST_ENV = "GAMEMIND_OLLAMA_HOST"
 OLLAMA_MODEL_ENV = "GAMEMIND_OLLAMA_MODEL"
@@ -109,6 +111,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     enable_dpi_awareness()
     app.state.session_token = get_or_create_session_token()
+    app.state.session_manager = SessionManager()
     app.state.ollama_host = os.environ.get(OLLAMA_HOST_ENV, DEFAULT_OLLAMA_HOST)
     app.state.ollama_model = os.environ.get(OLLAMA_MODEL_ENV, DEFAULT_OLLAMA_MODEL)
     reachable, loaded = await check_ollama(app.state.ollama_host, app.state.ollama_model)
