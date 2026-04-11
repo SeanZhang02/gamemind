@@ -42,6 +42,9 @@ target-version = "py311"
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]
 ignore = ["E501"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["gamemind"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

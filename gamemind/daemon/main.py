@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import os
 import secrets
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import httpx
 from fastapi import FastAPI, Request

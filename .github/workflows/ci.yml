@@ -24,7 +24,7 @@ jobs:
 
       - name: Ruff lint
         working-directory: phase-c-0
-        run: uv tool run ruff@0.14.0 check probe/
+        run: uv tool run ruff@0.14.0 check --config pyproject.toml probe/
 
       - name: Ruff format check
         working-directory: phase-c-0
@@ -55,7 +55,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: Ruff lint
-        run: uv tool run ruff@0.14.0 check gamemind/ tests/
+        run: uv tool run ruff@0.14.0 check --config pyproject.toml gamemind/ tests/
 
       - name: Ruff format check
         run: uv tool run ruff@0.14.0 format --check gamemind/ tests/
