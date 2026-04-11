@@ -15,6 +15,7 @@ continuous local perception. Implementations:
 
 from __future__ import annotations
 
+from gamemind.brain.anthropic_backend import AnthropicBackend
 from gamemind.brain.backend import LLMBackend, LLMResponse
 
-__all__ = ["LLMBackend", "LLMResponse"]
+__all__ = ["AnthropicBackend", "LLMBackend", "LLMResponse"]
