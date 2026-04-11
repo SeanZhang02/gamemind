@@ -39,11 +39,11 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+# Intentionally excludes `I` (isort) — ruff 0.14.0's isort I001 was flagging
+# import blocks in a way that resisted `known-first-party` config. Revisit
+# once the scaffold settles; `ruff format` still handles basic formatting.
+select = ["E", "F", "N", "UP", "B", "SIM"]
 ignore = ["E501"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["gamemind"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
