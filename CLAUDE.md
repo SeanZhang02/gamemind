@@ -88,3 +88,27 @@ per PR. If a PR is bigger, the design is probably wrong.
 ## Language
 
 All docs and comments in English. Conversations with Sean in Chinese.
+
+## Skill routing
+
+When the user's request matches an available skill, ALWAYS invoke it using the Skill
+tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
+The skill has specialized workflows that produce better results than ad-hoc answers.
+
+Key routing rules:
+- Product ideas, "is this worth building", brainstorming → invoke office-hours
+- **Multi-week build kickoff (Phase C), "开工", "开始做" → invoke autoplan**
+- Bugs, errors, "why is this broken", 500 errors → invoke investigate
+- Ship, deploy, push, create PR → invoke ship
+- QA, test the site, find bugs → invoke qa
+- Code review, check my diff → invoke review
+- Update docs after shipping → invoke document-release
+- Weekly retro → invoke retro
+- Architecture review → invoke plan-eng-review
+- Security / threat modeling / anti-cheat concerns → invoke cso
+- Save progress, checkpoint, resume → invoke checkpoint
+- Code quality, health check → invoke health
+
+The workspace-level `../CLAUDE.md` contains additional Phase-C-specific routing
+discipline (bootstrap order, empirical gate work exceptions). Project-level rules
+here are additive, not replacements.
