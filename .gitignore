@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+wheels/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# Probe ephemera (reproducible, do not commit)
+phase-c-0/results/
+phase-c-0/fixtures/smoke_*.png
+phase-c-0/fixtures/groundtruth.smoke.json
+
+# Phase C ephemera (future)
+phase-c/runs/
+phase-c/logs/
+phase-c/cache/
+phase-c/**/__pycache__/
+
+# Model weights (pulled separately via Ollama, never committed)
+*.gguf
+*.bin
+*.safetensors
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.secret
+credentials.json
+*.pem
+*.key
+
+# Claude Code local state
+.claude/

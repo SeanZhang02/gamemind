@@ -1,0 +1,220 @@
+[
+  {
+    "id": "t1-001",
+    "image": "t1_oak_log_forest.png",
+    "category": "t1_block",
+    "difficulty": "easy",
+    "notes": "Crosshair on top face of placed oak log (ring pattern visible) in forest daylight.",
+    "expected": {
+      "block": "oak_log"
+    }
+  },
+  {
+    "id": "t1-002",
+    "image": "t1_grass_block_lakeside.png",
+    "category": "t1_block",
+    "difficulty": "easy",
+    "notes": "Crosshair on isolated grass block by the lake, green top face.",
+    "expected": {
+      "block": "grass_block"
+    }
+  },
+  {
+    "id": "t1-003",
+    "image": "t1_iron_ore_lakeside.png",
+    "category": "t1_block",
+    "difficulty": "medium",
+    "notes": "Crosshair on iron ore block (grey with orange speckles) by lake.",
+    "expected": {
+      "block": "iron_ore"
+    }
+  },
+  {
+    "id": "t1-004",
+    "image": "t1_stone_coast.png",
+    "category": "t1_block",
+    "difficulty": "medium",
+    "notes": "Crosshair on plain grey stone block near coast. Sean confirmed stone (not andesite/cobblestone).",
+    "expected": {
+      "block": "stone"
+    }
+  },
+  {
+    "id": "t1-005",
+    "image": "t1_air_sky.png",
+    "category": "t1_block",
+    "difficulty": "medium",
+    "notes": "Crosshair pointing at sky / open air. Edge case.",
+    "expected": {
+      "block": "air"
+    }
+  },
+  {
+    "id": "t1-006",
+    "image": "t1_grass_block_cave_dark.png",
+    "category": "t1_block",
+    "difficulty": "hard",
+    "notes": "Dark cave scene, crosshair on grass block placed in low light. Hard case.",
+    "expected": {
+      "block": "grass_block"
+    }
+  },
+  {
+    "id": "t2-001",
+    "image": "t2_hotbar_jungle_water.png",
+    "category": "t2_inventory",
+    "difficulty": "medium",
+    "notes": "Sean-confirmed: diamond pickaxe, iron hoe, fishing rod, compass, bread x64. Slots 6-9 empty.",
+    "expected": {
+      "hotbar": [
+        {"slot": 1, "item": "diamond_pickaxe", "count": 1},
+        {"slot": 2, "item": "iron_hoe", "count": 1},
+        {"slot": 3, "item": "fishing_rod", "count": 1},
+        {"slot": 4, "item": "compass", "count": 1},
+        {"slot": 5, "item": "bread", "count": 64},
+        {"slot": 6, "item": null, "count": 0},
+        {"slot": 7, "item": null, "count": 0},
+        {"slot": 8, "item": null, "count": 0},
+        {"slot": 9, "item": null, "count": 0}
+      ]
+    }
+  },
+  {
+    "id": "t2-002",
+    "image": "t2_hotbar_jungle_full.png",
+    "category": "t2_inventory",
+    "difficulty": "hard",
+    "notes": "Sean-confirmed: diamond sword, fishing rod, (empty), compass, cooked mutton x54, cooked chicken x49, (empty), iron hoe, (empty).",
+    "expected": {
+      "hotbar": [
+        {"slot": 1, "item": "diamond_sword", "count": 1},
+        {"slot": 2, "item": "fishing_rod", "count": 1},
+        {"slot": 3, "item": null, "count": 0},
+        {"slot": 4, "item": "compass", "count": 1},
+        {"slot": 5, "item": "cooked_mutton", "count": 54},
+        {"slot": 6, "item": "cooked_chicken", "count": 49},
+        {"slot": 7, "item": null, "count": 0},
+        {"slot": 8, "item": "iron_hoe", "count": 1},
+        {"slot": 9, "item": null, "count": 0}
+      ]
+    }
+  },
+  {
+    "id": "t3-001",
+    "image": "t3_crafting_table.png",
+    "category": "t3_ui",
+    "difficulty": "easy",
+    "notes": "Crafting table UI open, 3x3 grid visible with character model on left.",
+    "expected": {
+      "ui_state": "crafting_table"
+    }
+  },
+  {
+    "id": "t3-002",
+    "image": "t3_chest_small.png",
+    "category": "t3_ui",
+    "difficulty": "easy",
+    "notes": "Small 9-slot chest UI open with 'Chest' label, player inventory visible below.",
+    "expected": {
+      "ui_state": "chest"
+    }
+  },
+  {
+    "id": "t3-003",
+    "image": "t3_inventory_open.png",
+    "category": "t3_ui",
+    "difficulty": "easy",
+    "notes": "Player inventory open (pressed E), shows 2x2 crafting grid + armor slots + inventory.",
+    "expected": {
+      "ui_state": "inventory_open"
+    }
+  },
+  {
+    "id": "t3-004",
+    "image": "t3_pause_menu.png",
+    "category": "t3_ui",
+    "difficulty": "easy",
+    "notes": "Esc pause menu showing 'Game Menu' title and Back to Game / Advancements / etc. buttons.",
+    "expected": {
+      "ui_state": "pause_menu"
+    }
+  },
+  {
+    "id": "t4-001",
+    "image": "t4_above_ground_ocean_day.png",
+    "category": "t4_spatial",
+    "difficulty": "easy",
+    "notes": "Daytime ocean view with distant island, no hostiles, no hazards. Baseline case.",
+    "expected": {
+      "location": "above_ground",
+      "hostile_visible": false,
+      "hazard_visible": false,
+      "hazard_type": "none"
+    }
+  },
+  {
+    "id": "t4-002",
+    "image": "t4_above_ground_sandbar_day.png",
+    "category": "t4_spatial",
+    "difficulty": "medium",
+    "notes": "Daytime jungle/sandbar scene. Advancement toast visible but UI is still hud_only. No hostiles or hazards in immediate view.",
+    "expected": {
+      "location": "above_ground",
+      "hostile_visible": false,
+      "hazard_visible": false,
+      "hazard_type": "none"
+    }
+  },
+  {
+    "id": "t4-003",
+    "image": "t4_night_zombies_visible.png",
+    "category": "t4_spatial",
+    "difficulty": "medium",
+    "notes": "Night scene with two zombies clearly visible close to the player.",
+    "expected": {
+      "location": "above_ground",
+      "hostile_visible": true,
+      "hazard_visible": false,
+      "hazard_type": "none"
+    }
+  },
+  {
+    "id": "t4-004",
+    "image": "t4_cave_lava_hazard.png",
+    "category": "t4_spatial",
+    "difficulty": "hard",
+    "notes": "Underground cave with large lava pool visible within a few blocks. Clear hazard.",
+    "expected": {
+      "location": "underground",
+      "hostile_visible": false,
+      "hazard_visible": true,
+      "hazard_type": "lava"
+    }
+  },
+  {
+    "id": "t4-005",
+    "image": "t4_underwater_ocean.png",
+    "category": "t4_spatial",
+    "difficulty": "medium",
+    "notes": "Underwater ocean scene looking at seafloor. Water is the environment, not a hazard. Fish are not hostile.",
+    "expected": {
+      "location": "underwater",
+      "hostile_visible": false,
+      "hazard_visible": false,
+      "hazard_type": "none"
+    }
+  },
+  {
+    "id": "t4-006",
+    "image": "t4_cliff_hazard.png",
+    "category": "t4_spatial",
+    "difficulty": "hard",
+    "notes": "Standing on cliff edge looking down at large drop. Above ground, sheer drop hazard.",
+    "expected": {
+      "location": "above_ground",
+      "hostile_visible": false,
+      "hazard_visible": true,
+      "hazard_type": "cliff"
+    }
+  }
+]

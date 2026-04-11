@@ -1,0 +1,88 @@
+[
+  {
+    "id": "t1-001",
+    "image": "t1_oak_log_forest.png",
+    "category": "t1_block",
+    "difficulty": "easy",
+    "notes": "Standard daytime forest, crosshair directly on oak log.",
+    "expected": {
+      "block": "oak_log"
+    }
+  },
+  {
+    "id": "t1-002",
+    "image": "t1_stone_cave_dim.png",
+    "category": "t1_block",
+    "difficulty": "hard",
+    "notes": "Cave at torch distance, low light, crosshair on stone with mossy texture nearby.",
+    "expected": {
+      "block": "stone"
+    }
+  },
+  {
+    "id": "t2-001",
+    "image": "t2_hotbar_mixed.png",
+    "category": "t2_inventory",
+    "difficulty": "medium",
+    "notes": "Full hotbar with 6 item types, 3 empty slots. Counts visible in top-right of each slot.",
+    "expected": {
+      "hotbar": [
+        {"slot": 1, "item": "wooden_pickaxe", "count": 1},
+        {"slot": 2, "item": "oak_planks", "count": 32},
+        {"slot": 3, "item": "stick", "count": 14},
+        {"slot": 4, "item": null, "count": 0},
+        {"slot": 5, "item": "cobblestone", "count": 7},
+        {"slot": 6, "item": "torch", "count": 5},
+        {"slot": 7, "item": null, "count": 0},
+        {"slot": 8, "item": null, "count": 0},
+        {"slot": 9, "item": "bread", "count": 3}
+      ]
+    }
+  },
+  {
+    "id": "t3-001",
+    "image": "t3_crafting_table.png",
+    "category": "t3_ui",
+    "difficulty": "easy",
+    "notes": "Crafting table UI open with 3x3 grid visible.",
+    "expected": {
+      "ui_state": "crafting_table"
+    }
+  },
+  {
+    "id": "t3-002",
+    "image": "t3_f3_debug.png",
+    "category": "t3_ui",
+    "difficulty": "medium",
+    "notes": "F3 debug overlay visible with coordinates and FPS graph.",
+    "expected": {
+      "ui_state": "f3_debug"
+    }
+  },
+  {
+    "id": "t4-001",
+    "image": "t4_cave_lava.png",
+    "category": "t4_spatial",
+    "difficulty": "hard",
+    "notes": "Underground cave with lava pool visible ~4 blocks ahead, no mobs.",
+    "expected": {
+      "location": "underground",
+      "hostile_visible": false,
+      "hazard_visible": true,
+      "hazard_type": "lava"
+    }
+  },
+  {
+    "id": "t4-002",
+    "image": "t4_night_zombie.png",
+    "category": "t4_spatial",
+    "difficulty": "medium",
+    "notes": "Above-ground at night, zombie visible ~3 blocks away, no hazards.",
+    "expected": {
+      "location": "above_ground",
+      "hostile_visible": true,
+      "hazard_visible": false,
+      "hazard_type": "none"
+    }
+  }
+]
