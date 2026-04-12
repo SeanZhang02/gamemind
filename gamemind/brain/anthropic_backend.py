@@ -29,17 +29,19 @@ from gamemind.brain.backend import LLMResponse
 DEFAULT_MODEL = "claude-opus-4-6"
 ENV_API_KEY = "ANTHROPIC_API_KEY"
 
-# Cost estimates (USD per token) for claude-opus-4-6.
-# Input: $5/1M tokens, Output: $25/1M tokens.
-# Cache read: ~10% of input, cache write 5min: ~125% of input.
-_INPUT_COST_PER_TOKEN = 5.0 / 1_000_000
-_OUTPUT_COST_PER_TOKEN = 25.0 / 1_000_000
-_CACHE_READ_COST_PER_TOKEN = _INPUT_COST_PER_TOKEN * 0.1
-_CACHE_WRITE_COST_PER_TOKEN = _INPUT_COST_PER_TOKEN * 1.25
+_PRICING: dict[str, tuple[float, float]] = {
+    "claude-opus-4-6": (5.0 / 1_000_000, 25.0 / 1_000_000),
+    "claude-sonnet-4-6": (3.0 / 1_000_000, 15.0 / 1_000_000),
+    "claude-sonnet-4-5": (3.0 / 1_000_000, 15.0 / 1_000_000),
+    "claude-haiku-4-5": (1.0 / 1_000_000, 5.0 / 1_000_000),
+}
+_DEFAULT_INPUT_COST = 5.0 / 1_000_000
+_DEFAULT_OUTPUT_COST = 25.0 / 1_000_000
 
 
 def _estimate_cost_usd(
     *,
+    model: str,
     input_tokens: int,
     output_tokens: int,
     cache_read_input_tokens: int,
@@ -47,14 +49,17 @@ def _estimate_cost_usd(
 ) -> float:
     """Estimate USD cost from an Anthropic response's usage fields.
 
-    Non-cached input is already excluded from cache_read/cache_creation —
-    input_tokens is the uncached remainder per the claude-api skill note.
+    Dispatches to the correct price table per model. Falls back to
+    Opus 4.6 pricing for unknown models (fail-safe: overestimates).
     """
+    input_cost, output_cost = _PRICING.get(model, (_DEFAULT_INPUT_COST, _DEFAULT_OUTPUT_COST))
+    cache_read_cost = input_cost * 0.1
+    cache_write_cost = input_cost * 1.25
     return (
-        input_tokens * _INPUT_COST_PER_TOKEN
-        + output_tokens * _OUTPUT_COST_PER_TOKEN
-        + cache_read_input_tokens * _CACHE_READ_COST_PER_TOKEN
-        + cache_creation_input_tokens * _CACHE_WRITE_COST_PER_TOKEN
+        input_tokens * input_cost
+        + output_tokens * output_cost
+        + cache_read_input_tokens * cache_read_cost
+        + cache_creation_input_tokens * cache_write_cost
     )
 
 
@@ -197,6 +202,7 @@ class AnthropicBackend:
             cache_creation_input_tokens = getattr(usage, "cache_creation_input_tokens", None) or 0
 
             cost_usd = _estimate_cost_usd(
+                model=self.model,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 cache_read_input_tokens=cache_read_input_tokens,

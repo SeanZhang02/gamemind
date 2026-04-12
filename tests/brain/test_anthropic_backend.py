@@ -388,6 +388,7 @@ def test_chat_echoes_request_id(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_estimate_cost_usd_input_only() -> None:
     # 1000 input tokens @ $5/1M = $0.005
     cost = _estimate_cost_usd(
+        model="claude-opus-4-6",
         input_tokens=1000,
         output_tokens=0,
         cache_read_input_tokens=0,
@@ -397,8 +398,9 @@ def test_estimate_cost_usd_input_only() -> None:
 
 
 def test_estimate_cost_usd_output_only() -> None:
-    # 1000 output tokens @ $25/1M = $0.025
+    # 1000 output tokens @ $25/1M = $0.025 (Opus 4.6)
     cost = _estimate_cost_usd(
+        model="claude-opus-4-6",
         input_tokens=0,
         output_tokens=1000,
         cache_read_input_tokens=0,
@@ -408,8 +410,8 @@ def test_estimate_cost_usd_output_only() -> None:
 
 
 def test_estimate_cost_usd_cache_read_discount() -> None:
-    # Cache read is 10% of input price
     cost = _estimate_cost_usd(
+        model="claude-opus-4-6",
         input_tokens=0,
         output_tokens=0,
         cache_read_input_tokens=10000,
@@ -420,8 +422,8 @@ def test_estimate_cost_usd_cache_read_discount() -> None:
 
 
 def test_estimate_cost_usd_cache_write_premium() -> None:
-    # Cache write is 125% of input price
     cost = _estimate_cost_usd(
+        model="claude-opus-4-6",
         input_tokens=0,
         output_tokens=0,
         cache_read_input_tokens=0,
@@ -429,6 +431,19 @@ def test_estimate_cost_usd_cache_write_premium() -> None:
     )
     # 1000 * 5/1M * 1.25 = $0.00625
     assert cost == pytest.approx(0.00625)
+
+
+def test_estimate_cost_usd_sonnet_pricing() -> None:
+    # Sonnet 4.6: $3/1M input, $15/1M output
+    cost = _estimate_cost_usd(
+        model="claude-sonnet-4-6",
+        input_tokens=1000,
+        output_tokens=1000,
+        cache_read_input_tokens=0,
+        cache_creation_input_tokens=0,
+    )
+    # 1000 * 3/1M + 1000 * 15/1M = $0.003 + $0.015 = $0.018
+    assert cost == pytest.approx(0.018)
 
 
 def test_context_manager_closes_client(monkeypatch: pytest.MonkeyPatch) -> None:
