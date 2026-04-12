@@ -189,7 +189,6 @@ class Watchdog:
             )
             self._freeze_active = True
 
-        self._bb.swap()
         return alerts
 
     @property

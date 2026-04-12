@@ -61,7 +61,7 @@ SLOT_CONFIG: dict[str, tuple[Producer, float, float, float]] = {
     "health": (Producer.VLM, 600.0, 5000.0, 0.75),
     "hunger": (Producer.VLM, 600.0, 5000.0, 0.75),
     "frame_diff_score": (Producer.WATCHDOG, 200.0, 500.0, 0.9),
-    "vlm_last_update_ns": (Producer.WATCHDOG, 200.0, 60000.0, 1.0),
+    "vlm_last_update_ns": (Producer.VLM, 200.0, 60000.0, 1.0),
     "current_subgoal": (Producer.PLANNER, 8000.0, 30000.0, 0.95),
     "plan_sequence": (Producer.PLANNER, 8000.0, 30000.0, 0.95),
     "abort_override": (Producer.PLANNER, 8000.0, 15000.0, 0.95),

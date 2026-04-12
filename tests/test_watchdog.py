@@ -38,7 +38,9 @@ class TestFrameDiff:
         wd = Watchdog(bb)
         frame = _make_frame((100, 100, 100))
         wd.check(frame)
+        bb.swap()
         alerts = wd.check(frame)
+        bb.swap()
         result = bb.read("frame_diff_score")
         assert result is not None
         assert result.value < 2.0
@@ -48,7 +50,9 @@ class TestFrameDiff:
         bb = Blackboard()
         wd = Watchdog(bb)
         wd.check(_make_frame((50, 50, 50)))
+        bb.swap()
         wd.check(_make_frame((200, 200, 200)))
+        bb.swap()
         result = bb.read("frame_diff_score")
         assert result is not None
         assert result.value > 10.0
