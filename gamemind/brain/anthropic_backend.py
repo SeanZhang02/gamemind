@@ -182,9 +182,17 @@ class AnthropicBackend:
                     text_parts.append(block.text)
             text = "".join(text_parts)
 
-            # Best-effort JSON parse if the text looks like JSON.
+            # Best-effort JSON parse. Strip markdown code fences if present
+            # (Claude sometimes wraps JSON in ```json ... ``` despite "ONLY JSON" instructions).
             parsed_json: dict[str, Any] | None = None
             stripped = text.strip()
+            if stripped.startswith("```"):
+                lines = stripped.split("\n")
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                stripped = "\n".join(lines).strip()
             if stripped.startswith("{") and stripped.endswith("}"):
                 try:
                     import json  # noqa: PLC0415
