@@ -127,7 +127,11 @@ class TestReset:
         detector = StuckDetector(stuck_seconds=2.0, entropy_floor=0.02, lookback_seconds=0.5)
         frame = _make_frame((80, 80, 80))
         for i in range(5):
-            detector.update(frame_bytes=frame, predicate_fired=False, action_executed=False, ts_ns=i * NS)
+            detector.update(
+                frame_bytes=frame, predicate_fired=False, action_executed=False, ts_ns=i * NS
+            )
         detector.reset()
-        result = detector.update(frame_bytes=frame, predicate_fired=False, action_executed=False, ts_ns=10 * NS)
+        result = detector.update(
+            frame_bytes=frame, predicate_fired=False, action_executed=False, ts_ns=10 * NS
+        )
         assert not result.is_stuck, "reset should clear stuck window"
