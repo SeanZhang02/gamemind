@@ -57,6 +57,17 @@ def _build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run an agent session with an adapter")
     run.add_argument("--adapter", type=Path, required=True, help="Path to adapter YAML")
     run.add_argument("--task", type=str, required=True, help="Task description in natural language")
+    run.add_argument(
+        "--goal", type=str, default=None, help="Goal grammar name (default: inferred from task)"
+    )
+    run.add_argument("--window-title", default=None, help="Filter HWND by window title substring")
+    run.add_argument("--dry-run", action="store_true", help="Use MockBrainBackend (no API cost)")
+    run.add_argument(
+        "--budget", type=float, default=0.30, help="Session brain API budget USD (default 0.30)"
+    )
+    run.add_argument(
+        "--model", type=str, default="claude-sonnet-4-6", help="Anthropic model for Layer 3 brain"
+    )
 
     # adapter
     adapter = sub.add_parser("adapter", help="Inspect or validate adapter YAML files")
@@ -410,12 +421,176 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
-    if not args.adapter.exists():
-        print(f"gamemind run: adapter YAML not found at {args.adapter}")
+    """Wire `gamemind run --adapter --task` to AgentRunner."""
+    import sys  # noqa: PLC0415
+
+    if sys.platform != "win32" and not args.dry_run:
+        print(
+            "[gamemind run] real mode requires win32 (WGC + pydirectinput). Use --dry-run on other platforms."
+        )
         return 2
-    print(f"[gamemind run] adapter={args.adapter} task={args.task!r}")
-    print("  TODO: session manager / perception daemon / brain wakes in Step 3")
-    return 0
+
+    if not args.adapter.exists():
+        print(f"[gamemind run] adapter YAML not found at {args.adapter}")
+        return 2
+
+    from gamemind.adapter.loader import load  # noqa: PLC0415
+    from gamemind.brain.backend import LLMResponse  # noqa: PLC0415
+    from gamemind.brain.budget_tracker import BudgetExceededError  # noqa: PLC0415
+    from gamemind.brain.mock_backend import MockBrainBackend  # noqa: PLC0415
+    from gamemind.events.writer import EventWriter  # noqa: PLC0415
+    from gamemind.runner import AgentRunner, RunnerConfig  # noqa: PLC0415
+    from gamemind.session.manager import SessionManager  # noqa: PLC0415
+
+    try:
+        adapter = load(args.adapter)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[gamemind run] adapter load error: {exc}")
+        return 1
+
+    goal_name = args.goal
+    if goal_name is None:
+        goal_names = list(adapter.goal_grammars.keys())
+        if len(goal_names) == 1:
+            goal_name = goal_names[0]
+        else:
+            print(f"[gamemind run] multiple goals available: {goal_names}. Use --goal to pick one.")
+            return 2
+
+    print(f"[gamemind run] adapter={adapter.display_name} task={args.task!r} goal={goal_name}")
+    print(f"  dry_run={args.dry_run} budget=${args.budget:.2f} model={args.model}")
+
+    runs_root = Path("runs")
+    runs_root.mkdir(exist_ok=True)
+
+    session_manager = SessionManager()
+    session_dir = runs_root / f"run-{int(__import__('time').time())}"
+    event_writer = EventWriter(session_dir)
+    event_writer.start()
+
+    session_info = session_manager.start(
+        adapter_path=args.adapter,
+        task_description=args.task,
+        runs_root=runs_root,
+    )
+    print(f"  session_id={session_info.session_id}")
+
+    if args.dry_run:
+        brain = MockBrainBackend(
+            scripted=[
+                LLMResponse(
+                    text='{"plan": ["approach_target", "interact", "verify"]}',
+                    parsed_json={"plan": ["approach_target", "interact", "verify"]},
+                    prompt_tokens=500,
+                    completion_tokens=100,
+                    cost_estimate_usd=0.0,
+                    latency_ms=0.0,
+                    request_id="",
+                    cached_system=False,
+                ),
+                LLMResponse(
+                    text='{"verify_ok": true}',
+                    parsed_json={"verify_ok": True},
+                    prompt_tokens=600,
+                    completion_tokens=20,
+                    cost_estimate_usd=0.0,
+                    latency_ms=0.0,
+                    request_id="",
+                    cached_system=False,
+                ),
+            ]
+        )
+        perception = MockBrainBackend(
+            scripted=[
+                LLMResponse(
+                    text='{"inventory": {"log": 3}}',
+                    parsed_json={"inventory": {"log": 3}},
+                    prompt_tokens=200,
+                    completion_tokens=30,
+                    cost_estimate_usd=0.0,
+                    latency_ms=0.0,
+                    request_id="",
+                    cached_system=False,
+                ),
+            ]
+            * 100
+        )
+        from gamemind.capture.backend import CaptureResult  # noqa: PLC0415
+
+        class _MockCapture:
+            def capture(self, hwnd: int, timeout_ms: int = 500) -> CaptureResult:
+                import io  # noqa: PLC0415
+                from PIL import Image  # noqa: PLC0415
+
+                img = Image.new("RGB", (64, 64), (100, 100, 100))
+                buf = io.BytesIO()
+                img.save(buf, format="WEBP")
+                return CaptureResult(
+                    frame_bytes=buf.getvalue(),
+                    frame_age_ms=50.0,
+                    capture_backend="mock",
+                    variance=0.5,
+                    width=64,
+                    height=64,
+                )
+
+            def liveness(self) -> bool:
+                return True
+
+        capture = _MockCapture()
+        hwnd = 0
+    else:
+        from gamemind.brain.anthropic_backend import AnthropicBackend  # noqa: PLC0415
+        from gamemind.brain.prompt_assembler import BASE_SYSTEM_PROMPT  # noqa: PLC0415
+        from gamemind.capture.wgc_backend import WGCBackend  # noqa: PLC0415
+
+        hwnd_val, title = _find_target_hwnd(args.window_title)
+        if hwnd_val == 0:
+            print(f"[gamemind run] no window matched --window-title {args.window_title!r}")
+            return 1
+        print(f"  HWND={hwnd_val} title={title!r}")
+        hwnd = hwnd_val
+
+        capture = WGCBackend()
+        if not capture.liveness():
+            print("[gamemind run] WGCBackend unhealthy")
+            return 1
+
+        brain = AnthropicBackend(system=BASE_SYSTEM_PROMPT, model=args.model)
+        perception = MockBrainBackend()
+
+    config = RunnerConfig(
+        adapter=adapter,
+        task=args.task,
+        goal_name=goal_name,
+        runs_root=runs_root,
+        capture=capture,
+        perception=perception,
+        brain=brain,
+        hwnd=hwnd,
+        budget_usd=args.budget,
+        dry_run=args.dry_run,
+    )
+
+    try:
+        runner = AgentRunner(config, session_manager, event_writer)
+        outcome = runner.run()
+    except BudgetExceededError as e:
+        print(f"[gamemind run] BUDGET EXCEEDED: {e}")
+        outcome = "runaway"
+    except KeyboardInterrupt:
+        print("[gamemind run] interrupted by user")
+        outcome = "user_stopped"
+    except Exception as exc:  # noqa: BLE001
+        print(f"[gamemind run] unhandled error: {type(exc).__name__}: {exc}")
+        outcome = "unhandled_exception"
+
+    session_manager.transition_to_terminal(outcome=outcome)
+    event_writer.close()
+
+    print(f"[gamemind run] session ended: outcome={outcome}")
+    print(f"  events: {session_info.events_path}")
+    return 0 if outcome == "success" else 1
 
 
 def _cmd_adapter(args: argparse.Namespace) -> int:
