@@ -8,6 +8,8 @@ implementations in subsequent commits.
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -75,25 +77,52 @@ def test_capture_result_is_dataclass() -> None:
     assert CaptureResult is CaptureResult2
 
 
-def test_wgc_backend_stub_raises() -> None:
+def test_wgc_backend_invalid_hwnd_raises() -> None:
+    """WGCBackend: on Windows, liveness=True but capture(invalid_hwnd) raises.
+
+    On non-Windows, liveness=False and capture raises WGCInitError instead.
+    Both paths MUST raise some gamemind.errors exception — the test doesn't
+    care which, just that invalid HWNDs don't silently succeed.
+    """
     backend = WGCBackend()
-    assert backend.liveness() is False
-    with pytest.raises(errors.WGCInitError) as exc_info:
-        backend.capture(hwnd=12345)
-    assert "E101" in str(exc_info.value)
+    if sys.platform == "win32":
+        # Real binding installed: liveness should be True, capture of an
+        # invalid HWND should raise WindowNotFoundError (not WGCInitError)
+        assert backend.liveness() is True
+        with pytest.raises(errors.WindowNotFoundError):
+            backend.capture(hwnd=12345)
+    else:
+        # Non-Windows: stub-style behavior, liveness=False + WGCInitError
+        assert backend.liveness() is False
+        with pytest.raises(errors.WGCInitError) as exc_info:
+            backend.capture(hwnd=12345)
+        assert "E101" in str(exc_info.value)
 
 
-def test_dxgi_backend_stub_raises() -> None:
-    backend = DXGIBackend()
-    assert backend.liveness() is False
-    with pytest.raises(errors.DXGIInitError) as exc_info:
-        backend.capture(hwnd=12345)
-    assert "E102" in str(exc_info.value)
+def test_dxgi_backend_invalid_hwnd_raises() -> None:
+    """DXGIBackend: parallel story to WGCBackend.
+
+    Constructed with probe_on_init=False so the test doesn't actually
+    grab a frame from the real monitor (which would be a test side
+    effect). With probe disabled, liveness reflects the package-import
+    check only.
+    """
+    backend = DXGIBackend(probe_on_init=False)
+    if sys.platform == "win32":
+        # Real dxcam imported successfully → liveness True
+        assert backend.liveness() is True
+        with pytest.raises(errors.WindowNotFoundError):
+            backend.capture(hwnd=12345)
+    else:
+        assert backend.liveness() is False
+        with pytest.raises(errors.DXGIInitError) as exc_info:
+            backend.capture(hwnd=12345)
+        assert "E102" in str(exc_info.value)
 
 
 def test_capture_backend_protocol_satisfied() -> None:
     a: CaptureBackend = WGCBackend()
-    b: CaptureBackend = DXGIBackend()
+    b: CaptureBackend = DXGIBackend(probe_on_init=False)
     assert a is not b
 
 
@@ -103,7 +132,10 @@ def test_selector_constants() -> None:
 
 
 def test_selector_constructs() -> None:
-    selector = CaptureSelector(primary=WGCBackend(), fallback=DXGIBackend())
+    selector = CaptureSelector(
+        primary=WGCBackend(),
+        fallback=DXGIBackend(probe_on_init=False),
+    )
     assert selector is not None
 
 

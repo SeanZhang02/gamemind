@@ -32,6 +32,11 @@ phase-c/logs/
 phase-c/cache/
 phase-c/**/__pycache__/
 
+# gamemind runtime outputs — captured frames, session event logs, doctor
+# artifacts. May contain screenshots of the user's desktop (private) and
+# are regenerated on every run.
+runs/
+
 # Model weights (pulled separately via Ollama, never committed)
 *.gguf
 *.bin
