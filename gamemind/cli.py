@@ -198,10 +198,186 @@ def _cmd_daemon(args: argparse.Namespace) -> int:
     return 2
 
 
+def _print_remediation_table() -> None:
+    print("  remediation table (DX-SUB-2):")
+    print("    (a) Ollama down       → `ollama serve`")
+    print("    (b) model not pulled  → `ollama pull qwen3-vl:8b-instruct-q4_K_M`")
+    print("    (c) API key missing   → set ANTHROPIC_API_KEY env var")
+    print("    (d) no game window    → focus the target game within 10s")
+    print("    (e) wrong HWND picked → use --window-title filter")
+
+
+def _find_target_hwnd(window_title_filter: str | None) -> tuple[int, str]:
+    """Find a target HWND for doctor --capture.
+
+    If `window_title_filter` is provided, match any top-level visible
+    window whose title contains that substring (case-insensitive).
+    Otherwise return the current foreground window.
+
+    Returns (hwnd, title). hwnd == 0 if nothing matched.
+    """
+    import ctypes  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+    from ctypes import wintypes  # noqa: PLC0415
+
+    if sys.platform != "win32":
+        return 0, ""
+
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    user32.GetForegroundWindow.restype = wintypes.HWND
+    user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+    user32.GetWindowTextW.restype = ctypes.c_int
+    user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+    user32.GetWindowTextLengthW.restype = ctypes.c_int
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.IsWindowVisible.restype = wintypes.BOOL
+
+    def _get_title(hwnd: int) -> str:
+        length = user32.GetWindowTextLengthW(wintypes.HWND(hwnd))
+        if length <= 0:
+            return ""
+        buf = ctypes.create_unicode_buffer(length + 1)
+        user32.GetWindowTextW(wintypes.HWND(hwnd), buf, length + 1)
+        return buf.value
+
+    if window_title_filter is None:
+        raw = user32.GetForegroundWindow()
+        if not raw:
+            return 0, ""
+        hwnd = int(raw)
+        return hwnd, _get_title(hwnd)
+
+    # EnumWindows + substring match. WNDENUMPROC is a Win32-convention
+    # uppercase callback type name; N806 silenced.
+    WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, ctypes.c_void_p)  # noqa: N806
+    user32.EnumWindows.argtypes = [WNDENUMPROC, ctypes.c_void_p]
+    user32.EnumWindows.restype = wintypes.BOOL
+
+    found: list[tuple[int, str]] = []
+    filter_lower = window_title_filter.lower()
+
+    def cb(hwnd_raw: int, _lparam: int) -> bool:
+        if not user32.IsWindowVisible(wintypes.HWND(hwnd_raw)):
+            return True
+        title = _get_title(hwnd_raw)
+        if filter_lower in title.lower():
+            found.append((int(hwnd_raw), title))
+            return False  # stop enum
+        return True
+
+    user32.EnumWindows(WNDENUMPROC(cb), None)
+    if not found:
+        return 0, ""
+    return found[0]
+
+
+def _cmd_doctor_capture(window_title_filter: str | None) -> int:
+    """Real `gamemind doctor --capture`: grab one frame, save to disk, report."""
+    import sys  # noqa: PLC0415
+    from datetime import datetime  # noqa: PLC0415
+
+    from gamemind.capture.dxgi_backend import DXGIBackend  # noqa: PLC0415
+    from gamemind.capture.wgc_backend import WGCBackend  # noqa: PLC0415
+
+    if sys.platform != "win32":
+        print("[gamemind doctor --capture] not supported on non-Windows")
+        return 2
+
+    hwnd, title = _find_target_hwnd(window_title_filter)
+    if hwnd == 0:
+        if window_title_filter:
+            print(
+                f"[gamemind doctor --capture] no window matched --window-title {window_title_filter!r}"
+            )
+        else:
+            print("[gamemind doctor --capture] no foreground window found")
+        _print_remediation_table()
+        return 1
+    print(f"[gamemind doctor --capture] target HWND={hwnd} title={title!r}")
+
+    runs_dir = Path("runs")
+    runs_dir.mkdir(exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    # Try WGC first, then DXGI fallback if WGC fails
+    wgc_result = None
+    wgc_error: str | None = None
+    try:
+        wgc = WGCBackend()
+        if wgc.liveness():
+            wgc_result = wgc.capture(hwnd=hwnd, timeout_ms=2000)
+    except Exception as exc:  # noqa: BLE001
+        wgc_error = f"{type(exc).__name__}: {exc}"
+
+    if wgc_result is not None:
+        out_path = runs_dir / f"doctor-wgc-{ts}.webp"
+        out_path.write_bytes(wgc_result.frame_bytes)
+        print("[gamemind doctor --capture] WGC OK")
+        print(f"  size:     {wgc_result.width}x{wgc_result.height}")
+        print(f"  variance: {wgc_result.variance:.6f} (floor 0.02)")
+        print(f"  age_ms:   {wgc_result.frame_age_ms:.1f}")
+        print(f"  bytes:    {len(wgc_result.frame_bytes)}")
+        print(f"  saved:    {out_path.resolve()}")
+        return 0
+
+    print(f"[gamemind doctor --capture] WGC failed: {wgc_error}")
+    print("[gamemind doctor --capture] trying DXGI fallback...")
+
+    dxgi_result = None
+    dxgi_error: str | None = None
+    try:
+        dxgi = DXGIBackend()
+        if not dxgi.liveness():
+            dxgi_error = f"DXGIBackend unhealthy: {dxgi._init_error}"
+        else:
+            dxgi_result = dxgi.capture(hwnd=hwnd, timeout_ms=2000)
+    except Exception as exc:  # noqa: BLE001
+        dxgi_error = f"{type(exc).__name__}: {exc}"
+
+    if dxgi_result is not None:
+        out_path = runs_dir / f"doctor-dxgi-{ts}.webp"
+        out_path.write_bytes(dxgi_result.frame_bytes)
+        print("[gamemind doctor --capture] DXGI OK (WGC unavailable)")
+        print(f"  size:     {dxgi_result.width}x{dxgi_result.height}")
+        print(f"  variance: {dxgi_result.variance:.6f}")
+        print(f"  age_ms:   {dxgi_result.frame_age_ms:.1f}")
+        print(f"  bytes:    {len(dxgi_result.frame_bytes)}")
+        print(f"  saved:    {out_path.resolve()}")
+        return 0
+
+    print(f"[gamemind doctor --capture] DXGI failed: {dxgi_error}")
+    print("[gamemind doctor --capture] BOTH BACKENDS FAILED")
+    _print_remediation_table()
+    return 1
+
+
+def _cmd_doctor_input() -> int:
+    """Real `gamemind doctor --input`: verify PyDirectInputBackend liveness + ImmDisableIME."""
+    import sys  # noqa: PLC0415
+
+    from gamemind.input.pydirectinput_backend import PyDirectInputBackend  # noqa: PLC0415
+
+    if sys.platform != "win32":
+        print("[gamemind doctor --input] not supported on non-Windows")
+        return 2
+
+    backend = PyDirectInputBackend()
+    if not backend.liveness():
+        print(f"[gamemind doctor --input] PyDirectInputBackend unhealthy: {backend._init_error}")
+        _print_remediation_table()
+        return 1
+    print("[gamemind doctor --input] PyDirectInputBackend OK (pydirectinput-rgx imported)")
+    print("  note: real end-to-end input test requires a live target window")
+    print("  note: run `python scripts/test_input_live.py` for tkinter-surrogate integration test")
+    return 0
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     modes: list[str] = []
     if args.all:
-        modes = ["capture", "input", "live-perception"]
+        modes = ["capture", "input"]
+        # live-perception stays stub until the Amendment A1 live spike
+        # lands in Batch B (needs a running game window)
     else:
         if args.capture:
             modes.append("capture")
@@ -214,15 +390,23 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             "gamemind doctor: pick at least one of --capture / --input / --live-perception / --all"
         )
         return 2
+
     print(f"[gamemind doctor] modes: {', '.join(modes)}")
-    print("  TODO: implement each doctor sub-check in follow-up commits")
-    print("  remediation table (DX-SUB-2):")
-    print("    (a) Ollama down       → `ollama serve`")
-    print("    (b) model not pulled  → `ollama pull qwen3-vl:8b-instruct-q4_K_M`")
-    print("    (c) API key missing   → set ANTHROPIC_API_KEY env var")
-    print("    (d) no game window    → focus the target game within 10s")
-    print("    (e) wrong HWND picked → use --window-title filter")
-    return 0
+    overall_rc = 0
+    if "capture" in modes:
+        rc = _cmd_doctor_capture(args.window_title)
+        if rc != 0:
+            overall_rc = rc
+    if "input" in modes:
+        rc = _cmd_doctor_input()
+        if rc != 0:
+            overall_rc = rc
+    if "live-perception" in modes:
+        print(
+            "[gamemind doctor --live-perception] STUB — Amendment A1 spike needs a running game window"
+        )
+        print("  (Batch B work, requires live Minecraft / Stardew / Dead Cells)")
+    return overall_rc
 
 
 def _cmd_run(args: argparse.Namespace) -> int:

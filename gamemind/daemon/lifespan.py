@@ -95,6 +95,41 @@ def enable_dpi_awareness() -> bool:
     return False
 
 
+def disable_ime() -> bool:
+    """Windows-only: disable IME for all threads in the current process.
+
+    On Chinese / Japanese / Korean Windows, the OS-level IME (Pinyin,
+    MS-IME, etc.) attaches to every input context by default and
+    intercepts Latin letters + space as composition input. This breaks
+    pydirectinput-based input paths and any debugging UI the daemon
+    creates (tkinter helpers, test surrogates).
+
+    gamemind never needs IME — we send raw scan codes to games that
+    consume them via RawInput (Minecraft, Stardew, etc). Calling
+    `ImmDisableIME(-1)` early in process startup prevents IME from
+    ever attaching.
+
+    This is a process-local setting — it does NOT affect other
+    processes like the target game. Game windows handle their own
+    input pipeline and are unaffected.
+
+    Returns True on success OR non-Windows (benign skip).
+    """
+    if sys.platform != "win32":
+        return True
+    try:
+        import ctypes  # noqa: PLC0415
+
+        imm32 = ctypes.WinDLL("imm32")
+        imm32.ImmDisableIME.argtypes = [ctypes.c_ulong]
+        imm32.ImmDisableIME.restype = ctypes.c_int
+        # -1 as DWORD (0xFFFFFFFF) means "all threads in current process"
+        result = imm32.ImmDisableIME(ctypes.c_ulong(0xFFFFFFFF))
+        return bool(result)
+    except (AttributeError, OSError):
+        return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """FastAPI lifespan — startup + shutdown hooks.
@@ -110,6 +145,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
       - HTTP client pool teardown
     """
     enable_dpi_awareness()
+    disable_ime()
     app.state.session_token = get_or_create_session_token()
     app.state.session_manager = SessionManager()
     app.state.ollama_host = os.environ.get(OLLAMA_HOST_ENV, DEFAULT_OLLAMA_HOST)
