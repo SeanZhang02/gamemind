@@ -539,6 +539,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
         capture = _MockCapture()
         hwnd = 0
+        input_backend = None
     else:
         from gamemind.brain.anthropic_backend import AnthropicBackend  # noqa: PLC0415
         from gamemind.brain.prompt_assembler import BASE_SYSTEM_PROMPT  # noqa: PLC0415
@@ -557,7 +558,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
             return 1
 
         brain = AnthropicBackend(system=BASE_SYSTEM_PROMPT, model=args.model)
-        perception = MockBrainBackend()
+        from gamemind.perception.ollama_backend import OllamaBackend  # noqa: PLC0415
+
+        perception = OllamaBackend()
+        from gamemind.input.pydirectinput_backend import PyDirectInputBackend  # noqa: PLC0415
+
+        input_backend = PyDirectInputBackend()
 
     config = RunnerConfig(
         adapter=adapter,
@@ -567,6 +573,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         capture=capture,
         perception=perception,
         brain=brain,
+        input=input_backend,
         hwnd=hwnd,
         budget_usd=args.budget,
         dry_run=args.dry_run,

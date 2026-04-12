@@ -17,6 +17,8 @@ processes each perception result immediately.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import threading
 import time
@@ -35,16 +37,26 @@ from gamemind.brain.prompt_assembler import (
     to_messages,
 )
 from gamemind.capture.backend import CaptureBackend, CaptureResult
+from gamemind.input.backend import InputBackend, ScanCode, press_and_release, tap
 from gamemind.events.envelope import make_envelope
 from gamemind.events.writer import EventWriter
 from gamemind.layer2.action_guard import ActionRepetitionGuard
 from gamemind.layer2.stuck_detector import StuckDetector
 from gamemind.layer2.wake_trigger import WakeTriggerEvaluator
-from gamemind.perception.freshness import is_stale
-from gamemind.perception.freshness import PerceptionResult
+from gamemind.perception.freshness import PerceptionResult, is_stale
 from gamemind.session.manager import SessionManager
 from gamemind.session.outcomes import Outcome
 from gamemind.verify.checks import check_abort, check_success
+
+PERCEPTION_PROMPT = (
+    "You are observing a Minecraft first-person screenshot. Report what you see as JSON.\n"
+    "Include these fields:\n"
+    '  "block": the block type at the crosshair center (oak_log, stone, grass_block, air, etc)\n'
+    '  "inventory": {item_id: count} for items visible in the hotbar\n'
+    '  "health": float 0-1 (1.0 = full hearts) estimated from health bar\n'
+    '  "entities": list of visible entity types nearby\n'
+    "Respond with ONLY valid JSON. No prose."
+)
 
 
 def _log(msg: str) -> None:
@@ -60,6 +72,7 @@ class RunnerConfig:
     capture: CaptureBackend
     perception: LLMBackend
     brain: LLMBackend
+    input: InputBackend | None
     hwnd: int
     budget_usd: float = 0.30
     tick_hz: float | None = None
@@ -151,6 +164,7 @@ class AgentRunner:
         self._current_plan: str = ""
         self._last_action_hash: str | None = None
         self._brain_call_count = 0
+        self._pending_actions: list[dict[str, Any]] = []
 
     def run(self) -> Outcome:
         slot = FrameSlot()
@@ -200,9 +214,13 @@ class AgentRunner:
         self._emit("layer2", "stuck_detected", {"trigger": "w1_task_start"})
 
         w1_response = self._call_brain_w1(adapter, config.task)
-        if w1_response.parsed_json and "plan" in w1_response.parsed_json:
-            self._current_plan = json.dumps(w1_response.parsed_json["plan"])
-            _log(f"W1 plan: {self._current_plan}")
+        if w1_response.parsed_json:
+            if "plan" in w1_response.parsed_json:
+                self._current_plan = json.dumps(w1_response.parsed_json["plan"])
+                _log(f"W1 plan: {self._current_plan}")
+            if "actions" in w1_response.parsed_json:
+                self._pending_actions = w1_response.parsed_json["actions"]
+                _log(f"W1 queued {len(self._pending_actions)} actions")
 
         last_action_executed = False
 
@@ -266,29 +284,114 @@ class AgentRunner:
                 _log("brain call count exceeded 30 — runaway abort")
                 return self._terminate("runaway")
 
-            last_action_executed = False
+            last_action_executed = self._execute_next_action()
 
         return self._terminate("user_stopped")
 
     def _run_perception(self, cap: CaptureResult) -> PerceptionResult | None:
+        capture_ts_ns = time.monotonic_ns() - int(cap.frame_age_ms * 1_000_000)
+        frame_id = uuid.uuid4().hex[:12]
+
         if self._config.dry_run:
             resp = self._config.perception.chat(
                 messages=[{"role": "user", "content": "dry-run perception tick"}],
                 temperature=0.0,
                 max_tokens=512,
                 cache_system=False,
-                request_id=f"perception-{uuid.uuid4().hex[:8]}",
+                request_id=f"perception-{frame_id}",
                 emit_event=False,
             )
-            return PerceptionResult(
-                frame_id=uuid.uuid4().hex[:12],
-                capture_ts_monotonic_ns=time.monotonic_ns() - int(cap.frame_age_ms * 1_000_000),
-                frame_age_ms=cap.frame_age_ms,
-                parsed=resp.parsed_json,
-                raw_text=resp.text,
-                latency_ms=resp.latency_ms,
+        else:
+            img_b64 = base64.b64encode(cap.frame_bytes).decode("ascii")
+            resp = self._config.perception.chat(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": PERCEPTION_PROMPT,
+                        "images": [img_b64],
+                    }
+                ],
+                temperature=0.0,
+                max_tokens=512,
+                cache_system=False,
+                request_id=f"perception-{frame_id}",
+                emit_event=False,
             )
-        return None
+
+        return PerceptionResult(
+            frame_id=frame_id,
+            capture_ts_monotonic_ns=capture_ts_ns,
+            frame_age_ms=cap.frame_age_ms,
+            parsed=resp.parsed_json,
+            raw_text=resp.text,
+            latency_ms=resp.latency_ms,
+        )
+
+    def _execute_next_action(self) -> bool:
+        """Pop and execute the next pending action from the brain's queue.
+
+        Returns True if an action was executed, False if queue is empty
+        or input backend is unavailable. Maps brain action names through
+        adapter.actions to key bindings, then sends via InputBackend.
+        """
+        if not self._pending_actions:
+            return False
+        if self._config.input is None or self._config.dry_run:
+            if self._pending_actions:
+                action = self._pending_actions.pop(0)
+                _log(f"  action (dry-run skip): {action}")
+            return False
+
+        action = self._pending_actions.pop(0)
+        scancodes = self._resolve_action(action)
+        if not scancodes:
+            _log(f"  action unresolvable: {action}")
+            return False
+
+        result = self._config.input.send_scan_codes(self._config.hwnd, scancodes)
+        action_hash = hashlib.sha256(
+            "|".join(f"{c.key}:{int(c.down)}:{c.hold_ms:.1f}" for c in scancodes).encode()
+        ).hexdigest()[:16]
+        self._last_action_hash = action_hash
+
+        self._emit(
+            "action",
+            "action_executed" if result.executed else "action_dropped_focus",
+            {
+                "action": action,
+                "action_hash": action_hash,
+                "executed": result.executed,
+                "dropped_reason": result.dropped_reason,
+                "latency_ms": result.latency_ms,
+            },
+        )
+        _log(
+            f"  action: {action.get('action', '?')} "
+            f"executed={result.executed} "
+            f"latency={result.latency_ms:.0f}ms"
+        )
+        return result.executed
+
+    def _resolve_action(self, action: dict[str, Any]) -> list[ScanCode]:
+        """Map a brain action dict to InputBackend scan codes.
+
+        Brain returns actions like:
+          {"action": "forward", "duration_ms": 2000}
+          {"action": "attack", "hold": true}
+          {"action": "forward"}  (tap)
+
+        Adapter maps action names to key bindings:
+          actions: {forward: "W", attack: "MouseLeft", ...}
+        """
+        action_name = action.get("action", "")
+        adapter_actions = self._config.adapter.actions
+        key = adapter_actions.get(action_name)
+        if key is None:
+            return []
+        duration_ms = action.get("duration_ms", 0)
+        if duration_ms > 0:
+            return press_and_release(key, hold_ms=float(duration_ms))
+        return tap(key)
 
     def _call_brain_w1(self, adapter: Adapter, task: str) -> LLMResponse:
         prompt = assemble_plan_decomposition(
