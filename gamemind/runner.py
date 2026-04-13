@@ -325,23 +325,28 @@ class AgentRunner:
 
         self._fsm.transition("plan_ready_navigate")
 
-        # --- Main orchestrator loop (20Hz target) ---
+        # --- Main orchestrator loop ---
+        # BT decisions only run when NEW perception arrives (1Hz).
+        # Between ticks: check safety events, maintain current key state.
         while not self._stop.is_set():
-            # Wait for new perception or timeout (50ms = 20Hz orchestrator)
-            self._new_perception.wait(timeout=0.05)
+            got_new = self._new_perception.wait(timeout=0.05)
             self._new_perception.clear()
 
-            # Check freeze from perception thread
+            # Always check freeze/emergency (safety, must be responsive)
             if self._freeze_event.is_set():
                 self._release_all_keys()
                 self._motor.freeze()
                 self._fsm.transition("perception_unavailable")
                 continue
 
-            # Handle emergency command from perception thread
             if self._emergency_command is not None:
                 self._motor.set_emergency(self._emergency_command)
                 self._emergency_command = None
+
+            # Only run BT decisions when NEW perception arrives.
+            # Without new data, keep current key state — no re-ticking.
+            if not got_new:
+                continue
 
             elapsed_s = (time.monotonic_ns() - start_ns) / 1e9
 
