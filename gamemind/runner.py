@@ -231,7 +231,7 @@ class AgentRunner:
             self._bb.write("current_subgoal", self._subgoals[0], Producer.PLANNER)
             self._bb.write("plan_sequence", self._subgoals, Producer.PLANNER)
 
-        self._fsm.transition("plan_ready_harvest")
+        self._fsm.transition("plan_ready_navigate")
 
         while not self._stop.is_set():
             cap = slot.take(timeout=2.0)
@@ -320,7 +320,7 @@ class AgentRunner:
                 self._fsm.transition("w2_stuck")
                 self._call_brain_w2(adapter, perception)
                 self._bb.swap()
-                self._fsm.transition("plan_ready_harvest")
+                self._fsm.transition("plan_ready_navigate")
 
             if self._brain_call_count >= 30:
                 _log("brain call count exceeded 30 — runaway")
@@ -329,8 +329,27 @@ class AgentRunner:
             current_bt = self._bt_trees.get(self._fsm.state)
             bt_command: MotorCommand | None = None
             if current_bt is not None:
-                current_bt.tick(self._bb)
+                bt_status = current_bt.tick(self._bb)
                 bt_command = current_bt.motor_command
+
+                from gamemind.bt.engine import Status as BTStatus
+
+                if bt_status == BTStatus.SUCCESS and self._fsm.state == State.NAVIGATING:
+                    self._fsm.transition("target_reached")
+                    _log("  NAVIGATING → HARVESTING (target_reached)")
+                    current_bt = self._bt_trees.get(self._fsm.state)
+                    if current_bt is not None:
+                        current_bt.tick(self._bb)
+                        bt_command = current_bt.motor_command
+                elif bt_status == BTStatus.SUCCESS and self._fsm.state == State.HARVESTING:
+                    vlm_action = self._bb.read_value("vlm_suggested_action")
+                    if vlm_action != "attack":
+                        self._fsm.transition("resource_exhausted")
+                        _log("  HARVESTING → NAVIGATING (resource_exhausted)")
+                        current_bt = self._bt_trees.get(self._fsm.state)
+                        if current_bt is not None:
+                            current_bt.tick(self._bb)
+                            bt_command = current_bt.motor_command
 
             if bt_command is not None and bt_command.action_name:
                 if (
@@ -345,7 +364,7 @@ class AgentRunner:
                         self._fsm.transition("w2_stuck")
                         self._call_brain_w2(adapter, perception)
                         self._bb.swap()
-                        self._fsm.transition("plan_ready_harvest")
+                        self._fsm.transition("plan_ready_navigate")
                         self._hallucination_count = 0
                     bt_command = None
                 else:
