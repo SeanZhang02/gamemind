@@ -453,16 +453,22 @@ class AgentRunner:
             ):
                 current_key = resolved.key
                 if resolved.command_type == MotorCommandType.HOLD:
+                    # Release any OTHER held keys before holding the new one
+                    for k in list(self._held_keys):
+                        if k != current_key:
+                            config.input.key_up(config.hwnd, k)
+                            self._held_keys.discard(k)
                     if current_key not in self._held_keys:
                         config.input.key_down(config.hwnd, current_key)
                         self._held_keys.add(current_key)
                 elif resolved.command_type == MotorCommandType.TAP:
+                    self._release_all_keys()  # release holds before tapping
                     scancodes = tap(resolved.key)
                     config.input.send_scan_codes(config.hwnd, scancodes)
 
                 self._last_action = resolved.action
                 self._watchdog.set_motor_moving(
-                    resolved.action in ("forward", "backward", "strafe_left", "strafe_right")
+                    resolved.action in ("forward", "backward", "strafe_left", "strafe_right", "attack")
                 )
                 self._bb.write("last_action", resolved.action, Producer.ACTION)
             else:

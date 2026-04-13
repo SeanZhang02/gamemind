@@ -41,7 +41,7 @@ class TestStaleness:
     def test_idle_after_timeout(self) -> None:
         motor = Motor(ACTIONS)
         motor._state.is_idle = False
-        motor._state.last_command_ns = time.monotonic_ns() - 900_000_000
+        motor._state.last_command_ns = time.monotonic_ns() - 1_600_000_000  # >1500ms staleness
         motor.resolve(None)
         assert motor._state.is_idle
 
@@ -53,7 +53,7 @@ class TestHysteresis:
         motor.resolve(MotorCommand.tap("forward"))
         import time
 
-        motor._state.last_command_ns = time.monotonic_ns() - 900_000_000
+        motor._state.last_command_ns = time.monotonic_ns() - 1_600_000_000  # >1500ms staleness
         motor.resolve(None)
         assert motor._state.is_idle
         motor._state.recovery_streak = 0
