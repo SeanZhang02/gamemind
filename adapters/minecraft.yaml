@@ -11,6 +11,25 @@ display_name: "Minecraft Java Edition"
 perception:
   freshness_budget_ms: 700.0
   tick_hz: 2.0
+  spatial_schema:
+    facing_categories: ["looking_down", "looking_at_horizon", "looking_up"]
+    distance_categories: ["close", "medium", "far"]
+    direction_categories: ["ahead", "ahead_left", "ahead_right", "left", "right", "behind"]
+    anchor_max_age_frames: 20  # @ 2Hz, 20 frames = 10 seconds
+
+intents:
+  approach:
+    description: "Move toward a spatial anchor"
+    stall_threshold_frames: 10
+  look_around:
+    description: "Survey surroundings by rotating"
+    stall_threshold_frames: 10
+  attack_target:
+    description: "Attack the block/entity at crosshair"
+    stall_threshold_frames: 16
+  retreat:
+    description: "Move away from danger"
+    stall_threshold_frames: 6
 
 actions:
   forward: "W"

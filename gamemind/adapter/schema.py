@@ -116,16 +116,50 @@ class GoalGrammar(_StrictModel):
     abort_conditions: list[AbortCondition] = Field(default_factory=list)
 
 
+class SpatialSchema(_StrictModel):
+    """Per-adapter spatial perception categories.
+
+    Defines the vocabulary for spatial reasoning: facing angles, distance
+    buckets, and direction sectors. Defaults match Minecraft's 3D world
+    but adapters can override for top-down or 2D games.
+    """
+
+    facing_categories: list[str] = Field(
+        default=["looking_down", "looking_at_horizon", "looking_up"],
+    )
+    distance_categories: list[str] = Field(
+        default=["close", "medium", "far"],
+    )
+    direction_categories: list[str] = Field(
+        default=["ahead", "ahead_left", "ahead_right", "left", "right", "behind"],
+    )
+    anchor_max_age_frames: int = 20
+
+
+class IntentConfig(_StrictModel):
+    """Configuration for a single high-level intent.
+
+    Intents are Layer 2 action primitives that the brain can invoke.
+    stall_threshold_frames controls how long an intent can run without
+    observable progress before the stall detector fires.
+    """
+
+    description: str
+    stall_threshold_frames: int = 10
+
+
 class PerceptionConfig(_StrictModel):
     """Per-adapter perception knobs.
 
     Amendment A1: freshness_budget_ms can be overridden per game if a
     game's tolerance differs from the 750ms default (e.g. slow turn-
     based games can afford more, twitch action games may want less).
+    spatial_schema: optional spatial vocabulary for the perception layer.
     """
 
     freshness_budget_ms: float = 750.0
     tick_hz: float = 2.0
+    spatial_schema: SpatialSchema = Field(default_factory=SpatialSchema)
 
 
 class Adapter(_StrictModel):
@@ -155,6 +189,7 @@ class Adapter(_StrictModel):
     world_facts: dict[str, str] = Field(default_factory=dict)
     inventory_ui: dict[str, Any] = Field(default_factory=dict)
     perception: PerceptionConfig = Field(default_factory=PerceptionConfig)
+    intents: dict[str, IntentConfig] = Field(default_factory=dict)
 
     @field_validator("schema_version")
     @classmethod
