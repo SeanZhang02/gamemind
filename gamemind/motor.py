@@ -41,7 +41,7 @@ class Motor:
 
     def __init__(self, action_to_key: dict[str, str]) -> None:
         self._action_to_key = action_to_key
-        self._state = MotorState()
+        self._state = MotorState(recovery_streak=_RECOVERY_THRESHOLD)
         self._frozen = False
         self._emergency_command: MotorCommand | None = None
 

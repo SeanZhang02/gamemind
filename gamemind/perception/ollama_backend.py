@@ -147,8 +147,16 @@ class OllamaBackend:
         raw_text = data.get("message", {}).get("content", "")
         think_leaked = "<think>" in raw_text or "</think>" in raw_text
         parsed: dict[str, Any] | None = None
+        stripped = raw_text.strip()
+        if stripped.startswith("```"):
+            lines = stripped.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            stripped = "\n".join(lines).strip()
         try:
-            loaded = json.loads(raw_text)
+            loaded = json.loads(stripped)
             if isinstance(loaded, dict):
                 parsed = loaded
         except (json.JSONDecodeError, TypeError):

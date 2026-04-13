@@ -47,20 +47,28 @@ class TestStaleness:
 
 
 class TestHysteresis:
-    def test_needs_two_consecutive_to_resume(self) -> None:
+    def test_needs_two_consecutive_to_resume_after_staleness(self) -> None:
         motor = Motor(ACTIONS)
-        motor._state.is_idle = True
+        motor._state.is_idle = False
+        motor.resolve(MotorCommand.tap("forward"))
+        import time
+
+        motor._state.last_command_ns = time.monotonic_ns() - 900_000_000
+        motor.resolve(None)
+        assert motor._state.is_idle
+        motor._state.recovery_streak = 0
         cmd = MotorCommand.tap("forward")
         assert motor.resolve(cmd) is None
         result = motor.resolve(cmd)
         assert result is not None
         assert result.key == "W"
 
-    def test_single_tick_not_enough(self) -> None:
+    def test_first_boot_skips_hysteresis(self) -> None:
         motor = Motor(ACTIONS)
-        motor._state.is_idle = True
         cmd = MotorCommand.tap("forward")
-        assert motor.resolve(cmd) is None
+        result = motor.resolve(cmd)
+        assert result is not None
+        assert result.key == "W"
 
 
 class TestPriorityChain:

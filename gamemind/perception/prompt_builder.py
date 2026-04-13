@@ -124,9 +124,19 @@ def parse_tick_response(parsed_json: dict[str, Any] | None) -> dict[str, Any]:
             "subgoal_ok": None,
             "action_reason": None,
         }
+    health_raw = parsed_json.get("health")
+    if health_raw is not None:
+        try:
+            health_val = float(health_raw)
+            if health_val > 1.0:
+                health_val = health_val / 100.0
+            health_raw = max(0.0, min(1.0, health_val))
+        except (ValueError, TypeError):
+            health_raw = None
+
     return {
         "crosshair_block": parsed_json.get("block"),
-        "health": parsed_json.get("health"),
+        "health": health_raw,
         "entities_nearby": parsed_json.get("entities"),
         "vlm_suggested_action": parsed_json.get("action"),
         "subgoal_ok": parsed_json.get("subgoal_ok"),
