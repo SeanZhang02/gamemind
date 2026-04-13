@@ -197,7 +197,12 @@ class SpatialState:
                 parts.append("No notable objects visible.")
 
             if buf.entities:
-                parts.append(f"Entities: {', '.join(buf.entities)}.")
+                # Entities can be strings or dicts (VLM inconsistency)
+                entity_strs = [
+                    e if isinstance(e, str) else e.get("type", str(e))
+                    for e in buf.entities
+                ]
+                parts.append(f"Entities: {', '.join(entity_strs)}.")
             if buf.health is not None:
                 parts.append(f"Health: {buf.health:.1f}.")
 
