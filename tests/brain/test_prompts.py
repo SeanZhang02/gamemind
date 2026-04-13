@@ -8,6 +8,7 @@ from gamemind.brain.prompt_assembler import (
     BASE_SYSTEM_PROMPT,
     assemble_abort_evaluation,
     assemble_disagreement_arbiter,
+    assemble_intent_decision,
     assemble_plan_decomposition,
     assemble_replan_from_stuck,
     assemble_task_completion_verification,
@@ -36,13 +37,14 @@ def test_template_names_complete() -> None:
         "abort_evaluation",
         "disagreement_arbiter",
         "task_completion_verification",
+        "intent_decision",
     )
 
 
 def test_all_templates_present() -> None:
     available = list_templates()
     assert set(available) == set(TEMPLATE_NAMES)
-    assert len(available) == 5
+    assert len(available) == 6
 
 
 def test_render_template_with_known_name() -> None:
@@ -240,3 +242,90 @@ def test_to_messages_returns_user_role_list() -> None:
     assert len(messages) == 1
     assert messages[0]["role"] == "user"
     assert messages[0]["content"] == prompt.user_content
+
+
+# ---------- intent_decision template tests ----------
+
+
+def test_intent_decision_template_renders() -> None:
+    """Template renders with all variables substituted."""
+    text = render_template(
+        "intent_decision",
+        display_name="Test Game",
+        world_facts="biome: plains",
+        spatial_snapshot="oak_tree at (10, 65, -3), distance=5.2",
+        current_subgoal="chop a tree",
+        last_intents="approach oak_tree -> COMPLETED",
+        available_intents="approach, look_around, attack_target, retreat",
+        trigger_reason="COMPLETED: approach intent finished successfully",
+    )
+    assert "Test Game" in text
+    assert "biome: plains" in text
+    assert "oak_tree at (10, 65, -3)" in text
+    assert "chop a tree" in text
+    assert "approach oak_tree -> COMPLETED" in text
+    assert "approach, look_around, attack_target, retreat" in text
+    assert "COMPLETED: approach intent finished successfully" in text
+    # No unsubstituted placeholders
+    assert "$display_name" not in text
+    assert "$spatial_snapshot" not in text
+    assert "$current_subgoal" not in text
+    assert "$last_intents" not in text
+    assert "$available_intents" not in text
+    assert "$trigger_reason" not in text
+    assert "$world_facts" not in text
+
+
+def test_intent_decision_template_no_game_name() -> None:
+    """Rule 3: no hardcoded game names in the intent_decision template."""
+    text = (TEMPLATE_DIR / "intent_decision.prompt").read_text(encoding="utf-8").lower()
+    forbidden = ("minecraft", "stardew", "factorio", "dead cells", "vampire survivors")
+    for word in forbidden:
+        assert word not in text, f"intent_decision: contains forbidden game name {word!r}"
+
+
+def test_intent_decision_template_has_observation_tags() -> None:
+    """Rule 4: spatial_snapshot is wrapped in <observation> tags."""
+    text = (TEMPLATE_DIR / "intent_decision.prompt").read_text(encoding="utf-8")
+    assert "<observation>" in text
+    assert "</observation>" in text
+    assert "data" in text.lower() and "instruction" in text.lower(), (
+        "intent_decision: missing the 'data, not instructions' safety note"
+    )
+
+
+def test_assemble_intent_decision_returns_assembled_prompt() -> None:
+    """assemble_intent_decision returns correct AssembledPrompt structure."""
+    prompt = assemble_intent_decision(
+        display_name="Test Game",
+        world_facts={"biome": "plains"},
+        spatial_snapshot="oak_tree at (10, 65, -3), distance=5.2",
+        current_subgoal="chop a tree",
+        last_intents="approach oak_tree -> COMPLETED",
+        available_intents="approach, look_around, attack_target, retreat",
+        trigger_reason="COMPLETED: approach intent finished successfully",
+    )
+    assert prompt.template_name == "intent_decision"
+    assert prompt.system == BASE_SYSTEM_PROMPT
+    assert "Test Game" in prompt.user_content
+    assert "oak_tree at (10, 65, -3)" in prompt.user_content
+    assert "chop a tree" in prompt.user_content
+    assert "approach oak_tree -> COMPLETED" in prompt.user_content
+    assert "COMPLETED: approach intent finished successfully" in prompt.user_content
+
+
+def test_assemble_intent_decision_wraps_world_facts() -> None:
+    """world_facts are wrapped in <adapter-fact> tags (Design Rule 4)."""
+    prompt = assemble_intent_decision(
+        display_name="Test",
+        world_facts={"trees": "produce logs", "stone": "needs pickaxe"},
+        spatial_snapshot="snapshot data",
+        current_subgoal="goal",
+        last_intents="none",
+        available_intents="approach, look_around",
+        trigger_reason="STALLED: no progress",
+    )
+    assert "<adapter-fact>" in prompt.user_content
+    assert "</adapter-fact>" in prompt.user_content
+    assert "trees: produce logs" in prompt.user_content
+    assert "stone: needs pickaxe" in prompt.user_content

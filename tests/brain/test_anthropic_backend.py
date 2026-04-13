@@ -97,7 +97,7 @@ def _build_backend(
 
 
 def test_defaults() -> None:
-    assert DEFAULT_MODEL == "claude-opus-4-6"
+    assert DEFAULT_MODEL == "claude-sonnet-4-6"
     assert ENV_API_KEY == "ANTHROPIC_API_KEY"
 
 

@@ -23,13 +23,14 @@ from string import Template
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
-# The 5 Layer 3 wake triggers per §1.4. One template per trigger.
+# The Layer 3 wake triggers per §1.4 + intent decision. One template per trigger.
 TEMPLATE_NAMES: tuple[str, ...] = (
     "plan_decomposition",  # W1: task start
     "replan_from_stuck",  # W2: stuck detector fired
     "abort_evaluation",  # W3: abort condition or stalled success
     "disagreement_arbiter",  # W4: vision critic escalation
     "task_completion_verification",  # W5: success check final verify
+    "intent_decision",  # W6: intent tracker completed/stalled/blocked
 )
 
 

@@ -209,6 +209,38 @@ def assemble_task_completion_verification(
     )
 
 
+def assemble_intent_decision(
+    *,
+    display_name: str,
+    world_facts: dict[str, str],
+    spatial_snapshot: str,
+    current_subgoal: str,
+    last_intents: str,
+    available_intents: str,
+    trigger_reason: str,
+) -> AssembledPrompt:
+    """Assemble a W6 intent-decision prompt.
+
+    Called when IntentTracker reports COMPLETED/STALLED/BLOCKED and the
+    Brain needs to decide the next intent.
+    """
+    user_content = render_template(
+        "intent_decision",
+        display_name=display_name,
+        world_facts=_format_world_facts(world_facts),
+        spatial_snapshot=spatial_snapshot,
+        current_subgoal=current_subgoal,
+        last_intents=last_intents,
+        available_intents=available_intents,
+        trigger_reason=trigger_reason,
+    )
+    return AssembledPrompt(
+        system=BASE_SYSTEM_PROMPT,
+        user_content=user_content,
+        template_name="intent_decision",
+    )
+
+
 def to_messages(prompt: AssembledPrompt) -> list[dict[str, Any]]:
     """Convert an AssembledPrompt into the list[dict] shape LLMBackend expects."""
     return [{"role": "user", "content": prompt.user_content}]

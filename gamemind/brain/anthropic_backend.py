@@ -26,7 +26,7 @@ import anthropic
 
 from gamemind.brain.backend import LLMResponse
 
-DEFAULT_MODEL = "claude-opus-4-6"
+DEFAULT_MODEL = "claude-sonnet-4-6"
 ENV_API_KEY = "ANTHROPIC_API_KEY"
 
 _PRICING: dict[str, tuple[float, float]] = {
