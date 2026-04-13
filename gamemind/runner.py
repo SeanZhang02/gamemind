@@ -180,6 +180,8 @@ class AgentRunner:
         self._policy_hints: list[str] = []
         self._last_action: str = ""
         self._hallucination_count = 0
+        self._logs_collected: int = 0
+        self._prev_block: str | None = None
 
         # Concurrent architecture state
         self._new_perception = threading.Event()
@@ -378,6 +380,17 @@ class AgentRunner:
                     f"({self._current_subgoal_idx}/{len(self._subgoals)})"
                 )
 
+            # Block-break event counting (log collection heuristic)
+            current_block = self._bb.read_value("crosshair_block")
+            if (
+                self._prev_block
+                and "log" in self._prev_block.lower()
+                and (current_block is None or "log" not in current_block.lower())
+            ):
+                self._logs_collected += 1
+                _log(f"  LOG COLLECTED! total={self._logs_collected}")
+            self._prev_block = current_block
+
             # Abort checks
             for condition in self._goal.abort_conditions:
                 if condition.type == "health_threshold" and self._perception_tick_count < 5:
@@ -386,8 +399,27 @@ class AgentRunner:
                     _log(f"abort condition fired: {condition.type}")
                     return self._terminate("aborted")
 
-            # Success checks
-            success_fired = check_success(self._goal.success_check, perception, elapsed_s)
+            # Success checks — inject block-break log count as synthetic inventory
+            # Only inject when VLM doesn't already report inventory data
+            if (
+                perception
+                and perception.parsed is not None
+                and "inventory" not in perception.parsed
+                and self._logs_collected > 0
+            ):
+                perception_with_inventory = PerceptionResult(
+                    frame_id=perception.frame_id,
+                    capture_ts_monotonic_ns=perception.capture_ts_monotonic_ns,
+                    frame_age_ms=perception.frame_age_ms,
+                    parsed={**perception.parsed, "inventory": {"log": self._logs_collected}},
+                    raw_text=perception.raw_text,
+                    latency_ms=perception.latency_ms,
+                )
+            else:
+                perception_with_inventory = perception
+            success_fired = check_success(
+                self._goal.success_check, perception_with_inventory, elapsed_s
+            )
             if success_fired:
                 _log("success predicates fired — calling W5 verify")
                 w5_ok = self._call_brain_w5(adapter, config.task, perception)
@@ -400,7 +432,12 @@ class AgentRunner:
             wake = self._trigger.on_perception_tick(
                 perception,
                 frame_bytes=b"",  # frame bytes not available in orchestrator
-                predicate_fired=success_fired,
+                predicate_fired=success_fired
+                or (
+                    self._fsm.state == State.HARVESTING
+                    and self._bb.read_value("crosshair_block")
+                    not in (None, "", "air", "water", "lava")
+                ),
                 action_executed=self._last_action != "",
                 last_action_hash=self._last_action,
                 abort_triggered=False,
