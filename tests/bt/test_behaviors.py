@@ -62,7 +62,7 @@ class TestNavigatingTree:
         assert status == Status.SUCCESS
 
     def test_signals_arrived_when_target_reached(self) -> None:
-        bb = _bb_with(crosshair_block="oak_log", health=1.0)
+        bb = _bb_with(crosshair_block="oak_log", health=1.0, vlm_suggested_action="attack")
         tree = build_navigating_tree()
         status = tree.tick(bb)
         assert status == Status.SUCCESS

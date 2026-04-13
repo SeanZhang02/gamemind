@@ -30,9 +30,10 @@ def _health_critical(bb: Blackboard) -> bool:
 
 def _target_reached(bb: Blackboard) -> bool:
     block = bb.read_value("crosshair_block", min_confidence=0.4)
-    if block is None:
+    if block is None or block in ("air", "water", "lava", ""):
         return False
-    return block not in ("air", "water", "lava", "")
+    vlm_action = bb.read_value("vlm_suggested_action")
+    return vlm_action == "attack"
 
 
 def _target_visible(bb: Blackboard) -> bool:
