@@ -265,7 +265,11 @@ class AgentRunner:
             if self._watchdog.is_frozen:
                 continue
 
-            perception = self._run_vlm_perception(cap)
+            try:
+                perception = self._run_vlm_perception(cap)
+            except Exception as e:  # noqa: BLE001
+                _log(f"perception error (skipping frame): {type(e).__name__}: {e}")
+                continue
             if perception is None:
                 continue
             self._perception_tick_count += 1
