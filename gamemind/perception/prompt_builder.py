@@ -54,9 +54,7 @@ _TARGET_WIDTH = 512
 _TARGET_HEIGHT = 288
 
 _VALID_FACINGS = frozenset({"looking_down", "looking_at_horizon", "looking_up"})
-_VALID_DIRECTIONS = frozenset(
-    {"ahead", "left", "right", "behind", "ahead_left", "ahead_right"}
-)
+_VALID_DIRECTIONS = frozenset({"ahead", "left", "right", "behind", "ahead_left", "ahead_right"})
 _VALID_DISTANCES = frozenset({"close", "medium", "far"})
 
 
@@ -273,9 +271,7 @@ def parse_spatial_response(
                 and direction in _VALID_DIRECTIONS
                 and distance in _VALID_DISTANCES
             ):
-                validated.append(
-                    {"label": label, "direction": direction, "distance": distance}
-                )
+                validated.append({"label": label, "direction": direction, "distance": distance})
         if validated:
             anchors = validated
 

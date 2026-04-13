@@ -99,17 +99,13 @@ class TestAttack:
 
     def test_attack_facing_horizon_crosshair_matches(self) -> None:
         exe = _make_executor()
-        cmd = exe.next_action(
-            _attack("zombie"), "", "zombie", "looking_at_horizon", "ahead"
-        )
+        cmd = exe.next_action(_attack("zombie"), "", "zombie", "looking_at_horizon", "ahead")
         assert cmd.action_name == "attack"
         assert cmd.command_type == MotorCommandType.HOLD
 
     def test_attack_facing_horizon_crosshair_wrong(self) -> None:
         exe = _make_executor()
-        cmd = exe.next_action(
-            _attack("zombie"), "", "dirt", "looking_at_horizon", "left"
-        )
+        cmd = exe.next_action(_attack("zombie"), "", "dirt", "looking_at_horizon", "left")
         # Should orient toward target
         assert cmd.action_name == "turn_left"
         assert cmd.command_type == MotorCommandType.TAP

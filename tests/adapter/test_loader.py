@@ -178,7 +178,12 @@ def test_minecraft_adapter_has_spatial_schema() -> None:
     assert ss.facing_categories == ["looking_down", "looking_at_horizon", "looking_up"]
     assert ss.distance_categories == ["close", "medium", "far"]
     assert ss.direction_categories == [
-        "ahead", "ahead_left", "ahead_right", "left", "right", "behind",
+        "ahead",
+        "ahead_left",
+        "ahead_right",
+        "left",
+        "right",
+        "behind",
     ]
     assert ss.anchor_max_age_frames == 20
 

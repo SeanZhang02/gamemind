@@ -89,9 +89,12 @@ class IntentExecutor:
         # facing == horizon — multi-step scan: left, left, right, right, right, right
         # This covers ~360 degrees (2 lefts = 180°, then 4 rights = 360° back + 180° further)
         scan_sequence = [
-            "turn_left", "turn_left",           # scan left 180°
-            "turn_right", "turn_right",         # return to center
-            "turn_right", "turn_right",         # scan right 180°
+            "turn_left",
+            "turn_left",  # scan left 180°
+            "turn_right",
+            "turn_right",  # return to center
+            "turn_right",
+            "turn_right",  # scan right 180°
         ]
         if self._orient_step < len(scan_sequence):
             action = scan_sequence[self._orient_step]

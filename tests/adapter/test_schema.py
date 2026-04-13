@@ -189,7 +189,12 @@ def test_spatial_schema_defaults() -> None:
     assert schema.facing_categories == ["looking_down", "looking_at_horizon", "looking_up"]
     assert schema.distance_categories == ["close", "medium", "far"]
     assert schema.direction_categories == [
-        "ahead", "ahead_left", "ahead_right", "left", "right", "behind",
+        "ahead",
+        "ahead_left",
+        "ahead_right",
+        "left",
+        "right",
+        "behind",
     ]
     assert schema.anchor_max_age_frames == 20
 

@@ -98,9 +98,7 @@ class SpatialState:
         with self._lock:
             buf = self._back
             buf.facing = (
-                perception.facing
-                if perception.facing in self.VALID_FACINGS
-                else buf.facing
+                perception.facing if perception.facing in self.VALID_FACINGS else buf.facing
             )
             buf.block = perception.block
             buf.spatial_context = perception.spatial_context
@@ -193,9 +191,7 @@ class SpatialState:
                 buf.anchors.values(), key=lambda a: a.last_seen_ns, reverse=True
             )[:20]
             if sorted_anchors:
-                anchor_strs = [
-                    f"{a.label} ({a.direction}, {a.distance})" for a in sorted_anchors
-                ]
+                anchor_strs = [f"{a.label} ({a.direction}, {a.distance})" for a in sorted_anchors]
                 parts.append(f"Nearby: {', '.join(anchor_strs)}.")
             else:
                 parts.append("No notable objects visible.")
@@ -212,9 +208,7 @@ class SpatialState:
         with self._lock:
             return self._front.last_diff
 
-    def _compute_diff(
-        self, prev: SpatialPerception | None, curr: SpatialPerception
-    ) -> str | None:
+    def _compute_diff(self, prev: SpatialPerception | None, curr: SpatialPerception) -> str | None:
         """Compute textual diff between two consecutive perceptions."""
         if prev is None:
             return None
@@ -222,9 +216,7 @@ class SpatialState:
         if prev.facing != curr.facing and curr.facing:
             parts.append(f"Camera changed to {curr.facing.replace('_', ' ')}")
         if prev.block != curr.block:
-            parts.append(
-                f"Block changed from {prev.block or 'none'} to {curr.block or 'none'}"
-            )
+            parts.append(f"Block changed from {prev.block or 'none'} to {curr.block or 'none'}")
         return ". ".join(parts) if parts else None
 
     def clear(self) -> None:

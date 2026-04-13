@@ -162,7 +162,7 @@ def test_log_counting_sequence() -> None:
         ("attack", "oak_log"),
         ("attack", "oak_log"),
         ("attack", "oak_log"),  # 4 ticks attacking oak_log
-        ("attack", "air"),      # block breaks → now air
+        ("attack", "air"),  # block breaks → now air
     ]
 
     for vlm_action, current_block in ticks:

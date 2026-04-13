@@ -126,39 +126,45 @@ def test_build_tick_prompt_backward_compat_with_available_actions() -> None:
 
 
 def test_parse_spatial_response_valid_facing() -> None:
-    result = parse_spatial_response({
-        "block": "oak_log",
-        "facing": "looking_down",
-        "spatial_context": "standing on grass",
-        "anchors": [],
-        "health": 0.9,
-        "entities": [],
-    })
+    result = parse_spatial_response(
+        {
+            "block": "oak_log",
+            "facing": "looking_down",
+            "spatial_context": "standing on grass",
+            "anchors": [],
+            "health": 0.9,
+            "entities": [],
+        }
+    )
     assert result["player_facing"] == "looking_down"
 
 
 def test_parse_spatial_response_invalid_facing_rejected() -> None:
-    result = parse_spatial_response({
-        "block": "stone",
-        "facing": "upside_down",
-        "health": 0.5,
-    })
+    result = parse_spatial_response(
+        {
+            "block": "stone",
+            "facing": "upside_down",
+            "health": 0.5,
+        }
+    )
     assert result["player_facing"] is None
     assert result["crosshair_block"] == "stone"
 
 
 def test_parse_spatial_response_valid_anchors() -> None:
-    result = parse_spatial_response({
-        "block": "grass_block",
-        "facing": "looking_at_horizon",
-        "spatial_context": "open field",
-        "anchors": [
-            {"label": "oak_tree", "direction": "ahead", "distance": "medium"},
-            {"label": "river", "direction": "left", "distance": "far"},
-        ],
-        "health": 1.0,
-        "entities": ["cow"],
-    })
+    result = parse_spatial_response(
+        {
+            "block": "grass_block",
+            "facing": "looking_at_horizon",
+            "spatial_context": "open field",
+            "anchors": [
+                {"label": "oak_tree", "direction": "ahead", "distance": "medium"},
+                {"label": "river", "direction": "left", "distance": "far"},
+            ],
+            "health": 1.0,
+            "entities": ["cow"],
+        }
+    )
     assert result["anchors"] is not None
     assert len(result["anchors"]) == 2
     assert result["anchors"][0]["label"] == "oak_tree"
@@ -168,14 +174,16 @@ def test_parse_spatial_response_valid_anchors() -> None:
 
 
 def test_parse_spatial_response_invalid_anchor_direction() -> None:
-    result = parse_spatial_response({
-        "block": "stone",
-        "facing": "looking_at_horizon",
-        "anchors": [
-            {"label": "tree", "direction": "northwest", "distance": "close"},
-        ],
-        "health": 0.8,
-    })
+    result = parse_spatial_response(
+        {
+            "block": "stone",
+            "facing": "looking_at_horizon",
+            "anchors": [
+                {"label": "tree", "direction": "northwest", "distance": "close"},
+            ],
+            "health": 0.8,
+        }
+    )
     # Invalid direction -> anchor rejected, list empty -> None
     assert result["anchors"] is None
 

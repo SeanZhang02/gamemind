@@ -26,6 +26,7 @@ def _perception(**kwargs) -> SpatialPerception:
 # update() tests
 # ---------------------------------------------------------------------------
 
+
 class TestUpdateParsesFacing:
     def test_update_parses_facing(self):
         ss = SpatialState()
@@ -69,9 +70,13 @@ class TestUpdateStoresSpatialContext:
 class TestUpdateCreatesAnchor:
     def test_update_creates_anchor(self):
         ss = SpatialState()
-        ss.update(_perception(anchors=[
-            {"label": "oak_tree", "direction": "ahead_right", "distance": "close"},
-        ]))
+        ss.update(
+            _perception(
+                anchors=[
+                    {"label": "oak_tree", "direction": "ahead_right", "distance": "close"},
+                ]
+            )
+        )
         ss.swap()
         snap = ss.snapshot()
         assert "oak_tree" in snap
@@ -106,9 +111,13 @@ class TestUpdateRefreshesExistingAnchor:
 class TestUpdateRejectsInvalidAnchorDirection:
     def test_update_rejects_invalid_anchor_direction(self):
         ss = SpatialState()
-        ss.update(_perception(anchors=[
-            {"label": "bad_tree", "direction": "above", "distance": "close"},
-        ]))
+        ss.update(
+            _perception(
+                anchors=[
+                    {"label": "bad_tree", "direction": "above", "distance": "close"},
+                ]
+            )
+        )
         ss.swap()
         snap = ss.snapshot()
         assert "bad_tree" not in snap
@@ -134,6 +143,7 @@ class TestUpdatePrunesExpiredAnchors:
 # ---------------------------------------------------------------------------
 # swap() tests
 # ---------------------------------------------------------------------------
+
 
 class TestSwapPromotesBackToFront:
     def test_swap_promotes_back_to_front(self):
@@ -163,18 +173,21 @@ class TestSwapIsolation:
 # snapshot() tests
 # ---------------------------------------------------------------------------
 
+
 class TestSnapshotReturnsText:
     def test_snapshot_returns_text(self):
         ss = SpatialState()
-        ss.update(_perception(
-            facing="looking_at_horizon",
-            block="grass_block",
-            anchors=[
-                {"label": "cow", "direction": "ahead", "distance": "medium"},
-            ],
-            health=0.8,
-            entities=["zombie"],
-        ))
+        ss.update(
+            _perception(
+                facing="looking_at_horizon",
+                block="grass_block",
+                anchors=[
+                    {"label": "cow", "direction": "ahead", "distance": "medium"},
+                ],
+                health=0.8,
+                entities=["zombie"],
+            )
+        )
         ss.swap()
         snap = ss.snapshot()
         assert "Camera: looking at horizon." in snap
@@ -188,8 +201,7 @@ class TestSnapshotCapsAt20Anchors:
     def test_snapshot_caps_at_20_anchors(self):
         ss = SpatialState()
         anchors = [
-            {"label": f"tree_{i}", "direction": "ahead", "distance": "close"}
-            for i in range(30)
+            {"label": f"tree_{i}", "direction": "ahead", "distance": "close"} for i in range(30)
         ]
         ss.update(_perception(anchors=anchors))
         ss.swap()
@@ -210,6 +222,7 @@ class TestSnapshotEmptyShowsSentinel:
 # ---------------------------------------------------------------------------
 # diff() tests
 # ---------------------------------------------------------------------------
+
 
 class TestDiffDetectsFacingChange:
     def test_diff_detects_facing_change(self):

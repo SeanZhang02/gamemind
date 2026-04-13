@@ -11,10 +11,10 @@ from gamemind.intent.models import Intent, IntentStatus, IntentType
 
 # Default stall thresholds per intent type (frames at ~2Hz perception rate)
 _DEFAULT_STALL_THRESHOLDS: dict[IntentType, int] = {
-    IntentType.APPROACH: 10,        # 5 seconds
-    IntentType.LOOK_AROUND: 10,     # 5 seconds
-    IntentType.ATTACK_TARGET: 16,   # 8 seconds (attacking takes time)
-    IntentType.RETREAT: 6,          # 3 seconds (fast)
+    IntentType.APPROACH: 10,  # 5 seconds
+    IntentType.LOOK_AROUND: 10,  # 5 seconds
+    IntentType.ATTACK_TARGET: 16,  # 8 seconds (attacking takes time)
+    IntentType.RETREAT: 6,  # 3 seconds (fast)
 }
 
 # Distance ordering for progress detection
@@ -59,8 +59,8 @@ class IntentTracker:
         self._prev_distance: str | None = None
         self._prev_direction: str | None = None
         self._observed_directions: set[str] = set()  # for look_around completion
-        self._consecutive_crosshair_matches = 0      # for attack completion
-        self._backward_frames = 0                     # for retreat completion
+        self._consecutive_crosshair_matches = 0  # for attack completion
+        self._backward_frames = 0  # for retreat completion
 
     def start(self, intent: Intent) -> None:
         """Begin tracking a new intent. Resets all internal state."""
@@ -193,9 +193,7 @@ class IntentTracker:
             self._status = IntentStatus.PROGRESSING
         else:
             self._no_change_frames += 1
-            threshold = _DEFAULT_STALL_THRESHOLDS.get(
-                IntentType.APPROACH, 10
-            )
+            threshold = _DEFAULT_STALL_THRESHOLDS.get(IntentType.APPROACH, 10)
             if self._no_change_frames >= threshold:
                 self._status = IntentStatus.STALLED
 
@@ -224,9 +222,7 @@ class IntentTracker:
         else:
             self._consecutive_crosshair_matches = 0
             self._no_change_frames += 1
-            threshold = _DEFAULT_STALL_THRESHOLDS.get(
-                IntentType.ATTACK_TARGET, 16
-            )
+            threshold = _DEFAULT_STALL_THRESHOLDS.get(IntentType.ATTACK_TARGET, 16)
             if self._no_change_frames >= threshold:
                 self._status = IntentStatus.STALLED
 
@@ -258,9 +254,7 @@ class IntentTracker:
 
         # No new direction found this frame
         self._no_change_frames += 1
-        threshold = _DEFAULT_STALL_THRESHOLDS.get(
-            IntentType.LOOK_AROUND, 10
-        )
+        threshold = _DEFAULT_STALL_THRESHOLDS.get(IntentType.LOOK_AROUND, 10)
         if self._no_change_frames >= threshold:
             self._status = IntentStatus.STALLED
 

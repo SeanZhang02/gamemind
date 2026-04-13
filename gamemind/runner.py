@@ -180,7 +180,9 @@ class AgentRunner:
         self._current_intent: Intent | None = None
         self._brain_call_pending = False
         self._perception_fail_count = 0
-        self._intent_lock = threading.Lock()  # guards _current_intent + _intent_tracker + _intent_executor
+        self._intent_lock = (
+            threading.Lock()
+        )  # guards _current_intent + _intent_tracker + _intent_executor
 
         self._recent_actions: deque[tuple[str, str | None]] = deque(maxlen=5)
 
@@ -423,7 +425,10 @@ class AgentRunner:
             current_block = crosshair_block
             # Determine current action for log counting
             current_action_name = ""
-            if self._current_intent and self._current_intent.intent_type == IntentType.ATTACK_TARGET:
+            if (
+                self._current_intent
+                and self._current_intent.intent_type == IntentType.ATTACK_TARGET
+            ):
                 current_action_name = "attack"
 
             if (
@@ -437,11 +442,7 @@ class AgentRunner:
                 _log(f"  LOG COLLECTED (attack-verified)! total={self._logs_collected}")
 
             # SECOND: update counter for THIS tick
-            if (
-                current_action_name == "attack"
-                and current_block
-                and "log" in current_block.lower()
-            ):
+            if current_action_name == "attack" and current_block and "log" in current_block.lower():
                 self._attack_on_log_ticks += 1
             else:
                 self._attack_on_log_ticks = 0
@@ -809,10 +810,7 @@ class AgentRunner:
                 self._intent_tracker.start(new_intent)
                 self._intent_executor.reset()
                 self._current_intent = new_intent  # LAST: make visible to orchestrator
-            _log(
-                f"  new intent: {new_intent.intent_type.value}"
-                f" → {new_intent.target_anchor}"
-            )
+            _log(f"  new intent: {new_intent.intent_type.value} → {new_intent.target_anchor}")
         finally:
             self._brain_call_pending = False
 
