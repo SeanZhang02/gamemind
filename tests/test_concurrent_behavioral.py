@@ -190,9 +190,8 @@ def test_key_held_across_ticks() -> None:
     for _ in range(5):
         cmd = MotorCommand.hold("attack", duration_ms=0.0)  # indefinite hold
         resolved = motor.resolve(cmd)
-        if resolved and resolved.key:
-            if "MouseLeft" not in inp.held_keys:
-                inp.key_down(hwnd, resolved.key)
+        if resolved and resolved.key and "MouseLeft" not in inp.held_keys:
+            inp.key_down(hwnd, resolved.key)
         time.sleep(0.02)  # 50Hz tick
 
     # Assert: key_down called exactly once
@@ -449,9 +448,7 @@ def test_perception_death_detected() -> None:
             result = bb.read("vlm_last_update_ns")
             if result is not None and not result.expired:
                 current_update = result.value
-                if last_seen_update is None:
-                    last_seen_update = current_update
-                elif current_update != last_seen_update:
+                if last_seen_update is None or current_update != last_seen_update:
                     last_seen_update = current_update
 
             # Check freshness: how long since last NEW update?
@@ -581,8 +578,7 @@ def test_bt_hold_consistency() -> None:
         # After each tick, verify the command is a HOLD attack
         # (The tree has ConfidenceGate which needs 2 consecutive successes,
         # so we allow the first tick to be RUNNING while the gate warms up)
-        if tick >= 2:  # After ConfidenceGate warmup
-            if cmd is not None:
+        if tick >= 2 and cmd is not None:  # After ConfidenceGate warmup
                 assert cmd.command_type == MotorCommandType.HOLD, (
                     f"Tick {tick}: expected HOLD, got {cmd.command_type}. "
                     f"BT should not flicker between HOLD and other commands."
