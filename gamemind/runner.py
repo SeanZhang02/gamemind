@@ -259,15 +259,16 @@ class AgentRunner:
             self._perception_tick_count += 1
 
             self._bb.write("vlm_last_update_ns", time.monotonic_ns(), Producer.VLM)
-            self._bb.swap()
 
             if perception.parsed:
                 tick_data = parse_tick_response(perception.parsed)
                 for key, value in tick_data.items():
                     if value is not None:
                         self._bb.write(key, value, Producer.VLM)
-                self._bb.swap()
 
+            self._bb.swap()
+
+            if perception.parsed:
                 _log(
                     f"  tick #{self._perception_tick_count} "
                     f"block={tick_data.get('crosshair_block', '?')} "
@@ -305,6 +306,7 @@ class AgentRunner:
                 _log(f"W2 stuck: {wake.payload}")
                 self._fsm.transition("w2_stuck")
                 self._call_brain_w2(adapter, perception)
+                self._bb.swap()
                 self._fsm.transition("plan_ready_harvest")
 
             if self._brain_call_count >= 30:
