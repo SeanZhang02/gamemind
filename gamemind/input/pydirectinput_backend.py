@@ -38,9 +38,18 @@ from gamemind.input.backend import (
 )
 
 _MOUSE_KEYS = {
-    "mouseleft", "mouseright", "mousemiddle", "mouseleftdouble",
-    "mouse_left", "mouse_right", "mouse_middle",
+    "mouseleft",
+    "mouseright",
+    "mousemiddle",
+    "mouseleftdouble",
+    "mouse_left",
+    "mouse_right",
+    "mouse_middle",
 }
+
+
+def _log(msg: str) -> None:
+    print(f"[pydirectinput] {msg}", flush=True)
 
 
 class PyDirectInputBackend:
@@ -155,33 +164,56 @@ class PyDirectInputBackend:
 
     def key_down(self, hwnd: int, key: str) -> None:
         """Press and hold a key. Key stays physically down until key_up() is called."""
-        if key in self._held_keys:
+        key_lower = key.lower()
+        if key_lower in self._held_keys:
             return
+
+        if hwnd > 0 and not _is_foreground(hwnd):
+            _log(f"key_down({key}): target HWND {hwnd} not foreground, skipping")
+            return
+
         import pydirectinput  # noqa: PLC0415
 
-        key_lower = key.lower()
+        button_map = {
+            "mouseleft": "left",
+            "mouseright": "right",
+            "mousemiddle": "middle",
+            "mouse_left": "left",
+            "mouse_right": "right",
+            "mouse_middle": "middle",
+        }
         if key_lower in _MOUSE_KEYS:
-            button = {"mouse_left": "left", "mouse_right": "right", "mouse_middle": "middle"}.get(
-                key_lower, "left"
-            )
+            button = button_map.get(key_lower, "left")
             pydirectinput.mouseDown(button=button)
         else:
             pydirectinput.keyDown(key)
-        self._held_keys.add(key)
+        self._held_keys.add(key_lower)
+        _log(f"key_down: {key} (held_keys={self._held_keys})")
 
     def key_up(self, hwnd: int, key: str) -> None:
         """Release a previously held key."""
+        key_lower = key.lower()
+        # Always attempt release for safety (don't leave keys stuck), but log if not foreground
+        if hwnd > 0 and not _is_foreground(hwnd):
+            _log(f"key_up({key}): target HWND {hwnd} not foreground (releasing anyway for safety)")
+
         import pydirectinput  # noqa: PLC0415
 
-        key_lower = key.lower()
+        button_map = {
+            "mouseleft": "left",
+            "mouseright": "right",
+            "mousemiddle": "middle",
+            "mouse_left": "left",
+            "mouse_right": "right",
+            "mouse_middle": "middle",
+        }
         if key_lower in _MOUSE_KEYS:
-            button = {"mouse_left": "left", "mouse_right": "right", "mouse_middle": "middle"}.get(
-                key_lower, "left"
-            )
+            button = button_map.get(key_lower, "left")
             pydirectinput.mouseUp(button=button)
         else:
             pydirectinput.keyUp(key)
-        self._held_keys.discard(key)
+        self._held_keys.discard(key_lower)
+        _log(f"key_up: {key} (held_keys={self._held_keys})")
 
     def release_all(self, hwnd: int) -> None:
         """Release all currently held keys. Called on shutdown/freeze for safety."""

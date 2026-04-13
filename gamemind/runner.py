@@ -198,12 +198,16 @@ class AgentRunner:
         self._frame_slot = FrameSlot()
 
         capture_thread = threading.Thread(
-            target=self._capture_loop, args=(self._frame_slot,),
-            name="runner-capture", daemon=True,
+            target=self._capture_loop,
+            args=(self._frame_slot,),
+            name="runner-capture",
+            daemon=True,
         )
         perception_thread = threading.Thread(
-            target=self._perception_loop, args=(self._frame_slot,),
-            name="runner-perception", daemon=True,
+            target=self._perception_loop,
+            args=(self._frame_slot,),
+            name="runner-perception",
+            daemon=True,
         )
 
         capture_thread.start()
@@ -257,9 +261,7 @@ class AgentRunner:
                     self._freeze_event.set()  # signal orchestrator
                     _log(f"WATCHDOG FATAL: {alert.signal}")
                 elif alert.level >= AlertLevel.EMERGENCY:
-                    self._emergency_command = MotorCommand.hold(
-                        "backward", duration_ms=500.0
-                    )
+                    self._emergency_command = MotorCommand.hold("backward", duration_ms=500.0)
                     _log(f"WATCHDOG EMERGENCY: {alert.signal}")
 
             if self._watchdog.is_frozen:
@@ -277,7 +279,10 @@ class AgentRunner:
             self._bb.write("vlm_last_update_ns", time.monotonic_ns(), Producer.VLM)
 
             if perception.parsed:
-                tick_data = parse_tick_response(perception.parsed)
+                tick_data = parse_tick_response(
+                    perception.parsed,
+                    available_actions=self._config.adapter.actions,
+                )
                 for key, value in tick_data.items():
                     if value is not None:
                         self._bb.write(key, value, Producer.VLM)
@@ -302,6 +307,10 @@ class AgentRunner:
         config = self._config
         adapter = config.adapter
         start_ns = time.monotonic_ns()
+
+        # Bring game window to foreground before starting input
+        if config.hwnd and not config.dry_run:
+            self._bring_to_foreground(config.hwnd)
 
         # --- W1 brain call (blocking is OK — happens once at start) ---
         self._fsm.transition("session_start")
@@ -465,23 +474,29 @@ class AgentRunner:
                     # Release any OTHER held keys before holding the new one
                     for k in list(self._held_keys):
                         if k != current_key:
+                            _log(f"  key_switch: releasing {k} for {current_key}")
                             config.input.key_up(config.hwnd, k)
                             self._held_keys.discard(k)
                     if current_key not in self._held_keys:
+                        _log(f"  key_hold: pressing {current_key}")
                         config.input.key_down(config.hwnd, current_key)
                         self._held_keys.add(current_key)
                 elif resolved.command_type == MotorCommandType.TAP:
+                    _log(f"  key_tap: {resolved.key}")
                     self._release_all_keys()  # release holds before tapping
                     scancodes = tap(resolved.key)
                     config.input.send_scan_codes(config.hwnd, scancodes)
 
                 self._last_action = resolved.action
                 self._watchdog.set_motor_moving(
-                    resolved.action in ("forward", "backward", "strafe_left", "strafe_right", "attack")
+                    resolved.action
+                    in ("forward", "backward", "strafe_left", "strafe_right", "attack")
                 )
                 self._bb.write("last_action", resolved.action, Producer.ACTION)
             else:
                 # Release any held keys if no valid command
+                if self._held_keys:
+                    _log(f"  key_release_all: {self._held_keys} (no valid command)")
                 self._release_all_keys()
                 self._last_action = ""
                 self._watchdog.set_motor_moving(False)
@@ -613,6 +628,19 @@ class AgentRunner:
             _log(f"  BUDGET EXCEEDED: {e}")
             raise
         return resp
+
+    @staticmethod
+    def _bring_to_foreground(hwnd: int) -> None:
+        """Bring the game window to foreground before starting input."""
+        try:
+            import ctypes  # noqa: PLC0415
+
+            user32 = ctypes.windll.user32
+            user32.SetForegroundWindow(hwnd)
+            _log(f"brought HWND {hwnd} to foreground")
+            time.sleep(0.3)  # brief pause for window manager to settle
+        except Exception as e:  # noqa: BLE001
+            _log(f"SetForegroundWindow failed (non-fatal): {e}")
 
     def _release_all_keys(self) -> None:
         """Release all physically held keys. Called on freeze/shutdown/idle."""

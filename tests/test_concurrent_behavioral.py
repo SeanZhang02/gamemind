@@ -67,11 +67,7 @@ class MockInputBackend:
     def calls_of(self, method: str, key: str = "") -> list[float]:
         """Return timestamps for calls matching method (and optionally key)."""
         with self.lock:
-            return [
-                ts
-                for m, k, ts in self.calls
-                if m == method and (key == "" or k == key)
-            ]
+            return [ts for m, k, ts in self.calls if m == method and (key == "" or k == key)]
 
 
 # ---------------------------------------------------------------------------
@@ -190,22 +186,17 @@ def test_key_held_across_ticks() -> None:
     for _ in range(5):
         cmd = MotorCommand.hold("attack", duration_ms=0.0)  # indefinite hold
         resolved = motor.resolve(cmd)
-        if resolved and resolved.key:
-            if "MouseLeft" not in inp.held_keys:
-                inp.key_down(hwnd, resolved.key)
+        if resolved and resolved.key and "MouseLeft" not in inp.held_keys:
+            inp.key_down(hwnd, resolved.key)
         time.sleep(0.02)  # 50Hz tick
 
     # Assert: key_down called exactly once
     key_downs = inp.calls_of("key_down", "MouseLeft")
-    assert len(key_downs) == 1, (
-        f"key_down should be called once, got {len(key_downs)}"
-    )
+    assert len(key_downs) == 1, f"key_down should be called once, got {len(key_downs)}"
 
     # Assert: key_up never called during the 5 ticks
     key_ups = inp.calls_of("key_up", "MouseLeft")
-    assert len(key_ups) == 0, (
-        f"key_up should never be called during HOLD, got {len(key_ups)}"
-    )
+    assert len(key_ups) == 0, f"key_up should never be called during HOLD, got {len(key_ups)}"
 
 
 # ---------------------------------------------------------------------------
@@ -254,18 +245,14 @@ def test_freeze_releases_keys() -> None:
     released = keys_released.wait(timeout=0.1)  # 100ms budget
     release_elapsed = time.monotonic() - freeze_start
 
-    assert released, (
-        f"Keys not released within 100ms of freeze (waited {release_elapsed:.3f}s)"
-    )
+    assert released, f"Keys not released within 100ms of freeze (waited {release_elapsed:.3f}s)"
 
     # Verify release_all was actually called
     release_calls = inp.calls_of("release_all")
     assert len(release_calls) > 0, "release_all must be called on freeze"
 
     # Verify no keys are still held
-    assert len(inp.held_keys) == 0, (
-        f"Keys still held after freeze: {inp.held_keys}"
-    )
+    assert len(inp.held_keys) == 0, f"Keys still held after freeze: {inp.held_keys}"
 
     stop.set()
     orch.join(timeout=2.0)
@@ -449,9 +436,7 @@ def test_perception_death_detected() -> None:
             result = bb.read("vlm_last_update_ns")
             if result is not None and not result.expired:
                 current_update = result.value
-                if last_seen_update is None:
-                    last_seen_update = current_update
-                elif current_update != last_seen_update:
+                if last_seen_update is None or current_update != last_seen_update:
                     last_seen_update = current_update
 
             # Check freshness: how long since last NEW update?
@@ -530,14 +515,10 @@ def test_shutdown_releases_keys() -> None:
 
     # Verify release_all was called
     release_calls = inp.calls_of("release_all")
-    assert len(release_calls) > 0, (
-        "release_all must be called during shutdown"
-    )
+    assert len(release_calls) > 0, "release_all must be called during shutdown"
 
     # Verify no keys remain held
-    assert len(inp.held_keys) == 0, (
-        f"Keys still held after shutdown: {inp.held_keys}"
-    )
+    assert len(inp.held_keys) == 0, f"Keys still held after shutdown: {inp.held_keys}"
 
 
 # ---------------------------------------------------------------------------
@@ -581,23 +562,19 @@ def test_bt_hold_consistency() -> None:
         # After each tick, verify the command is a HOLD attack
         # (The tree has ConfidenceGate which needs 2 consecutive successes,
         # so we allow the first tick to be RUNNING while the gate warms up)
-        if tick >= 2:  # After ConfidenceGate warmup
-            if cmd is not None:
-                assert cmd.command_type == MotorCommandType.HOLD, (
-                    f"Tick {tick}: expected HOLD, got {cmd.command_type}. "
-                    f"BT should not flicker between HOLD and other commands."
-                )
-                assert cmd.action_name == "attack", (
-                    f"Tick {tick}: expected 'attack', got '{cmd.action_name}'"
-                )
+        if tick >= 2 and cmd is not None:  # After ConfidenceGate warmup
+            assert cmd.command_type == MotorCommandType.HOLD, (
+                f"Tick {tick}: expected HOLD, got {cmd.command_type}. "
+                f"BT should not flicker between HOLD and other commands."
+            )
+            assert cmd.action_name == "attack", (
+                f"Tick {tick}: expected 'attack', got '{cmd.action_name}'"
+            )
 
     # At least some ticks must produce HOLD commands (after warmup)
     hold_count = sum(
-        1
-        for cmd in hold_commands
-        if cmd is not None and cmd.command_type == MotorCommandType.HOLD
+        1 for cmd in hold_commands if cmd is not None and cmd.command_type == MotorCommandType.HOLD
     )
     assert hold_count >= 5, (
-        f"Expected at least 5 HOLD commands out of 10 ticks, got {hold_count}. "
-        f"Statuses: {statuses}"
+        f"Expected at least 5 HOLD commands out of 10 ticks, got {hold_count}. Statuses: {statuses}"
     )

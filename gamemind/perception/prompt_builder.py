@@ -9,7 +9,7 @@ Builds the Ollama prompt that runs every ~1100ms. Injects:
 Output schema drives Blackboard writes: crosshair_block, entities_nearby,
 health, action suggestion, subgoal assessment.
 
-Prompt kept short (<200 input tokens) to minimize inference latency.
+Prompt kept short (<300 input tokens) to minimize inference latency.
 Image downsampled to 640x360 before encoding.
 """
 
@@ -22,16 +22,27 @@ from typing import Any
 from PIL import Image
 
 _SYSTEM_PROMPT = (
-    "You observe a game screenshot each tick. Report what you see and suggest one action. "
-    "Respond with ONLY valid JSON. No prose."
+    "You observe a game screenshot each tick. Analyze what you see and choose the best action.\n"
+    "\n"
+    "RULES:\n"
+    "- Respond with ONLY valid JSON, no other text\n"
+    '- The "action" field MUST be exactly one value from the available actions list. '
+    "No other values are allowed.\n"
+    '- The "block" field should be the block type the crosshair is pointing at '
+    '(e.g. "oak_log", "stone", "air"), or null if unclear\n'
+    "- Be specific about block types — use Minecraft block IDs when possible"
 )
 
 _TICK_TEMPLATE = (
-    "Goal: $subgoal\n"
-    "Hints: $hints\n"
-    "Actions: $actions\n"
+    "Current subgoal: $subgoal\n"
     "Last action: $last_action\n"
-    "Report JSON: {block, health, entities, action, subgoal_ok, reason}"
+    "Hints: $hints\n"
+    "\n"
+    "AVAILABLE ACTIONS (choose EXACTLY ONE):\n"
+    "$actions_list\n"
+    "\n"
+    'Respond with JSON: {"block": "<block_at_crosshair>", "action": "<one_from_list_above>", '
+    '"health": <0.0-1.0>, "entities": [...], "subgoal_ok": <bool>, "reason": "<why>"}'
 )
 
 _TARGET_WIDTH = 640
@@ -63,12 +74,10 @@ def build_tick_prompt(
 ) -> str:
     """Build the per-tick VLM prompt text.
 
-    Keeps total prompt under ~200 tokens by:
-      - CSV action list (not bullet points)
-      - Max 3 policy hints, truncated to 40 tokens each
-      - Single-line goal
+    Uses bulleted action list (one per line) so VLM can clearly see options.
+    Max 3 policy hints, truncated to 80 chars each.
     """
-    actions_csv = ",".join(sorted(available_actions.keys()))
+    actions_list = "\n".join(f"- {a}" for a in sorted(available_actions.keys()))
 
     truncated_hints = policy_hints[:3]
     hints_text = "; ".join(h[:80] for h in truncated_hints) if truncated_hints else "none"
@@ -76,7 +85,7 @@ def build_tick_prompt(
     return (
         _TICK_TEMPLATE.replace("$subgoal", current_subgoal or "observe")
         .replace("$hints", hints_text)
-        .replace("$actions", actions_csv)
+        .replace("$actions_list", actions_list)
         .replace("$last_action", last_action or "none")
     )
 
@@ -110,10 +119,17 @@ def build_tick_messages(
     return _SYSTEM_PROMPT, messages
 
 
-def parse_tick_response(parsed_json: dict[str, Any] | None) -> dict[str, Any]:
+def parse_tick_response(
+    parsed_json: dict[str, Any] | None,
+    *,
+    available_actions: dict[str, str] | None = None,
+) -> dict[str, Any]:
     """Extract Blackboard-ready fields from VLM response JSON.
 
     Returns dict with standardized keys. Missing fields get None.
+
+    If *available_actions* is provided, the ``action`` field is validated
+    against its keys. Hallucinated action names are rejected (set to None).
     """
     if not parsed_json or not isinstance(parsed_json, dict):
         return {
@@ -134,11 +150,28 @@ def parse_tick_response(parsed_json: dict[str, Any] | None) -> dict[str, Any]:
         except (ValueError, TypeError):
             health_raw = None
 
+    # Block field: try multiple key names the VLM might use
+    block = (
+        parsed_json.get("block")
+        or parsed_json.get("crosshair_block")
+        or parsed_json.get("crosshair")
+    )
+
+    # Action field: validate against available actions to reject hallucinations
+    action = parsed_json.get("action")
+    if action and isinstance(action, str):
+        action = action.strip()
+        # Case-insensitive match: VLM might return "Forward" instead of "forward"
+        if available_actions:
+            action_lower = action.lower()
+            matched = next((a for a in available_actions if a.lower() == action_lower), None)
+            action = matched  # None if no case-insensitive match
+
     return {
-        "crosshair_block": parsed_json.get("block"),
+        "crosshair_block": block,
         "health": health_raw,
         "entities_nearby": parsed_json.get("entities"),
-        "vlm_suggested_action": parsed_json.get("action"),
+        "vlm_suggested_action": action,
         "subgoal_ok": parsed_json.get("subgoal_ok"),
         "action_reason": parsed_json.get("reason"),
     }
