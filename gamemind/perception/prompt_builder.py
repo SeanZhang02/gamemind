@@ -26,10 +26,10 @@ _SYSTEM_PROMPT = (
     "\n"
     "RULES:\n"
     "- Respond with ONLY valid JSON, no other text\n"
-    "- The \"action\" field MUST be exactly one value from the available actions list. "
+    '- The "action" field MUST be exactly one value from the available actions list. '
     "No other values are allowed.\n"
-    "- The \"block\" field should be the block type the crosshair is pointing at "
-    "(e.g. \"oak_log\", \"stone\", \"air\"), or null if unclear\n"
+    '- The "block" field should be the block type the crosshair is pointing at '
+    '(e.g. "oak_log", "stone", "air"), or null if unclear\n'
     "- Be specific about block types — use Minecraft block IDs when possible"
 )
 

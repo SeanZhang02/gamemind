@@ -198,12 +198,16 @@ class AgentRunner:
         self._frame_slot = FrameSlot()
 
         capture_thread = threading.Thread(
-            target=self._capture_loop, args=(self._frame_slot,),
-            name="runner-capture", daemon=True,
+            target=self._capture_loop,
+            args=(self._frame_slot,),
+            name="runner-capture",
+            daemon=True,
         )
         perception_thread = threading.Thread(
-            target=self._perception_loop, args=(self._frame_slot,),
-            name="runner-perception", daemon=True,
+            target=self._perception_loop,
+            args=(self._frame_slot,),
+            name="runner-perception",
+            daemon=True,
         )
 
         capture_thread.start()
@@ -257,9 +261,7 @@ class AgentRunner:
                     self._freeze_event.set()  # signal orchestrator
                     _log(f"WATCHDOG FATAL: {alert.signal}")
                 elif alert.level >= AlertLevel.EMERGENCY:
-                    self._emergency_command = MotorCommand.hold(
-                        "backward", duration_ms=500.0
-                    )
+                    self._emergency_command = MotorCommand.hold("backward", duration_ms=500.0)
                     _log(f"WATCHDOG EMERGENCY: {alert.signal}")
 
             if self._watchdog.is_frozen:
@@ -487,7 +489,8 @@ class AgentRunner:
 
                 self._last_action = resolved.action
                 self._watchdog.set_motor_moving(
-                    resolved.action in ("forward", "backward", "strafe_left", "strafe_right", "attack")
+                    resolved.action
+                    in ("forward", "backward", "strafe_left", "strafe_right", "attack")
                 )
                 self._bb.write("last_action", resolved.action, Producer.ACTION)
             else:
@@ -631,6 +634,7 @@ class AgentRunner:
         """Bring the game window to foreground before starting input."""
         try:
             import ctypes  # noqa: PLC0415
+
             user32 = ctypes.windll.user32
             user32.SetForegroundWindow(hwnd)
             _log(f"brought HWND {hwnd} to foreground")

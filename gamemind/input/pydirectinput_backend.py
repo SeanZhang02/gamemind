@@ -38,8 +38,13 @@ from gamemind.input.backend import (
 )
 
 _MOUSE_KEYS = {
-    "mouseleft", "mouseright", "mousemiddle", "mouseleftdouble",
-    "mouse_left", "mouse_right", "mouse_middle",
+    "mouseleft",
+    "mouseright",
+    "mousemiddle",
+    "mouseleftdouble",
+    "mouse_left",
+    "mouse_right",
+    "mouse_middle",
 }
 
 
@@ -170,8 +175,12 @@ class PyDirectInputBackend:
         import pydirectinput  # noqa: PLC0415
 
         button_map = {
-            "mouseleft": "left", "mouseright": "right", "mousemiddle": "middle",
-            "mouse_left": "left", "mouse_right": "right", "mouse_middle": "middle",
+            "mouseleft": "left",
+            "mouseright": "right",
+            "mousemiddle": "middle",
+            "mouse_left": "left",
+            "mouse_right": "right",
+            "mouse_middle": "middle",
         }
         if key_lower in _MOUSE_KEYS:
             button = button_map.get(key_lower, "left")
@@ -191,8 +200,12 @@ class PyDirectInputBackend:
         import pydirectinput  # noqa: PLC0415
 
         button_map = {
-            "mouseleft": "left", "mouseright": "right", "mousemiddle": "middle",
-            "mouse_left": "left", "mouse_right": "right", "mouse_middle": "middle",
+            "mouseleft": "left",
+            "mouseright": "right",
+            "mousemiddle": "middle",
+            "mouse_left": "left",
+            "mouse_right": "right",
+            "mouse_middle": "middle",
         }
         if key_lower in _MOUSE_KEYS:
             button = button_map.get(key_lower, "left")
