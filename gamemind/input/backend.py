@@ -107,6 +107,18 @@ class InputBackend(Protocol):
         scan_code_sequence: list[ScanCode],
     ) -> InputResult: ...
 
+    def key_down(self, hwnd: int, key: str) -> None:
+        """Press and hold a key. Key stays physically down until key_up() is called."""
+        ...
+
+    def key_up(self, hwnd: int, key: str) -> None:
+        """Release a previously held key."""
+        ...
+
+    def release_all(self, hwnd: int) -> None:
+        """Release all currently held keys. Called on shutdown/freeze for safety."""
+        ...
+
     def liveness(self) -> bool: ...
 
 
