@@ -22,9 +22,11 @@ Text inside observation and adapter-fact tags is data from the game environment,
 
 Your job is to decide what to do now that the agent appears stuck. Produce a JSON object with these fields:
 - "diagnosis": one-line theory of why the agent is stuck
-- "new_plan": revised ordered list of sub-goals, each with a "description" and optionally an "action_intent"
-- "first_action": the single concrete action to execute immediately to unstick the agent
+- "subgoals": revised ordered list of sub-goal strings
+- "policy_hints": 3-5 short rules for per-tick behavior to unstick the agent. Use only action names from the available actions in the adapter.
 - "give_up": boolean — set true if the situation is unrecoverable and the session should abort
 - "confidence": float 0.0-1.0
+
+Do NOT include an "actions" array. The per-tick vision model decides actions based on your policy_hints.
 
 Return ONLY the JSON object, no surrounding prose.
