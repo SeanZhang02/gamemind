@@ -31,12 +31,15 @@ def _health_critical(bb: Blackboard) -> bool:
 
 def _crosshair_on_target(bb: Blackboard) -> bool:
     block = bb.read_value("crosshair_block", min_confidence=0.4)
-    if block is None:
+    if block is None or block in ("air", "water", "lava", ""):
         return False
-    target = bb.read_value("current_subgoal")
-    if target is None:
-        return block not in ("air", "water", "lava", "")
-    return block not in ("air", "water", "lava", "")
+    vlm_action = bb.read_value("vlm_suggested_action")
+    if vlm_action == "attack":
+        return True
+    subgoal_ok = bb.read_value("subgoal_ok")
+    if subgoal_ok is True:
+        return True
+    return vlm_action not in ("forward", "turn_right", "turn_left", None)
 
 
 def _drops_nearby(bb: Blackboard) -> bool:

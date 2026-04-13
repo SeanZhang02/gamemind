@@ -561,6 +561,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
         from gamemind.perception.ollama_backend import OllamaBackend  # noqa: PLC0415
 
         perception = OllamaBackend()
+        print("[gamemind run] warming up Ollama VLM...")
+        try:
+            text_ms, vision_ms = perception.warmup()
+            print(f"  warmup done: text={text_ms:.0f}ms vision={vision_ms:.0f}ms")
+        except Exception as exc:  # noqa: BLE001
+            print(f"  warmup failed (non-fatal): {exc}")
         from gamemind.input.pydirectinput_backend import PyDirectInputBackend  # noqa: PLC0415
 
         input_backend = PyDirectInputBackend()

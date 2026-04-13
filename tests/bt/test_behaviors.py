@@ -26,7 +26,7 @@ class TestHarvestingTree:
         assert tree.motor_command.action_name == ""
 
     def test_attack_when_crosshair_on_block(self) -> None:
-        bb = _bb_with(crosshair_block="oak_log")
+        bb = _bb_with(crosshair_block="oak_log", vlm_suggested_action="attack")
         tree = build_harvesting_tree()
         tree.tick(bb)
         status = tree.tick(bb)
@@ -46,7 +46,7 @@ class TestHarvestingTree:
         assert status in (Status.RUNNING, Status.SUCCESS)
 
     def test_full_health_no_emergency(self) -> None:
-        bb = _bb_with(health=1.0, crosshair_block="oak_log")
+        bb = _bb_with(health=1.0, crosshair_block="oak_log", vlm_suggested_action="attack")
         tree = build_harvesting_tree()
         tree.tick(bb)
         tree.tick(bb)

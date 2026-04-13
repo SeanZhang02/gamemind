@@ -276,6 +276,19 @@ class AgentRunner:
                     f"latency={perception.latency_ms:.0f}ms"
                 )
 
+            if (
+                perception.parsed
+                and perception.parsed.get("subgoal_ok") is True
+                and self._current_subgoal_idx < len(self._subgoals) - 1
+            ):
+                self._current_subgoal_idx += 1
+                new_sg = self._subgoals[self._current_subgoal_idx]
+                self._bb.write("current_subgoal", new_sg, Producer.PLANNER)
+                self._bb.swap()
+                _log(
+                    f"  subgoal advanced → {new_sg} ({self._current_subgoal_idx}/{len(self._subgoals)})"
+                )
+
             for condition in self._goal.abort_conditions:
                 if condition.type == "health_threshold" and self._perception_tick_count < 5:
                     continue
@@ -318,6 +331,25 @@ class AgentRunner:
             if current_bt is not None:
                 current_bt.tick(self._bb)
                 bt_command = current_bt.motor_command
+
+            if bt_command is not None and bt_command.action_name:
+                if (
+                    bt_command.action_name not in config.adapter.actions
+                    and bt_command.action_name != ""
+                ):
+                    self._hallucination_count += 1
+                    _log(f"  hallucination #{self._hallucination_count}: {bt_command.action_name}")
+                    self._emit("action", "action_hallucinated", {"action": bt_command.action_name})
+                    if self._hallucination_count >= 3:
+                        _log("  3 consecutive hallucinations → W2 replan")
+                        self._fsm.transition("w2_stuck")
+                        self._call_brain_w2(adapter, perception)
+                        self._bb.swap()
+                        self._fsm.transition("plan_ready_harvest")
+                        self._hallucination_count = 0
+                    bt_command = None
+                else:
+                    self._hallucination_count = 0
 
             resolved = self._motor.resolve(bt_command)
             if (
@@ -364,15 +396,16 @@ class AgentRunner:
                 emit_event=False,
             )
         else:
-            _sys, messages = build_tick_messages(
+            sys_prompt, messages = build_tick_messages(
                 frame_bytes=cap.frame_bytes,
                 current_subgoal=current_subgoal,
                 policy_hints=self._policy_hints,
                 available_actions=self._config.adapter.actions,
                 last_action=self._last_action,
             )
+            full_messages = [{"role": "system", "content": sys_prompt}, *messages]
             resp = self._config.perception.chat(
-                messages=messages,
+                messages=full_messages,
                 temperature=0.0,
                 max_tokens=512,
                 cache_system=False,
