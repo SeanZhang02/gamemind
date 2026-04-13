@@ -1,28 +1,33 @@
-"""Agent runner v2 — cognitive architecture integration.
+"""Agent runner v3 — concurrent 2-thread cognitive architecture.
 
-Wires all 7 modules into a single execution loop:
+Two-thread design separating perception from orchestration:
 
-    Capture Thread (1Hz) ──► FrameSlot[1] ──► Agent Thread
+    Capture Thread (1Hz) ──► FrameSlot[1] ──► Perception Thread
                               (latest-wins)    ├ Watchdog (frame diff, alerts)
                                                ├ VLM Perception (prompt_builder)
-                                               ├ Blackboard (swap)
+                                               ├ Blackboard write + swap
+                                               └ signals Orchestrator via Event
+                                                    │
+                              Orchestrator Thread (20-50Hz)
+                                               ├ reads Blackboard snapshot
                                                ├ FSM (state transitions)
                                                ├ BT[state] (per-tick decisions)
                                                ├ Motor (priority chain → resolve)
-                                               ├ InputBackend (send keypresses)
+                                               ├ stateful key_down/key_up
                                                └ Planner (W1/W2/W5 sparse wake)
 
-Startup: Watchdog → Blackboard → VLM warmup → FSM → BT → Motor
-
-Key differences from v1:
-  - No _pending_actions queue — BT decides action every tick
-  - Motor has staleness timeout + hysteresis recovery
-  - Watchdog LEVEL 2+ can override motor directly
-  - All state flows through Blackboard (double-buffered)
+Key differences from v2 (serial):
+  - Perception runs in its own thread, never blocks orchestrator
+  - Orchestrator ticks at 20Hz (50ms) reading Blackboard snapshots
+  - Stateful key management (key_down/key_up) instead of blocking holds
+  - W2 brain calls dispatched to ThreadPoolExecutor (non-blocking)
+  - atexit handler guarantees key release on process exit
 """
 
 from __future__ import annotations
 
+import atexit
+import concurrent.futures
 import json
 import threading
 import time
@@ -41,14 +46,15 @@ from gamemind.brain.prompt_assembler import (
     assemble_task_completion_verification,
     to_messages,
 )
+from gamemind.bt.engine import Status as BTStatus
 from gamemind.bt.harvesting import build_harvesting_tree
-from gamemind.bt.motor_command import MotorCommand
+from gamemind.bt.motor_command import MotorCommand, MotorCommandType
 from gamemind.bt.navigating import build_navigating_tree
 from gamemind.capture.backend import CaptureBackend, CaptureResult
 from gamemind.events.envelope import make_envelope
 from gamemind.events.writer import EventWriter
 from gamemind.fsm import FSM, State
-from gamemind.input.backend import InputBackend, ScanCode, press_and_release, tap
+from gamemind.input.backend import InputBackend, tap
 from gamemind.layer2.action_guard import ActionRepetitionGuard
 from gamemind.layer2.stuck_detector import StuckDetector
 from gamemind.layer2.wake_trigger import WakeTriggerEvaluator
@@ -175,17 +181,42 @@ class AgentRunner:
         self._last_action: str = ""
         self._hallucination_count = 0
 
-    def run(self) -> Outcome:
-        slot = FrameSlot()
-        capture_thread = threading.Thread(
-            target=self._capture_loop, args=(slot,), name="runner-capture", daemon=True
+        # Concurrent architecture state
+        self._new_perception = threading.Event()
+        self._freeze_event = threading.Event()
+        self._held_keys: set[str] = set()
+        self._last_perception: PerceptionResult | None = None
+        self._frame_slot: FrameSlot | None = None
+        self._emergency_command: MotorCommand | None = None
+        self._brain_executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="runner-brain"
         )
+
+        atexit.register(self._atexit_release)
+
+    def run(self) -> Outcome:
+        self._frame_slot = FrameSlot()
+
+        capture_thread = threading.Thread(
+            target=self._capture_loop, args=(self._frame_slot,),
+            name="runner-capture", daemon=True,
+        )
+        perception_thread = threading.Thread(
+            target=self._perception_loop, args=(self._frame_slot,),
+            name="runner-perception", daemon=True,
+        )
+
         capture_thread.start()
+        perception_thread.start()
+
         try:
-            return self._agent_loop(slot)
+            return self._orchestrator_loop()
         finally:
             self._stop.set()
-            slot.close()
+            self._frame_slot.close()
+            self._release_all_keys()  # CRITICAL: release before joining
+            self._brain_executor.shutdown(wait=False)
+            perception_thread.join(timeout=5.0)
             capture_thread.join(timeout=5.0)
 
     def stop(self) -> None:
@@ -208,14 +239,71 @@ class AgentRunner:
             if time.monotonic() - next_tick > tick_interval * 2:
                 next_tick = time.monotonic() + tick_interval
 
-    def _agent_loop(self, slot: FrameSlot) -> Outcome:
+    # ------------------------------------------------------------------
+    # Perception thread (writes Blackboard, signals orchestrator)
+    # ------------------------------------------------------------------
+
+    def _perception_loop(self, slot: FrameSlot) -> None:
+        """Perception thread: continuous VLM inference writing to Blackboard."""
+        while not self._stop.is_set():
+            cap = slot.take(timeout=2.0)
+            if cap is None:
+                continue
+
+            # Watchdog check (needs frame_bytes, must be in this thread)
+            alerts = self._watchdog.check(cap.frame_bytes)
+            for alert in alerts:
+                if alert.level >= AlertLevel.FATAL:
+                    self._freeze_event.set()  # signal orchestrator
+                    _log(f"WATCHDOG FATAL: {alert.signal}")
+                elif alert.level >= AlertLevel.EMERGENCY:
+                    self._emergency_command = MotorCommand.hold(
+                        "backward", duration_ms=500.0
+                    )
+                    _log(f"WATCHDOG EMERGENCY: {alert.signal}")
+
+            if self._watchdog.is_frozen:
+                continue
+
+            perception = self._run_vlm_perception(cap)
+            if perception is None:
+                continue
+            self._perception_tick_count += 1
+
+            self._bb.write("vlm_last_update_ns", time.monotonic_ns(), Producer.VLM)
+
+            if perception.parsed:
+                tick_data = parse_tick_response(perception.parsed)
+                for key, value in tick_data.items():
+                    if value is not None:
+                        self._bb.write(key, value, Producer.VLM)
+
+                _log(
+                    f"  tick #{self._perception_tick_count} "
+                    f"block={tick_data.get('crosshair_block', '?')} "
+                    f"action={tick_data.get('vlm_suggested_action', '?')} "
+                    f"latency={perception.latency_ms:.0f}ms"
+                )
+
+            self._bb.swap()
+            self._last_perception = perception  # for brain calls
+            self._new_perception.set()  # signal orchestrator
+
+    # ------------------------------------------------------------------
+    # Orchestrator thread (fast BT decision loop + stateful key mgmt)
+    # ------------------------------------------------------------------
+
+    def _orchestrator_loop(self) -> Outcome:
+        """Orchestrator: fast BT decision loop with stateful key management."""
         config = self._config
         adapter = config.adapter
         start_ns = time.monotonic_ns()
 
+        # --- W1 brain call (blocking is OK — happens once at start) ---
         self._fsm.transition("session_start")
 
-        first_cap = slot.take(timeout=5.0)
+        assert self._frame_slot is not None  # noqa: S101
+        first_cap = self._frame_slot.take(timeout=5.0)
         first_perception = None
         if first_cap and not config.dry_run:
             first_perception = self._run_vlm_perception(first_cap)
@@ -233,49 +321,31 @@ class AgentRunner:
 
         self._fsm.transition("plan_ready_navigate")
 
+        # --- Main orchestrator loop (20Hz target) ---
         while not self._stop.is_set():
-            cap = slot.take(timeout=2.0)
-            if cap is None:
-                continue
+            # Wait for new perception or timeout (50ms = 20Hz orchestrator)
+            self._new_perception.wait(timeout=0.05)
+            self._new_perception.clear()
 
-            elapsed_s = (time.monotonic_ns() - start_ns) / 1_000_000_000.0
-
-            alerts = self._watchdog.check(cap.frame_bytes)
-            for alert in alerts:
-                if alert.level >= AlertLevel.FATAL:
-                    self._motor.freeze()
-                    _log(f"WATCHDOG FATAL: {alert.signal}")
-                elif alert.level >= AlertLevel.EMERGENCY:
-                    self._motor.set_emergency(MotorCommand.hold("backward", duration_ms=500.0))
-                    _log(f"WATCHDOG EMERGENCY: {alert.signal}")
-
-            if self._watchdog.is_frozen:
+            # Check freeze from perception thread
+            if self._freeze_event.is_set():
+                self._release_all_keys()
+                self._motor.freeze()
                 self._fsm.transition("perception_unavailable")
                 continue
 
-            perception = self._run_vlm_perception(cap)
+            # Handle emergency command from perception thread
+            if self._emergency_command is not None:
+                self._motor.set_emergency(self._emergency_command)
+                self._emergency_command = None
+
+            elapsed_s = (time.monotonic_ns() - start_ns) / 1e9
+
+            perception = self._last_perception
             if perception is None:
                 continue
-            self._perception_tick_count += 1
 
-            self._bb.write("vlm_last_update_ns", time.monotonic_ns(), Producer.VLM)
-
-            if perception.parsed:
-                tick_data = parse_tick_response(perception.parsed)
-                for key, value in tick_data.items():
-                    if value is not None:
-                        self._bb.write(key, value, Producer.VLM)
-
-            self._bb.swap()
-
-            if perception.parsed:
-                _log(
-                    f"  tick #{self._perception_tick_count} "
-                    f"block={tick_data.get('crosshair_block', '?')} "
-                    f"action={tick_data.get('vlm_suggested_action', '?')} "
-                    f"latency={perception.latency_ms:.0f}ms"
-                )
-
+            # Subgoal advancement
             if (
                 perception.parsed
                 and perception.parsed.get("subgoal_ok") is True
@@ -286,9 +356,11 @@ class AgentRunner:
                 self._bb.write("current_subgoal", new_sg, Producer.PLANNER)
                 self._bb.swap()
                 _log(
-                    f"  subgoal advanced → {new_sg} ({self._current_subgoal_idx}/{len(self._subgoals)})"
+                    f"  subgoal advanced → {new_sg} "
+                    f"({self._current_subgoal_idx}/{len(self._subgoals)})"
                 )
 
+            # Abort checks
             for condition in self._goal.abort_conditions:
                 if condition.type == "health_threshold" and self._perception_tick_count < 5:
                     continue
@@ -296,6 +368,7 @@ class AgentRunner:
                     _log(f"abort condition fired: {condition.type}")
                     return self._terminate("aborted")
 
+            # Success checks
             success_fired = check_success(self._goal.success_check, perception, elapsed_s)
             if success_fired:
                 _log("success predicates fired — calling W5 verify")
@@ -305,9 +378,10 @@ class AgentRunner:
                     return self._terminate("success")
                 _log("W5 verify failed — continuing")
 
+            # Wake trigger evaluation
             wake = self._trigger.on_perception_tick(
                 perception,
-                frame_bytes=cap.frame_bytes,
+                frame_bytes=b"",  # frame bytes not available in orchestrator
                 predicate_fired=success_fired,
                 action_executed=self._last_action != "",
                 last_action_hash=self._last_action,
@@ -319,20 +393,19 @@ class AgentRunner:
                 _log(f"W2 stuck: {wake.payload}")
                 self._fsm.transition("w2_stuck")
                 self._call_brain_w2(adapter, perception)
-                self._bb.swap()
                 self._fsm.transition("plan_ready_navigate")
 
+            # Runaway check
             if self._brain_call_count >= 30:
                 _log("brain call count exceeded 30 — runaway")
                 return self._terminate("runaway")
 
+            # BT tick
             current_bt = self._bt_trees.get(self._fsm.state)
             bt_command: MotorCommand | None = None
             if current_bt is not None:
                 bt_status = current_bt.tick(self._bb)
                 bt_command = current_bt.motor_command
-
-                from gamemind.bt.engine import Status as BTStatus
 
                 if bt_status == BTStatus.SUCCESS and self._fsm.state == State.NAVIGATING:
                     self._fsm.transition("target_reached")
@@ -351,6 +424,7 @@ class AgentRunner:
                             current_bt.tick(self._bb)
                             bt_command = current_bt.motor_command
 
+            # Hallucination guard
             if bt_command is not None and bt_command.action_name:
                 if (
                     bt_command.action_name not in config.adapter.actions
@@ -363,13 +437,13 @@ class AgentRunner:
                         _log("  3 consecutive hallucinations → W2 replan")
                         self._fsm.transition("w2_stuck")
                         self._call_brain_w2(adapter, perception)
-                        self._bb.swap()
                         self._fsm.transition("plan_ready_navigate")
                         self._hallucination_count = 0
                     bt_command = None
                 else:
                     self._hallucination_count = 0
 
+            # Motor resolve + stateful key management
             resolved = self._motor.resolve(bt_command)
             if (
                 resolved is not None
@@ -377,20 +451,23 @@ class AgentRunner:
                 and config.input is not None
                 and not config.dry_run
             ):
-                scancodes: list[ScanCode]
-                if resolved.duration_ms > 0:
-                    scancodes = press_and_release(
-                        resolved.key, hold_ms=min(resolved.duration_ms, 500.0)
-                    )
-                else:
+                current_key = resolved.key
+                if resolved.command_type == MotorCommandType.HOLD:
+                    if current_key not in self._held_keys:
+                        config.input.key_down(config.hwnd, current_key)
+                        self._held_keys.add(current_key)
+                elif resolved.command_type == MotorCommandType.TAP:
                     scancodes = tap(resolved.key)
-                config.input.send_scan_codes(config.hwnd, scancodes)
+                    config.input.send_scan_codes(config.hwnd, scancodes)
+
                 self._last_action = resolved.action
                 self._watchdog.set_motor_moving(
                     resolved.action in ("forward", "backward", "strafe_left", "strafe_right")
                 )
                 self._bb.write("last_action", resolved.action, Producer.ACTION)
             else:
+                # Release any held keys if no valid command
+                self._release_all_keys()
                 self._last_action = ""
                 self._watchdog.set_motor_moving(False)
 
@@ -457,24 +534,35 @@ class AgentRunner:
         return self._brain_chat(prompt.system, to_messages(prompt), "w1")
 
     def _call_brain_w2(self, adapter: Adapter, perception: PerceptionResult) -> None:
-        prompt = assemble_replan_from_stuck(
-            display_name=adapter.display_name,
-            world_facts=adapter.world_facts,
-            frame_summary=perception.raw_text or "(no frame summary)",
-            recent_actions=self._last_action or "(none)",
-            current_plan=json.dumps(self._subgoals) if self._subgoals else "(no plan)",
-            stuck_seconds=20.0,
-        )
-        resp = self._brain_chat(prompt.system, to_messages(prompt), "w2")
-        if resp.parsed_json:
-            if "subgoals" in resp.parsed_json:
-                self._subgoals = resp.parsed_json["subgoals"]
-                self._current_subgoal_idx = 0
-                _log(f"W2 replan subgoals: {self._subgoals}")
-            if "policy_hints" in resp.parsed_json:
-                self._policy_hints = resp.parsed_json["policy_hints"]
-            if self._subgoals:
-                self._bb.write("current_subgoal", self._subgoals[0], Producer.PLANNER)
+        """Dispatch W2 replan to background thread (non-blocking)."""
+        # Capture values for the closure — perception may change by the
+        # time the background thread runs.
+        raw_text = perception.raw_text or "(no frame summary)"
+        last_action = self._last_action or "(none)"
+        current_plan = json.dumps(self._subgoals) if self._subgoals else "(no plan)"
+
+        def _w2_task() -> None:
+            prompt = assemble_replan_from_stuck(
+                display_name=adapter.display_name,
+                world_facts=adapter.world_facts,
+                frame_summary=raw_text,
+                recent_actions=last_action,
+                current_plan=current_plan,
+                stuck_seconds=20.0,
+            )
+            resp = self._brain_chat(prompt.system, to_messages(prompt), "w2")
+            if resp.parsed_json:
+                if "subgoals" in resp.parsed_json:
+                    self._subgoals = resp.parsed_json["subgoals"]
+                    self._current_subgoal_idx = 0
+                    _log(f"W2 replan subgoals: {self._subgoals}")
+                if "policy_hints" in resp.parsed_json:
+                    self._policy_hints = resp.parsed_json["policy_hints"]
+                if self._subgoals:
+                    self._bb.write("current_subgoal", self._subgoals[0], Producer.PLANNER)
+                    self._bb.swap()
+
+        self._brain_executor.submit(_w2_task)
 
     def _call_brain_w5(self, adapter: Adapter, task: str, perception: PerceptionResult) -> bool:
         prompt = assemble_task_completion_verification(
@@ -510,6 +598,19 @@ class AgentRunner:
             _log(f"  BUDGET EXCEEDED: {e}")
             raise
         return resp
+
+    def _release_all_keys(self) -> None:
+        """Release all physically held keys. Called on freeze/shutdown/idle."""
+        if self._config.input is not None and self._held_keys:
+            self._config.input.release_all(self._config.hwnd)
+        self._held_keys.clear()
+
+    def _atexit_release(self) -> None:
+        """Emergency key release on process exit."""
+        try:
+            self._release_all_keys()
+        except Exception:  # noqa: BLE001
+            pass
 
     def _emit(self, producer: str, event_type: str, payload: dict[str, Any]) -> None:
         info = self._session.snapshot()
