@@ -44,6 +44,7 @@ class Motor:
         self._state = MotorState(recovery_streak=_RECOVERY_THRESHOLD)
         self._frozen = False
         self._emergency_command: MotorCommand | None = None
+        self._emergency_set_ns: int = 0
 
     @property
     def state(self) -> MotorState:
@@ -65,6 +66,7 @@ class Motor:
 
     def set_emergency(self, command: MotorCommand) -> None:
         self._emergency_command = command
+        self._emergency_set_ns = time.monotonic_ns()
 
     def clear_emergency(self) -> None:
         self._emergency_command = None
@@ -83,14 +85,26 @@ class Motor:
             )
 
         if self._emergency_command is not None:
-            key = self._action_to_key.get(self._emergency_command.action_name, "")
-            return ResolvedCommand(
-                action=self._emergency_command.action_name,
-                key=key,
-                command_type=self._emergency_command.command_type,
-                reason="emergency",
-                duration_ms=self._emergency_command.duration_ms,
-            )
+            em = self._emergency_command
+            age_ms = (now_ns - self._emergency_set_ns) / 1_000_000.0
+            if em.duration_ms > 0 and age_ms >= em.duration_ms:
+                # Duration-based expiry: emergency has expired, clear and fall through
+                self._emergency_command = None
+                self._emergency_set_ns = 0
+            else:
+                key = self._action_to_key.get(em.action_name, "")
+                result = ResolvedCommand(
+                    action=em.action_name,
+                    key=key,
+                    command_type=em.command_type,
+                    reason="emergency",
+                    duration_ms=em.duration_ms,
+                )
+                if em.duration_ms == 0:
+                    # Single-tick emergency: clear after returning
+                    self._emergency_command = None
+                    self._emergency_set_ns = 0
+                return result
 
         if bt_command is None or bt_command.command_type == MotorCommandType.IDLE:
             self._check_staleness(now_ns)
@@ -147,6 +161,7 @@ class Motor:
         self._state = MotorState()
         self._frozen = False
         self._emergency_command = None
+        self._emergency_set_ns = 0
 
 
 @dataclass(frozen=True)

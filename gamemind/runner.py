@@ -407,13 +407,8 @@ class AgentRunner:
                     self._last_non_camera_action = vlm_action
 
             # Block-break event counting (hardened log collection)
-            # Only count when character was ATTACKING a log for 3+ ticks
+            # FIRST: check collection (uses counter from previous ticks)
             current_block = self._bb.read_value("crosshair_block")
-            if vlm_action == "attack" and current_block and "log" in current_block.lower():
-                self._attack_on_log_ticks += 1
-            else:
-                self._attack_on_log_ticks = 0
-
             if (
                 self._prev_block
                 and "log" in self._prev_block.lower()
@@ -423,6 +418,13 @@ class AgentRunner:
                 self._logs_collected += 1
                 self._attack_on_log_ticks = 0
                 _log(f"  LOG COLLECTED (attack-verified)! total={self._logs_collected}")
+
+            # SECOND: update counter for THIS tick
+            if vlm_action == "attack" and current_block and "log" in current_block.lower():
+                self._attack_on_log_ticks += 1
+            else:
+                self._attack_on_log_ticks = 0
+
             self._prev_block = current_block
 
             # Abort checks
@@ -553,7 +555,7 @@ class AgentRunner:
                 self._watchdog.set_motor_moving(False)
 
             # Record action to history for VLM temporal context
-            current_block = self._bb.read_value("crosshair_block")
+            # current_block already read above for block-break detection
             self._recent_actions.append((vlm_action or "none", current_block))
 
         return self._terminate("user_stopped")

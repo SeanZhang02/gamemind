@@ -128,6 +128,90 @@ def test_runner_dry_run_chop_logs_succeeds(tmp_path: Path) -> None:
     event_writer.close()
 
 
+def test_log_counting_sequence() -> None:
+    """Bug 13: collection check must happen BEFORE counter reset.
+
+    Directly simulates the log-collection logic extracted from runner's
+    orchestrator loop. 4 ticks of attack on oak_log, then block changes
+    to air. The collection should be detected because _attack_on_log_ticks
+    was >= 3 when the block transitioned.
+    """
+    # Simulate the runner's log-counting state
+    logs_collected = 0
+    attack_on_log_ticks = 0
+    prev_block: str | None = None
+
+    # Sequence of (vlm_action, current_block) per tick
+    ticks = [
+        ("attack", "oak_log"),
+        ("attack", "oak_log"),
+        ("attack", "oak_log"),
+        ("attack", "oak_log"),  # 4 ticks attacking oak_log
+        ("attack", "air"),      # block breaks → now air
+    ]
+
+    for vlm_action, current_block in ticks:
+        # --- This is the FIXED logic from runner.py ---
+        # FIRST: check collection (uses counter from previous ticks)
+        if (
+            prev_block
+            and "log" in prev_block.lower()
+            and (current_block is None or "log" not in current_block.lower())
+            and attack_on_log_ticks >= 3
+        ):
+            logs_collected += 1
+            attack_on_log_ticks = 0
+
+        # SECOND: update counter for THIS tick
+        if vlm_action == "attack" and current_block and "log" in current_block.lower():
+            attack_on_log_ticks += 1
+        else:
+            attack_on_log_ticks = 0
+
+        prev_block = current_block
+
+    assert logs_collected == 1, (
+        f"Expected logs_collected == 1 but got {logs_collected}. "
+        "Bug 13: collection check must see counter from previous ticks."
+    )
+
+
+def _test_log_counting_old_buggy_sequence() -> None:
+    """Verify the OLD (buggy) sequence would fail — kept as documentation."""
+    logs_collected = 0
+    attack_on_log_ticks = 0
+    prev_block: str | None = None
+
+    ticks = [
+        ("attack", "oak_log"),
+        ("attack", "oak_log"),
+        ("attack", "oak_log"),
+        ("attack", "oak_log"),
+        ("attack", "air"),
+    ]
+
+    for vlm_action, current_block in ticks:
+        # OLD BUGGY order: counter update BEFORE collection check
+        if vlm_action == "attack" and current_block and "log" in current_block.lower():
+            attack_on_log_ticks += 1
+        else:
+            attack_on_log_ticks = 0  # Reset to 0 BEFORE check!
+
+        if (
+            prev_block
+            and "log" in prev_block.lower()
+            and (current_block is None or "log" not in current_block.lower())
+            and attack_on_log_ticks >= 3  # Always sees 0 → never fires
+        ):
+            logs_collected += 1
+            attack_on_log_ticks = 0
+
+        prev_block = current_block
+
+    # Old code would fail: counter was reset before check
+    assert logs_collected == 0, "Old buggy code should NOT detect the log"
+
+
 def test_runner_dry_run_budget_exceeded_aborts(tmp_path: Path) -> None:
     adapter = load(ADAPTER_PATH)
 

@@ -104,6 +104,56 @@ class TestPriorityChain:
         assert result.key == "W"
 
 
+class TestEmergencyExpiry:
+    def test_emergency_clears_after_duration(self) -> None:
+        """Emergency with duration_ms>0 expires after that duration."""
+        motor = Motor(ACTIONS)
+        motor._state.is_idle = False
+        motor.set_emergency(MotorCommand.hold("forward", duration_ms=500.0))
+        # Simulate 600ms elapsed by backdating the set time
+        motor._emergency_set_ns = time.monotonic_ns() - 600_000_000  # 600ms ago
+        cmd = MotorCommand.tap("attack")
+        result = motor.resolve(cmd)
+        # Emergency expired, should fall through to normal BT command
+        assert result is not None
+        assert result.reason == "bt"
+        assert result.action == "attack"
+        assert motor._emergency_command is None
+
+    def test_emergency_single_tick_clears(self) -> None:
+        """Emergency with duration_ms=0 clears after one resolve call."""
+        motor = Motor(ACTIONS)
+        motor._state.is_idle = False
+        motor.set_emergency(MotorCommand.hold("forward", duration_ms=0.0))
+        # First resolve: returns emergency
+        result = motor.resolve(MotorCommand.tap("attack"))
+        assert result is not None
+        assert result.reason == "emergency"
+        assert result.action == "forward"
+        # Emergency should now be cleared
+        assert motor._emergency_command is None
+        # Second resolve: normal BT command
+        result2 = motor.resolve(MotorCommand.tap("attack"))
+        assert result2 is not None
+        assert result2.reason == "bt"
+        assert result2.action == "attack"
+
+    def test_emergency_persists_within_duration(self) -> None:
+        """Emergency with duration_ms>0 persists until duration expires."""
+        motor = Motor(ACTIONS)
+        motor._state.is_idle = False
+        motor.set_emergency(MotorCommand.hold("forward", duration_ms=500.0))
+        # Simulate only 200ms elapsed
+        motor._emergency_set_ns = time.monotonic_ns() - 200_000_000  # 200ms ago
+        cmd = MotorCommand.tap("attack")
+        result = motor.resolve(cmd)
+        # Emergency still active
+        assert result is not None
+        assert result.reason == "emergency"
+        assert result.action == "forward"
+        assert motor._emergency_command is not None
+
+
 class TestReset:
     def test_reset_clears_all(self) -> None:
         motor = Motor(ACTIONS)

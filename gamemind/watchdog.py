@@ -16,6 +16,7 @@ All checks run on 160x90 downsampled L1 grayscale frames.
 from __future__ import annotations
 
 import io
+import time
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any
@@ -95,12 +96,28 @@ class Watchdog:
         self._motor_is_moving = False
         self._emergency_override: WatchdogAlert | None = None
         self._freeze_active = False
+        self._freeze_start_ns: int = 0
+        self._freeze_signal: str = ""
 
     def set_motor_moving(self, moving: bool) -> None:
         self._motor_is_moving = moving
 
     def check(self, frame_bytes: bytes) -> list[WatchdogAlert]:
         alerts: list[WatchdogAlert] = []
+
+        # Timed freeze recovery
+        if self._freeze_active and self._freeze_start_ns > 0:
+            elapsed_ms = (time.monotonic_ns() - self._freeze_start_ns) / 1_000_000.0
+            if elapsed_ms >= 10_000:
+                # Hard timeout: force recovery regardless of conditions
+                self.clear_freeze()
+            elif elapsed_ms >= 3_000:
+                # Soft recovery: check if the triggering condition has cleared
+                # (screen no longer black, or motion detected)
+                screen_ok = self._black_streak < _BLACK_CONSECUTIVE_FRAMES
+                motion_ok = self._freeze_streak < _FREEZE_CONSECUTIVE_FRAMES
+                if screen_ok or motion_ok:
+                    self.clear_freeze()
 
         gray = _downsample_grayscale(frame_bytes)
         r_ch, g_ch, b_ch = _downsample_rgb(frame_bytes)
@@ -148,6 +165,9 @@ class Watchdog:
                     detail={"streak": self._black_streak, "brightness": mean_brightness},
                 )
             )
+            if not self._freeze_active:
+                self._freeze_start_ns = time.monotonic_ns()
+                self._freeze_signal = "screen_black"
             self._freeze_active = True
 
         if n > 0:
@@ -187,6 +207,9 @@ class Watchdog:
                     detail={"streak": self._freeze_streak},
                 )
             )
+            if not self._freeze_active:
+                self._freeze_start_ns = time.monotonic_ns()
+                self._freeze_signal = "freeze_timeout"
             self._freeze_active = True
 
         return alerts
@@ -206,6 +229,8 @@ class Watchdog:
         self._freeze_active = False
         self._freeze_streak = 0
         self._black_streak = 0
+        self._freeze_start_ns = 0
+        self._freeze_signal = ""
 
     def reset(self) -> None:
         self._prev_gray = None
@@ -215,3 +240,5 @@ class Watchdog:
         self._freeze_streak = 0
         self._emergency_override = None
         self._freeze_active = False
+        self._freeze_start_ns = 0
+        self._freeze_signal = ""
