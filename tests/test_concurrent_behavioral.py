@@ -18,12 +18,7 @@ from __future__ import annotations
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from unittest.mock import MagicMock
-
-import pytest
-
 from gamemind.blackboard import Blackboard, Producer
-from gamemind.bt.engine import Action, Status
 from gamemind.bt.harvesting import build_harvesting_tree
 from gamemind.bt.motor_command import MotorCommand, MotorCommandType
 from gamemind.motor import Motor
@@ -132,10 +127,9 @@ def test_motor_holds_during_vlm() -> None:
 
             if cmd and cmd.command_type == MotorCommandType.HOLD:
                 resolved = motor.resolve(cmd)
-                if resolved and resolved.key:
-                    if "MouseLeft" not in inp.held_keys:
-                        inp.key_down(hwnd, resolved.key)
-                        key_down_event.set()
+                if resolved and resolved.key and "MouseLeft" not in inp.held_keys:
+                    inp.key_down(hwnd, resolved.key)
+                    key_down_event.set()
             time.sleep(tick_interval)
 
     # Start orchestrator first, then perception

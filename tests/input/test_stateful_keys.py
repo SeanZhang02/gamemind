@@ -104,24 +104,24 @@ class TestReleaseAll:
 
 
 class TestMouseKeyRouting:
-    def test_mouse_left_routes_to_mouseDown(self, backend, pdi):
+    def test_mouse_left_routes_to_mouse_down(self, backend, pdi):
         backend.key_down(HWND, "mouse_left")
 
         pdi.mouseDown.assert_called_once_with(button="left")
         pdi.keyDown.assert_not_called()
         assert "mouse_left" in backend._held_keys
 
-    def test_mouse_right_routes_to_mouseDown(self, backend, pdi):
+    def test_mouse_right_routes_to_mouse_down(self, backend, pdi):
         backend.key_down(HWND, "mouse_right")
 
         pdi.mouseDown.assert_called_once_with(button="right")
 
-    def test_mouse_middle_routes_to_mouseDown(self, backend, pdi):
+    def test_mouse_middle_routes_to_mouse_down(self, backend, pdi):
         backend.key_down(HWND, "mouse_middle")
 
         pdi.mouseDown.assert_called_once_with(button="middle")
 
-    def test_mouse_key_up_routes_to_mouseUp(self, backend, pdi):
+    def test_mouse_key_up_routes_to_mouse_up(self, backend, pdi):
         backend.key_down(HWND, "mouse_left")
         pdi.mouseDown.reset_mock()
 
