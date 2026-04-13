@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import patch
 
-import pytest
 
-from gamemind.spatial.state import SpatialAnchor, SpatialPerception, SpatialState
+from gamemind.spatial.state import SpatialPerception, SpatialState
 
 
 def _perception(**kwargs) -> SpatialPerception:

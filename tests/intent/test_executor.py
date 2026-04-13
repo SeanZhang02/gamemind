@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from gamemind.bt.motor_command import MotorCommand, MotorCommandType
+from gamemind.bt.motor_command import MotorCommandType
 from gamemind.intent.executor import IntentExecutor
 from gamemind.intent.models import Intent, IntentType
 

@@ -174,7 +174,7 @@ class AgentRunner:
         self._trigger = WakeTriggerEvaluator(stuck=self._stuck, guard=self._guard)
 
         # Spatial perception layer (v5)
-        self._spatial = SpatialState(anchor_max_age_ns=int(10_000_000_000))
+        self._spatial = SpatialState(anchor_max_age_ns=10_000_000_000)
         self._intent_executor = IntentExecutor(config.adapter.actions)
         self._intent_tracker = IntentTracker()
         self._current_intent: Intent | None = None
