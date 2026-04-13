@@ -81,6 +81,7 @@ class IntentTracker:
         target_anchor_direction: str | None,
         target_anchor_distance: str | None,
         facing: str | None,
+        health: float | None = None,
     ) -> IntentStatus:
         """Check if current intent is progressing. Call each perception tick.
 
@@ -90,6 +91,11 @@ class IntentTracker:
             return IntentStatus.IDLE
 
         self._total_frames += 1
+
+        # Health-based BLOCKED check (applies to ALL intent types)
+        if health is not None and health < 0.5:
+            self._status = IntentStatus.BLOCKED
+            return self._status
 
         # Auto-stall on max_steps
         if self._total_frames >= self._intent.max_steps:
@@ -142,10 +148,23 @@ class IntentTracker:
         COMPLETED: distance == "close" AND direction == "ahead"
         PROGRESSING: distance decreased OR direction moved toward ahead
         STALLED: stall_threshold frames with no distance/direction change
+        BLOCKED: distance stuck at "close" but direction not "ahead" (obstacle),
+                 OR health dropped below 0.5 during intent execution
         """
         # Check completion
         if distance == "close" and direction == "ahead":
             self._status = IntentStatus.COMPLETED
+            return self._status
+
+        # Check obstacle-based BLOCKED: stuck close but can't face target
+        if (
+            distance == "close"
+            and direction is not None
+            and direction != "ahead"
+            and self._prev_distance == "close"
+            and self._no_change_frames >= 5  # stuck for 5 frames at close range
+        ):
+            self._status = IntentStatus.BLOCKED
             return self._status
 
         # Check for progress (any change toward target)

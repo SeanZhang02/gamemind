@@ -28,7 +28,7 @@ _SYSTEM_PROMPT = (
     "- Respond with ONLY valid JSON, no other text\n"
     '- The "block" field should be the block type the crosshair is pointing at '
     '(e.g. "oak_log", "stone", "air"), or null if unclear\n'
-    "- Be specific about block types -- use Minecraft block IDs when possible\n"
+    "- Be specific about block types -- use the game's native block/object names when possible\n"
     '- The "facing" field describes your camera orientation: '
     '"looking_down", "looking_at_horizon", or "looking_up"\n'
     '- The "anchors" field lists notable objects with their relative direction and distance'
