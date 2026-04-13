@@ -69,13 +69,13 @@ def _make_response(text: str, parsed: dict, pt: int = 500, ct: int = 100) -> LLM
 def test_runner_dry_run_chop_logs_succeeds(tmp_path: Path) -> None:
     adapter = load(ADAPTER_PATH)
 
+    # W5 verify removed — only W1 (plan) brain call needed
     mock_brain = MockBrainBackend(
         scripted=[
             _make_response(
                 '{"plan": ["approach_tree", "face_trunk", "attack"]}',
                 {"plan": ["approach_tree", "face_trunk", "attack"]},
             ),
-            _make_response('{"verify_ok": true}', {"verify_ok": True}, pt=600, ct=20),
         ]
     )
 
@@ -121,7 +121,7 @@ def test_runner_dry_run_chop_logs_succeeds(tmp_path: Path) -> None:
     outcome = runner.run()
 
     assert outcome == "success"
-    assert mock_brain.call_count == 2
+    assert mock_brain.call_count == 1  # W1 only (W5 verify removed)
     assert mock_capture.capture_count >= 1
 
     session_manager.transition_to_terminal(outcome=outcome)

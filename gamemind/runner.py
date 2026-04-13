@@ -1,4 +1,4 @@
-"""Agent runner v3 — concurrent 2-thread cognitive architecture.
+"""Agent runner v4 — VLM direct drive (no BT decision layer).
 
 Two-thread design separating perception from orchestration:
 
@@ -8,20 +8,21 @@ Two-thread design separating perception from orchestration:
                                                ├ Blackboard write + swap
                                                └ signals Orchestrator via Event
                                                     │
-                              Orchestrator Thread (20-50Hz)
+                              Orchestrator Thread (perception-driven)
                                                ├ reads Blackboard snapshot
-                                               ├ FSM (state transitions)
-                                               ├ BT[state] (per-tick decisions)
-                                               ├ Motor (priority chain → resolve)
+                                               ├ VLM action → direct motor command
+                                               ├ Motor (staleness/hysteresis)
                                                ├ stateful key_down/key_up
-                                               └ Planner (W1/W2/W5 sparse wake)
+                                               └ Planner (W1/W2 sparse wake)
 
-Key differences from v2 (serial):
-  - Perception runs in its own thread, never blocks orchestrator
-  - Orchestrator ticks at 20Hz (50ms) reading Blackboard snapshots
-  - Stateful key management (key_down/key_up) instead of blocking holds
-  - W2 brain calls dispatched to ThreadPoolExecutor (non-blocking)
-  - atexit handler guarantees key release on process exit
+v4 changes from v3:
+  - BT trees REMOVED from decision path — VLM suggested action IS the
+    motor command (direct drive)
+  - FSM simplified — no BT-dependent transitions (target_reached,
+    resource_exhausted)
+  - W5 verify REMOVED — block-break event count is authoritative
+  - LOG COLLECTED detection hardened — requires sustained attack on log
+  - HOLD/TAP/MOUSE_MOVE classification by action semantics, not BT
 """
 
 from __future__ import annotations
@@ -43,17 +44,13 @@ from gamemind.brain.budget_tracker import BudgetExceededError, BudgetTracker
 from gamemind.brain.prompt_assembler import (
     assemble_plan_decomposition,
     assemble_replan_from_stuck,
-    assemble_task_completion_verification,
     to_messages,
 )
-from gamemind.bt.engine import Status as BTStatus
-from gamemind.bt.harvesting import build_harvesting_tree
 from gamemind.bt.motor_command import MotorCommand, MotorCommandType
-from gamemind.bt.navigating import build_navigating_tree
 from gamemind.capture.backend import CaptureBackend, CaptureResult
 from gamemind.events.envelope import make_envelope
 from gamemind.events.writer import EventWriter
-from gamemind.fsm import FSM, State
+from gamemind.fsm import FSM
 from gamemind.input.backend import InputBackend, tap
 from gamemind.layer2.action_guard import ActionRepetitionGuard
 from gamemind.layer2.stuck_detector import StuckDetector
@@ -168,10 +165,15 @@ class AgentRunner:
         self._guard = ActionRepetitionGuard()
         self._trigger = WakeTriggerEvaluator(stuck=self._stuck, guard=self._guard)
 
-        self._bt_trees = {
-            State.HARVESTING: build_harvesting_tree(),
-            State.NAVIGATING: build_navigating_tree(),
-        }
+        # VLM direct drive — action type classification
+        # Actions whose adapter key starts with "mouse_rel:" are MOUSE_MOVE
+        self._hold_actions = frozenset(
+            {"attack", "forward", "backward", "strafe_left", "strafe_right", "sprint", "sneak"}
+        )
+        self._tap_actions = frozenset(
+            {"jump", "open_inventory", "drop_item", "chat", "use_item", "third_person", "debug"}
+        )
+        # mouse_rel actions are detected by adapter key prefix at runtime
 
         self._brain_call_count = 0
         self._perception_tick_count = 0
@@ -179,9 +181,9 @@ class AgentRunner:
         self._current_subgoal_idx = 0
         self._policy_hints: list[str] = []
         self._last_action: str = ""
-        self._hallucination_count = 0
         self._logs_collected: int = 0
         self._prev_block: str | None = None
+        self._attack_on_log_ticks: int = 0
 
         # Concurrent architecture state
         self._new_perception = threading.Event()
@@ -337,8 +339,8 @@ class AgentRunner:
         self._fsm.transition("plan_ready_navigate")
 
         # --- Main orchestrator loop ---
-        # BT decisions only run when NEW perception arrives (1Hz).
-        # Between ticks: check safety events, maintain current key state.
+        # VLM direct drive: each perception tick produces a suggested action
+        # which becomes the motor command directly (no BT intermediary).
         while not self._stop.is_set():
             got_new = self._new_perception.wait(timeout=0.05)
             self._new_perception.clear()
@@ -354,7 +356,7 @@ class AgentRunner:
                 self._motor.set_emergency(self._emergency_command)
                 self._emergency_command = None
 
-            # Only run BT decisions when NEW perception arrives.
+            # Only act on NEW perception data.
             # Without new data, keep current key state — no re-ticking.
             if not got_new:
                 continue
@@ -380,15 +382,26 @@ class AgentRunner:
                     f"({self._current_subgoal_idx}/{len(self._subgoals)})"
                 )
 
-            # Block-break event counting (log collection heuristic)
+            # --- VLM direct drive: read suggested action ---
+            vlm_action = self._bb.read_value("vlm_suggested_action")
+
+            # Block-break event counting (hardened log collection)
+            # Only count when character was ATTACKING a log for 3+ ticks
             current_block = self._bb.read_value("crosshair_block")
+            if vlm_action == "attack" and current_block and "log" in current_block.lower():
+                self._attack_on_log_ticks += 1
+            else:
+                self._attack_on_log_ticks = 0
+
             if (
                 self._prev_block
                 and "log" in self._prev_block.lower()
                 and (current_block is None or "log" not in current_block.lower())
+                and self._attack_on_log_ticks >= 3
             ):
                 self._logs_collected += 1
-                _log(f"  LOG COLLECTED! total={self._logs_collected}")
+                self._attack_on_log_ticks = 0
+                _log(f"  LOG COLLECTED (attack-verified)! total={self._logs_collected}")
             self._prev_block = current_block
 
             # Abort checks
@@ -400,7 +413,6 @@ class AgentRunner:
                     return self._terminate("aborted")
 
             # Success checks — inject block-break log count as synthetic inventory
-            # Only inject when VLM doesn't already report inventory data
             if (
                 perception
                 and perception.parsed is not None
@@ -421,23 +433,19 @@ class AgentRunner:
                 self._goal.success_check, perception_with_inventory, elapsed_s
             )
             if success_fired:
-                _log("success predicates fired — calling W5 verify")
-                w5_ok = self._call_brain_w5(adapter, config.task, perception)
-                if w5_ok:
-                    _log("W5 verify passed — session success")
-                    return self._terminate("success")
-                _log("W5 verify failed — continuing")
+                # Auto-pass: block-break event count is authoritative.
+                # W5 visual verify removed — VLM cannot read hotbar reliably.
+                _log(
+                    f"success predicates fired — task complete "
+                    f"(event-verified, logs={self._logs_collected})"
+                )
+                return self._terminate("success")
 
-            # Wake trigger evaluation
+            # Wake trigger evaluation (W2 stuck detection)
             wake = self._trigger.on_perception_tick(
                 perception,
-                frame_bytes=b"",  # frame bytes not available in orchestrator
-                predicate_fired=success_fired
-                or (
-                    self._fsm.state == State.HARVESTING
-                    and self._bb.read_value("crosshair_block")
-                    not in (None, "", "air", "water", "lava")
-                ),
+                frame_bytes=b"",
+                predicate_fired=success_fired,
                 action_executed=self._last_action != "",
                 last_action_hash=self._last_action,
                 abort_triggered=False,
@@ -455,51 +463,26 @@ class AgentRunner:
                 _log("brain call count exceeded 30 — runaway")
                 return self._terminate("runaway")
 
-            # BT tick
-            current_bt = self._bt_trees.get(self._fsm.state)
-            bt_command: MotorCommand | None = None
-            if current_bt is not None:
-                bt_status = current_bt.tick(self._bb)
-                bt_command = current_bt.motor_command
-
-                if bt_status == BTStatus.SUCCESS and self._fsm.state == State.NAVIGATING:
-                    self._fsm.transition("target_reached")
-                    _log("  NAVIGATING → HARVESTING (target_reached)")
-                    current_bt = self._bt_trees.get(self._fsm.state)
-                    if current_bt is not None:
-                        current_bt.tick(self._bb)
-                        bt_command = current_bt.motor_command
-                elif bt_status == BTStatus.SUCCESS and self._fsm.state == State.HARVESTING:
-                    vlm_action = self._bb.read_value("vlm_suggested_action")
-                    if vlm_action != "attack":
-                        self._fsm.transition("resource_exhausted")
-                        _log("  HARVESTING → NAVIGATING (resource_exhausted)")
-                        current_bt = self._bt_trees.get(self._fsm.state)
-                        if current_bt is not None:
-                            current_bt.tick(self._bb)
-                            bt_command = current_bt.motor_command
-
-            # Hallucination guard
-            if bt_command is not None and bt_command.action_name:
-                if (
-                    bt_command.action_name not in config.adapter.actions
-                    and bt_command.action_name != ""
-                ):
-                    self._hallucination_count += 1
-                    _log(f"  hallucination #{self._hallucination_count}: {bt_command.action_name}")
-                    self._emit("action", "action_hallucinated", {"action": bt_command.action_name})
-                    if self._hallucination_count >= 3:
-                        _log("  3 consecutive hallucinations → W2 replan")
-                        self._fsm.transition("w2_stuck")
-                        self._call_brain_w2(adapter, perception)
-                        self._fsm.transition("plan_ready_navigate")
-                        self._hallucination_count = 0
-                    bt_command = None
+            # --- VLM direct drive: convert action → MotorCommand ---
+            vlm_command: MotorCommand | None = None
+            if vlm_action and vlm_action in config.adapter.actions:
+                key = config.adapter.actions[vlm_action]
+                if key.startswith("mouse_rel:"):
+                    # Camera movement — instant mouse_move per tick
+                    vlm_command = MotorCommand.mouse_move(vlm_action)
+                elif vlm_action in self._hold_actions:
+                    # Continuous actions — HOLD until next tick changes
+                    vlm_command = MotorCommand.hold(vlm_action)
+                elif vlm_action in self._tap_actions:
+                    # One-shot actions — TAP
+                    vlm_command = MotorCommand.tap(vlm_action)
                 else:
-                    self._hallucination_count = 0
+                    # Fallback: default to TAP for unknown actions
+                    vlm_command = MotorCommand.tap(vlm_action)
+                _log(f"  vlm_direct: {vlm_action} → {vlm_command.command_type.name}")
 
             # Motor resolve + stateful key management
-            resolved = self._motor.resolve(bt_command)
+            resolved = self._motor.resolve(vlm_command)
             if (
                 resolved is not None
                 and resolved.key
@@ -633,19 +616,6 @@ class AgentRunner:
                     self._bb.swap()
 
         self._brain_executor.submit(_w2_task)
-
-    def _call_brain_w5(self, adapter: Adapter, task: str, perception: PerceptionResult) -> bool:
-        prompt = assemble_task_completion_verification(
-            display_name=adapter.display_name,
-            world_facts=adapter.world_facts,
-            frame_summary=perception.raw_text or "(no frame summary)",
-            success_predicates=str(self._goal.success_check),
-            task_description=task,
-        )
-        resp = self._brain_chat(prompt.system, to_messages(prompt), "w5")
-        if resp.parsed_json:
-            return bool(resp.parsed_json.get("verify_ok", False))
-        return False
 
     def _brain_chat(self, system: str, messages: list[dict[str, Any]], trigger: str) -> LLMResponse:
         self._brain_call_count += 1
