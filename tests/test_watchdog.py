@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import time
 
 from PIL import Image
 
@@ -143,6 +144,65 @@ class TestFreezeTimeout:
                 freeze_fired = True
                 break
         assert freeze_fired
+        assert wd.is_frozen
+
+
+class TestFreezeRecovery:
+    def test_freeze_recovers_after_screen_returns(self) -> None:
+        """After freeze via screen_black, feeding normal frames clears freeze after 3s."""
+        bb = Blackboard()
+        wd = Watchdog(bb)
+        black_frame = _make_frame((2, 2, 2))
+        normal_frame = _make_frame((100, 100, 100))
+
+        # Trigger freeze via screen_black
+        for _ in range(10):
+            wd.check(black_frame)
+        assert wd.is_frozen
+
+        # Feed normal frames but backdate freeze_start to 3.1s ago
+        wd._freeze_start_ns = time.monotonic_ns() - 3_100_000_000  # 3.1s ago
+
+        # Now feed a normal frame — should trigger soft recovery
+        # (black_streak resets to 0 on normal frame, which is < _BLACK_CONSECUTIVE_FRAMES)
+        wd.check(normal_frame)
+        assert not wd.is_frozen
+
+    def test_freeze_hard_timeout_10s(self) -> None:
+        """After 10s, freeze is forcibly cleared even with black frames."""
+        bb = Blackboard()
+        wd = Watchdog(bb)
+        black_frame = _make_frame((2, 2, 2))
+
+        # Trigger freeze
+        for _ in range(10):
+            wd.check(black_frame)
+        assert wd.is_frozen
+
+        # Backdate freeze start to 10.1s ago
+        wd._freeze_start_ns = time.monotonic_ns() - 10_100_000_000  # 10.1s ago
+
+        # Even with a black frame, hard timeout forces recovery
+        wd.check(black_frame)
+        assert not wd.is_frozen
+
+    def test_freeze_no_recovery_before_3s(self) -> None:
+        """Freeze does not recover before 3s even with normal frames."""
+        bb = Blackboard()
+        wd = Watchdog(bb)
+        black_frame = _make_frame((2, 2, 2))
+        normal_frame = _make_frame((100, 100, 100))
+
+        # Trigger freeze
+        for _ in range(10):
+            wd.check(black_frame)
+        assert wd.is_frozen
+
+        # Backdate freeze start to only 2s ago
+        wd._freeze_start_ns = time.monotonic_ns() - 2_000_000_000  # 2s ago
+
+        # Feed normal frame — should NOT recover (< 3s)
+        wd.check(normal_frame)
         assert wd.is_frozen
 
 

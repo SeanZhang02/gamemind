@@ -10,8 +10,10 @@ from gamemind.adapter.schema import (
     AbortCondition,
     Adapter,
     GoalGrammar,
+    IntentConfig,
     PerceptionConfig,
     Predicate,
+    SpatialSchema,
     SuccessCheck,
 )
 
@@ -180,3 +182,54 @@ def test_goal_grammar_shape() -> None:
     )
     assert gg.description == "x"
     assert len(gg.abort_conditions) == 1
+
+
+def test_spatial_schema_defaults() -> None:
+    schema = SpatialSchema()
+    assert schema.facing_categories == ["looking_down", "looking_at_horizon", "looking_up"]
+    assert schema.distance_categories == ["close", "medium", "far"]
+    assert schema.direction_categories == [
+        "ahead",
+        "ahead_left",
+        "ahead_right",
+        "left",
+        "right",
+        "behind",
+    ]
+    assert schema.anchor_max_age_frames == 20
+
+
+def test_spatial_schema_custom() -> None:
+    schema = SpatialSchema.model_validate(
+        {"facing_categories": ["up", "down"], "anchor_max_age_frames": 10}
+    )
+    assert schema.facing_categories == ["up", "down"]
+    assert schema.anchor_max_age_frames == 10
+    # Non-overridden fields keep defaults
+    assert schema.distance_categories == ["close", "medium", "far"]
+
+
+def test_intent_config_validates() -> None:
+    intent = IntentConfig.model_validate(
+        {"description": "Move toward target", "stall_threshold_frames": 8}
+    )
+    assert intent.description == "Move toward target"
+    assert intent.stall_threshold_frames == 8
+
+
+def test_adapter_with_intents() -> None:
+    data = _minimal_adapter_data()
+    data["intents"] = {
+        "approach": {
+            "description": "Move toward a spatial anchor",
+            "stall_threshold_frames": 10,
+        },
+        "retreat": {
+            "description": "Move away from danger",
+            "stall_threshold_frames": 6,
+        },
+    }
+    adapter = Adapter.model_validate(data)
+    assert len(adapter.intents) == 2
+    assert adapter.intents["approach"].description == "Move toward a spatial anchor"
+    assert adapter.intents["retreat"].stall_threshold_frames == 6

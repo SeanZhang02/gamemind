@@ -30,6 +30,7 @@ TEMPLATE_NAMES: tuple[str, ...] = (
     "abort_evaluation",  # W3: abort condition or stalled success
     "disagreement_arbiter",  # W4: vision critic escalation
     "task_completion_verification",  # W5: success check final verify
+    "intent_decision",  # Intent layer: choose next intent from spatial state
 )
 
 

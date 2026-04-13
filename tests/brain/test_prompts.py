@@ -36,13 +36,14 @@ def test_template_names_complete() -> None:
         "abort_evaluation",
         "disagreement_arbiter",
         "task_completion_verification",
+        "intent_decision",
     )
 
 
 def test_all_templates_present() -> None:
     available = list_templates()
     assert set(available) == set(TEMPLATE_NAMES)
-    assert len(available) == 5
+    assert len(available) == 6
 
 
 def test_render_template_with_known_name() -> None:

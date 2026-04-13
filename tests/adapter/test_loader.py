@@ -164,3 +164,39 @@ def test_load_ships_minecraft_adapter() -> None:
     assert adapter.display_name == "Minecraft Java Edition"
     assert "chop_logs" in adapter.goal_grammars
     assert adapter.actions["forward"] == "W"
+
+
+def test_minecraft_adapter_has_spatial_schema() -> None:
+    """Minecraft adapter ships with spatial_schema in perception."""
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    adapter_path = repo_root / "adapters" / "minecraft.yaml"
+    adapters_root = repo_root / "adapters"
+    if not adapter_path.exists():
+        pytest.skip("adapters/minecraft.yaml not shipped yet")
+    adapter = load(adapter_path, adapters_root=adapters_root)
+    ss = adapter.perception.spatial_schema
+    assert ss.facing_categories == ["looking_down", "looking_at_horizon", "looking_up"]
+    assert ss.distance_categories == ["close", "medium", "far"]
+    assert ss.direction_categories == [
+        "ahead",
+        "ahead_left",
+        "ahead_right",
+        "left",
+        "right",
+        "behind",
+    ]
+    assert ss.anchor_max_age_frames == 20
+
+
+def test_minecraft_adapter_has_intents() -> None:
+    """Minecraft adapter ships with 4 intents."""
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    adapter_path = repo_root / "adapters" / "minecraft.yaml"
+    adapters_root = repo_root / "adapters"
+    if not adapter_path.exists():
+        pytest.skip("adapters/minecraft.yaml not shipped yet")
+    adapter = load(adapter_path, adapters_root=adapters_root)
+    assert len(adapter.intents) == 4
+    assert set(adapter.intents.keys()) == {"approach", "look_around", "attack_target", "retreat"}
+    assert adapter.intents["attack_target"].stall_threshold_frames == 16
+    assert adapter.intents["retreat"].stall_threshold_frames == 6
