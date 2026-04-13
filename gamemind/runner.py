@@ -277,7 +277,10 @@ class AgentRunner:
             self._bb.write("vlm_last_update_ns", time.monotonic_ns(), Producer.VLM)
 
             if perception.parsed:
-                tick_data = parse_tick_response(perception.parsed)
+                tick_data = parse_tick_response(
+                    perception.parsed,
+                    available_actions=self._config.adapter.actions,
+                )
                 for key, value in tick_data.items():
                     if value is not None:
                         self._bb.write(key, value, Producer.VLM)
@@ -465,12 +468,15 @@ class AgentRunner:
                     # Release any OTHER held keys before holding the new one
                     for k in list(self._held_keys):
                         if k != current_key:
+                            _log(f"  key_switch: releasing {k} for {current_key}")
                             config.input.key_up(config.hwnd, k)
                             self._held_keys.discard(k)
                     if current_key not in self._held_keys:
+                        _log(f"  key_hold: pressing {current_key}")
                         config.input.key_down(config.hwnd, current_key)
                         self._held_keys.add(current_key)
                 elif resolved.command_type == MotorCommandType.TAP:
+                    _log(f"  key_tap: {resolved.key}")
                     self._release_all_keys()  # release holds before tapping
                     scancodes = tap(resolved.key)
                     config.input.send_scan_codes(config.hwnd, scancodes)
@@ -482,6 +488,8 @@ class AgentRunner:
                 self._bb.write("last_action", resolved.action, Producer.ACTION)
             else:
                 # Release any held keys if no valid command
+                if self._held_keys:
+                    _log(f"  key_release_all: {self._held_keys} (no valid command)")
                 self._release_all_keys()
                 self._last_action = ""
                 self._watchdog.set_motor_moving(False)
