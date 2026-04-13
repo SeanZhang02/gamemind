@@ -153,6 +153,26 @@ class SpatialState:
         with self._lock:
             self._front, self._back = self._back, self._front.copy_from(self._back)
 
+    def get_anchor(self, label: str) -> SpatialAnchor | None:
+        """Look up a specific anchor by label from front buffer.
+
+        Case-insensitive. Returns None if not found or expired.
+        Call from orchestrator thread.
+        """
+        with self._lock:
+            label_lower = label.lower()
+            for key, anchor in self._front.anchors.items():
+                if key.lower() == label_lower:
+                    return SpatialAnchor(
+                        label=anchor.label,
+                        direction=anchor.direction,
+                        distance=anchor.distance,
+                        first_seen_ns=anchor.first_seen_ns,
+                        last_seen_ns=anchor.last_seen_ns,
+                        confidence=anchor.confidence,
+                    )
+            return None
+
     def snapshot(self) -> str:
         """Return current world model as text for Brain prompt.
 

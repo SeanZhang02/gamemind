@@ -180,6 +180,7 @@ class AgentRunner:
         self._current_intent: Intent | None = None
         self._brain_call_pending = False
         self._perception_fail_count = 0
+        self._intent_lock = threading.Lock()  # guards _current_intent + _intent_tracker + _intent_executor
 
         self._recent_actions: deque[tuple[str, str | None]] = deque(maxlen=5)
 
@@ -378,10 +379,16 @@ class AgentRunner:
 
             # Always check freeze/emergency (safety, must be responsive)
             if self._freeze_event.is_set():
-                self._release_all_keys()
-                self._motor.freeze()
-                self._fsm.transition("perception_unavailable")
-                continue
+                # Check if freeze condition has cleared (watchdog recovered or perception resumed)
+                if not self._watchdog.is_frozen and self._perception_fail_count < 3:
+                    self._freeze_event.clear()
+                    self._motor.unfreeze()
+                    _log("freeze recovered — resuming")
+                else:
+                    self._release_all_keys()
+                    self._motor.freeze()
+                    self._fsm.transition("perception_unavailable")
+                    continue
 
             if self._emergency_command is not None:
                 self._motor.set_emergency(self._emergency_command)
@@ -504,73 +511,86 @@ class AgentRunner:
                 _log("brain call count exceeded 30 — runaway")
                 return self._terminate("runaway")
 
-            # --- Intent-based execution ---
-            # Look up target anchor info from SpatialState
+            # --- Intent-based execution (thread-safe via _intent_lock) ---
+            # Look up target anchor info from SpatialState directly (not text parsing)
             target_dir: str | None = None
             target_dist: str | None = None
-            if self._current_intent and self._current_intent.target_anchor:
-                snap_text = self._spatial.snapshot()
-                target_label = self._current_intent.target_anchor
-                # Parse anchor direction/distance from snapshot text
-                # Snapshot format: "Nearby: oak_tree (ahead_right, close), ..."
-                if target_label in snap_text:
-                    try:
-                        after = snap_text.split(target_label)[1]
-                        paren_content = after.split("(")[1].split(")")[0]
-                        parts = [p.strip() for p in paren_content.split(",")]
-                        if len(parts) >= 2:
-                            target_dir = parts[0]
-                            target_dist = parts[1]
-                    except (IndexError, ValueError):
-                        pass  # anchor not in expected format
+            with self._intent_lock:
+                current_intent = self._current_intent  # snapshot under lock
+
+            if current_intent and current_intent.target_anchor:
+                anchor = self._spatial.get_anchor(current_intent.target_anchor)
+                if anchor is not None:
+                    target_dir = anchor.direction
+                    target_dist = anchor.distance
+
+            # Coerce health to float for IntentTracker comparison
+            health_float: float | None = None
+            if health_value is not None:
+                try:
+                    health_float = float(health_value)
+                except (ValueError, TypeError):
+                    health_float = None
 
             # Check intent progress
-            if self._current_intent:
-                intent_status = self._intent_tracker.check_progress(
-                    crosshair_block=crosshair_block,
-                    target_anchor_direction=target_dir,
-                    target_anchor_distance=target_dist,
-                    facing=facing_value,
-                    health=health_value,
-                )
-
-                if intent_status in (
-                    IntentStatus.COMPLETED,
-                    IntentStatus.STALLED,
-                    IntentStatus.BLOCKED,
-                ):
-                    _log(
-                        f"  intent {self._current_intent.intent_type.value} "
-                        f"status={intent_status.value}"
+            intent_command: MotorCommand | None = None
+            with self._intent_lock:
+                current_intent = self._current_intent
+                if current_intent:
+                    intent_status = self._intent_tracker.check_progress(
+                        crosshair_block=crosshair_block,
+                        target_anchor_direction=target_dir,
+                        target_anchor_distance=target_dist,
+                        facing=facing_value,
+                        health=health_float,
                     )
-                    if not self._brain_call_pending:
+
+                    if intent_status in (
+                        IntentStatus.COMPLETED,
+                        IntentStatus.STALLED,
+                        IntentStatus.BLOCKED,
+                    ):
+                        # Advance subgoal on COMPLETED
+                        if (
+                            intent_status == IntentStatus.COMPLETED
+                            and self._current_subgoal_idx < len(self._subgoals) - 1
+                        ):
+                            self._current_subgoal_idx += 1
+                            _log(
+                                f"  subgoal advanced → {self._subgoals[self._current_subgoal_idx]} "
+                                f"({self._current_subgoal_idx}/{len(self._subgoals)})"
+                            )
+
+                        _log(
+                            f"  intent {current_intent.intent_type.value} "
+                            f"status={intent_status.value}"
+                        )
+                        if not self._brain_call_pending:
+                            self._brain_call_pending = True
+                            self._brain_executor.submit(
+                                self._call_brain_intent_decision, intent_status
+                            )
+
+                    # Execute current intent action (even during brain call — non-blocking)
+                    intent_command = self._intent_executor.next_action(
+                        current_intent,
+                        spatial_snapshot=self._spatial.snapshot(),
+                        crosshair_block=crosshair_block,
+                        facing=facing_value,
+                        anchor_direction=target_dir,
+                    )
+                    _log(
+                        f"  intent_exec: {current_intent.intent_type.value} "
+                        f"→ {intent_command.action_name or 'idle'} "
+                        f"({intent_command.command_type.name})"
+                    )
+                else:
+                    # No current intent — request initial Brain intent decision
+                    if not self._brain_call_pending and self._subgoals:
                         self._brain_call_pending = True
                         self._brain_executor.submit(
-                            self._call_brain_intent_decision, intent_status
+                            self._call_brain_intent_decision, IntentStatus.IDLE
                         )
-            else:
-                # No current intent — request initial Brain intent decision
-                if not self._brain_call_pending and self._subgoals:
-                    self._brain_call_pending = True
-                    self._brain_executor.submit(
-                        self._call_brain_intent_decision, IntentStatus.IDLE
-                    )
-
-            # Execute current intent action (even during brain call — non-blocking)
-            intent_command: MotorCommand | None = None
-            if self._current_intent:
-                intent_command = self._intent_executor.next_action(
-                    self._current_intent,
-                    spatial_snapshot=self._spatial.snapshot(),
-                    crosshair_block=crosshair_block,
-                    facing=facing_value,
-                    anchor_direction=target_dir,
-                )
-                _log(
-                    f"  intent_exec: {self._current_intent.intent_type.value} "
-                    f"→ {intent_command.action_name or 'idle'} "
-                    f"({intent_command.command_type.name})"
-                )
 
             # Motor resolve + stateful key management
             resolved = self._motor.resolve(intent_command)
@@ -727,11 +747,12 @@ class AgentRunner:
 
             last_intents_text = "none"  # TODO: track last N intents for context
             trigger_text = f"Previous intent {trigger_status.value}"
-            if self._current_intent:
-                trigger_text += (
-                    f": {self._current_intent.intent_type.value}"
-                    f" targeting {self._current_intent.target_anchor}"
-                )
+            with self._intent_lock:
+                if self._current_intent:
+                    trigger_text += (
+                        f": {self._current_intent.intent_type.value}"
+                        f" targeting {self._current_intent.target_anchor}"
+                    )
 
             available_intents = ", ".join(t.value for t in IntentType)
 
@@ -754,21 +775,44 @@ class AgentRunner:
                 except ValueError:
                     intent_type = IntentType.LOOK_AROUND  # fallback
 
+                # Clamp max_steps to sane range [5, 30] to prevent infinite loops
+                raw_max_steps = resp.parsed_json.get("max_steps", 20)
+                try:
+                    max_steps = max(5, min(30, int(raw_max_steps)))
+                except (ValueError, TypeError):
+                    max_steps = 20
+
+                # Normalize target_anchor for case-insensitive matching
+                target_anchor = resp.parsed_json.get("target_anchor")
+                if target_anchor and isinstance(target_anchor, str):
+                    target_anchor = target_anchor.strip().lower()
+
                 new_intent = Intent(
                     intent_type=intent_type,
-                    target_anchor=resp.parsed_json.get("target_anchor"),
+                    target_anchor=target_anchor,
                     expected_outcome=resp.parsed_json.get("expected_outcome", ""),
-                    max_steps=resp.parsed_json.get("max_steps", 20),
+                    max_steps=max_steps,
                     reason=resp.parsed_json.get("reason", ""),
                 )
+            else:
+                # Brain returned no valid JSON — fallback to look_around
+                _log("  brain returned no valid JSON — fallback to look_around")
+                new_intent = Intent(
+                    intent_type=IntentType.LOOK_AROUND,
+                    expected_outcome="survey surroundings after brain parse failure",
+                    max_steps=15,
+                    reason="brain_parse_failure_fallback",
+                )
 
-                self._current_intent = new_intent
+            # Atomic intent state update — order matters (tracker+executor ready before intent visible)
+            with self._intent_lock:
                 self._intent_tracker.start(new_intent)
                 self._intent_executor.reset()
-                _log(
-                    f"  new intent: {new_intent.intent_type.value}"
-                    f" → {new_intent.target_anchor}"
-                )
+                self._current_intent = new_intent  # LAST: make visible to orchestrator
+            _log(
+                f"  new intent: {new_intent.intent_type.value}"
+                f" → {new_intent.target_anchor}"
+            )
         finally:
             self._brain_call_pending = False
 
