@@ -22,32 +22,15 @@ from typing import Any
 from PIL import Image
 
 _SYSTEM_PROMPT = (
-    "You observe a game screenshot each tick. Describe what you see in structured JSON.\n"
-    "\n"
-    "RULES:\n"
-    "- Respond with ONLY valid JSON, no other text\n"
-    '- The "block" field should be the block type the crosshair is pointing at '
-    '(e.g. "oak_log", "stone", "air"), or null if unclear\n'
-    "- Be specific about block types -- use the game's native block/object names when possible\n"
-    '- The "facing" field describes your camera orientation: '
-    '"looking_down", "looking_at_horizon", or "looking_up"\n'
-    '- The "anchors" field lists notable objects with their relative direction and distance'
+    "You see a game screenshot. Output ONLY JSON describing what you see. Be brief."
 )
 
 _TICK_TEMPLATE = (
-    "Current subgoal: $subgoal\n"
-    "Last action: $last_action\n"
-    "Recent actions: $recent_actions\n"
-    "Hints: $hints\n"
-    "\n"
-    "Respond with JSON:\n"
-    '{"block": "<block_at_crosshair>", '
-    '"facing": "<looking_down | looking_at_horizon | looking_up>", '
-    '"spatial_context": "<one sentence describing surroundings>", '
-    '"anchors": [{"label": "<thing>", "direction": "<ahead|left|right|behind|ahead_left|ahead_right>", '
-    '"distance": "<close|medium|far>"}], '
-    '"health": 0.0-1.0, '
-    '"entities": ["<entity_name>"]}'
+    "Subgoal: $subgoal\n"
+    "$last_frame_context"
+    '{"block":"<crosshair_block_or_null>","facing":"<looking_down|looking_at_horizon|looking_up>",'
+    '"spatial_context":"<10 words max>","anchors":[{"label":"<name>","direction":"<ahead|left|right|behind>","distance":"<close|medium|far>"}],'
+    '"health":0.0-1.0,"entities":[]}'
 )
 
 _TARGET_WIDTH = 512
@@ -88,19 +71,11 @@ def build_tick_prompt(
     The ``available_actions`` parameter is accepted for backward compatibility
     but is ignored (actions are no longer part of the VLM output schema).
     """
-    truncated_hints = policy_hints[:3]
-    hints_text = "; ".join(h[:80] for h in truncated_hints) if truncated_hints else "none"
+    last_frame_context = ""
+    # last_frame_diff is injected at build_tick_messages level, not here
 
-    if recent_actions:
-        recent_text = ", ".join(f"{act}\u2192{blk}" if blk else act for act, blk in recent_actions)
-    else:
-        recent_text = "(none)"
-
-    return (
-        _TICK_TEMPLATE.replace("$subgoal", current_subgoal or "observe")
-        .replace("$hints", hints_text)
-        .replace("$last_action", last_action or "none")
-        .replace("$recent_actions", recent_text)
+    return _TICK_TEMPLATE.replace("$subgoal", current_subgoal or "observe").replace(
+        "$last_frame_context", last_frame_context
     )
 
 

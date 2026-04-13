@@ -46,10 +46,10 @@ actions:
   chat: "T"
   third_person: "F5"
   debug: "F3"
-  look_up:    "mouse_rel:0,-80"
-  look_down:  "mouse_rel:0,80"
-  turn_left:  "mouse_rel:-150,0"
-  turn_right: "mouse_rel:150,0"
+  look_up:    "mouse_rel:0,-40"
+  look_down:  "mouse_rel:0,40"
+  turn_left:  "mouse_rel:-80,0"
+  turn_right: "mouse_rel:80,0"
 
 world_facts:
   axe_crafting: "Two planks vertical in a crafting table yield one stick; three planks over two sticks yield an axe."
