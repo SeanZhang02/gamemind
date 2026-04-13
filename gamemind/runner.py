@@ -184,6 +184,8 @@ class AgentRunner:
             threading.Lock()
         )  # guards _current_intent + _intent_tracker + _intent_executor
 
+        self._last_motor_was_tap = False  # TAP/MOUSE_MOVE = wait for next perception before repeat
+
         self._recent_actions: deque[tuple[str, str | None]] = deque(maxlen=5)
 
         self._brain_call_count = 0
@@ -398,6 +400,14 @@ class AgentRunner:
 
             elapsed_s = (time.monotonic_ns() - start_ns) / 1e9
 
+            # TAP/MOUSE_MOVE commands are one-shot: after executing one,
+            # wait for the next perception tick before sending another.
+            # HOLD commands keep running between ticks (key stays pressed).
+            if not got_new and self._last_motor_was_tap:
+                continue
+            if got_new:
+                self._last_motor_was_tap = False  # new perception = can issue new commands
+
             # Read spatial data (always available, even between perception ticks)
             crosshair_block = self._bb.read_value("crosshair_block")
             health_value = self._bb.read_value("health")
@@ -596,6 +606,11 @@ class AgentRunner:
                     config.input.send_scan_codes(config.hwnd, scancodes)
 
                 self._last_action = resolved.action
+                # TAP and MOUSE_MOVE are one-shot: don't repeat until next perception
+                self._last_motor_was_tap = resolved.command_type in (
+                    MotorCommandType.TAP,
+                    MotorCommandType.MOUSE_MOVE,
+                )
                 self._watchdog.set_motor_moving(
                     resolved.action
                     in ("forward", "backward", "strafe_left", "strafe_right", "attack")
@@ -607,6 +622,7 @@ class AgentRunner:
                     _log(f"  key_release_all: {self._held_keys} (no valid command)")
                 self._release_all_keys()
                 self._last_action = ""
+                self._last_motor_was_tap = False
                 self._watchdog.set_motor_moving(False)
 
             # Record action to history for VLM temporal context
