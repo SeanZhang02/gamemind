@@ -396,18 +396,9 @@ class AgentRunner:
                 self._motor.set_emergency(self._emergency_command)
                 self._emergency_command = None
 
-            # Only act on NEW perception data.
-            # Without new data, keep current key state — no re-ticking.
-            if not got_new:
-                continue
-
             elapsed_s = (time.monotonic_ns() - start_ns) / 1e9
 
-            perception = self._last_perception
-            if perception is None:
-                continue
-
-            # Read spatial data from Blackboard (also available via SpatialState)
+            # Read spatial data (always available, even between perception ticks)
             crosshair_block = self._bb.read_value("crosshair_block")
             health_value = self._bb.read_value("health")
             facing_value = self._bb.read_value("player_facing")
@@ -416,101 +407,75 @@ class AgentRunner:
             if facing_value is None:
                 snap = self._spatial.snapshot()
                 if snap and "Camera:" in snap:
-                    # Parse "Camera: looking at horizon." → "looking_at_horizon"
                     camera_part = snap.split("Camera:")[1].split(".")[0].strip()
                     facing_value = camera_part.replace(" ", "_")
 
-            # Block-break event counting (hardened log collection — Bug 13 fix preserved)
-            # FIRST: check collection (uses counter from previous ticks)
-            current_block = crosshair_block
-            # Determine current action for log counting
-            current_action_name = ""
-            if (
-                self._current_intent
-                and self._current_intent.intent_type == IntentType.ATTACK_TARGET
-            ):
-                current_action_name = "attack"
+            # --- Perception-dependent logic (only on NEW perception data) ---
+            if got_new and self._last_perception is not None:
+                perception = self._last_perception
+                current_block = crosshair_block
+                current_action_name = ""
+                if (
+                    self._current_intent
+                    and self._current_intent.intent_type == IntentType.ATTACK_TARGET
+                ):
+                    current_action_name = "attack"
 
-            if (
-                self._prev_block
-                and "log" in self._prev_block.lower()
-                and (current_block is None or "log" not in current_block.lower())
-                and self._attack_on_log_ticks >= 3
-            ):
-                self._logs_collected += 1
-                self._attack_on_log_ticks = 0
-                _log(f"  LOG COLLECTED (attack-verified)! total={self._logs_collected}")
+                # Log collection: check FIRST, update counter SECOND (Bug 13 fix)
+                if (
+                    self._prev_block
+                    and "log" in self._prev_block.lower()
+                    and (current_block is None or "log" not in current_block.lower())
+                    and self._attack_on_log_ticks >= 3
+                ):
+                    self._logs_collected += 1
+                    self._attack_on_log_ticks = 0
+                    _log(f"  LOG COLLECTED (attack-verified)! total={self._logs_collected}")
 
-            # SECOND: update counter for THIS tick
-            if current_action_name == "attack" and current_block and "log" in current_block.lower():
-                self._attack_on_log_ticks += 1
-            else:
-                self._attack_on_log_ticks = 0
+                if current_action_name == "attack" and current_block and "log" in current_block.lower():
+                    self._attack_on_log_ticks += 1
+                else:
+                    self._attack_on_log_ticks = 0
+                self._prev_block = current_block
 
-            self._prev_block = current_block
+                # Abort checks
+                for condition in self._goal.abort_conditions:
+                    if condition.type == "health_threshold" and self._perception_tick_count < 5:
+                        continue
+                    if check_abort(condition, perception, elapsed_s):
+                        _log(f"abort condition fired: {condition.type}")
+                        return self._terminate("aborted")
 
-            # Abort checks
-            for condition in self._goal.abort_conditions:
-                if condition.type == "health_threshold" and self._perception_tick_count < 5:
-                    continue
-                if check_abort(condition, perception, elapsed_s):
-                    _log(f"abort condition fired: {condition.type}")
-                    return self._terminate("aborted")
-
-            # Success checks — inject block-break log count as synthetic inventory
-            if (
-                perception
-                and perception.parsed is not None
-                and "inventory" not in perception.parsed
-                and self._logs_collected > 0
-            ):
-                perception_with_inventory = PerceptionResult(
-                    frame_id=perception.frame_id,
-                    capture_ts_monotonic_ns=perception.capture_ts_monotonic_ns,
-                    frame_age_ms=perception.frame_age_ms,
-                    parsed={**perception.parsed, "inventory": {"log": self._logs_collected}},
-                    raw_text=perception.raw_text,
-                    latency_ms=perception.latency_ms,
+                # Success checks
+                if (
+                    perception.parsed is not None
+                    and "inventory" not in perception.parsed
+                    and self._logs_collected > 0
+                ):
+                    perception_with_inventory = PerceptionResult(
+                        frame_id=perception.frame_id,
+                        capture_ts_monotonic_ns=perception.capture_ts_monotonic_ns,
+                        frame_age_ms=perception.frame_age_ms,
+                        parsed={**perception.parsed, "inventory": {"log": self._logs_collected}},
+                        raw_text=perception.raw_text,
+                        latency_ms=perception.latency_ms,
+                    )
+                else:
+                    perception_with_inventory = perception
+                success_fired = check_success(
+                    self._goal.success_check, perception_with_inventory, elapsed_s
                 )
-            else:
-                perception_with_inventory = perception
-            success_fired = check_success(
-                self._goal.success_check, perception_with_inventory, elapsed_s
-            )
-            if success_fired:
-                _log(
-                    f"success predicates fired — task complete "
-                    f"(event-verified, logs={self._logs_collected})"
-                )
-                return self._terminate("success")
+                if success_fired:
+                    _log(
+                        f"success predicates fired — task complete "
+                        f"(event-verified, logs={self._logs_collected})"
+                    )
+                    return self._terminate("success")
 
-            # Wake trigger evaluation (W2 stuck detection)
-            # Suppress W2 when actively attacking a log (productive work)
-            wake = self._trigger.on_perception_tick(
-                perception,
-                frame_bytes=b"",
-                predicate_fired=success_fired
-                or (
-                    current_action_name == "attack"
-                    and current_block is not None
-                    and "log" in current_block.lower()
-                ),
-                action_executed=self._last_action != "",
-                last_action_hash=self._last_action,
-                abort_triggered=False,
-                ts_ns=time.monotonic_ns(),
-            )
-
-            if wake.reason == "w2_stuck":
-                _log(f"W2 stuck: {wake.payload}")
-                self._fsm.transition("w2_stuck")
-                self._call_brain_w2(adapter, perception)
-                self._fsm.transition("plan_ready_navigate")
-
-            # Runaway check
-            if self._brain_call_count >= 30:
-                _log("brain call count exceeded 30 — runaway")
-                return self._terminate("runaway")
+                # Runaway check
+                if self._brain_call_count >= 30:
+                    _log("brain call count exceeded 30 — runaway")
+                    return self._terminate("runaway")
 
             # --- Intent-based execution (thread-safe via _intent_lock) ---
             # Look up target anchor info from SpatialState directly (not text parsing)

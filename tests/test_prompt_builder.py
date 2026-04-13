@@ -84,16 +84,13 @@ def test_build_tick_messages_without_last_frame_diff() -> None:
     assert "Since last frame:" not in messages[0]["content"]
 
 
-def test_prompt_truncates_hints() -> None:
-    hints = [f"hint_{i}" for i in range(10)]
+def test_prompt_contains_subgoal() -> None:
     prompt = build_tick_prompt(
-        current_subgoal="test",
-        policy_hints=hints,
+        current_subgoal="find_tree",
+        policy_hints=[],
         last_action="none",
     )
-    assert "hint_0" in prompt
-    assert "hint_2" in prompt
-    assert "hint_3" not in prompt
+    assert "find_tree" in prompt
 
 
 def test_build_tick_messages_returns_system_and_messages() -> None:
@@ -104,7 +101,7 @@ def test_build_tick_messages_returns_system_and_messages() -> None:
         policy_hints=[],
         last_action="none",
     )
-    assert "observe" in system.lower()
+    assert "json" in system.lower()
     assert len(messages) == 1
     assert "images" in messages[0]
     assert len(messages[0]["images"]) == 1

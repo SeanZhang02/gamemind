@@ -27,8 +27,8 @@ class MotorState:
     recovery_streak: int = 0
 
 
-_STALENESS_TIMEOUT_MS = 1500.0  # must exceed VLM tick interval (1Hz=1000ms) + inference latency
-_RECOVERY_THRESHOLD = 2
+_STALENESS_TIMEOUT_MS = 10000.0  # must exceed VLM tick interval (~6s for spatial perception)
+_RECOVERY_THRESHOLD = 1  # resume immediately on first valid command (was 2)
 
 
 class Motor:

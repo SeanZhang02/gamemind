@@ -41,24 +41,24 @@ class TestStaleness:
     def test_idle_after_timeout(self) -> None:
         motor = Motor(ACTIONS)
         motor._state.is_idle = False
-        motor._state.last_command_ns = time.monotonic_ns() - 1_600_000_000  # >1500ms staleness
+        motor._state.last_command_ns = time.monotonic_ns() - 11_000_000_000  # >10000ms staleness
         motor.resolve(None)
         assert motor._state.is_idle
 
 
 class TestHysteresis:
-    def test_needs_two_consecutive_to_resume_after_staleness(self) -> None:
+    def test_resumes_on_first_valid_after_staleness(self) -> None:
+        """Recovery threshold is 1 — resumes immediately on first valid command."""
         motor = Motor(ACTIONS)
         motor._state.is_idle = False
         motor.resolve(MotorCommand.tap("forward"))
         import time
 
-        motor._state.last_command_ns = time.monotonic_ns() - 1_600_000_000  # >1500ms staleness
+        motor._state.last_command_ns = time.monotonic_ns() - 11_000_000_000  # >10000ms staleness
         motor.resolve(None)
         assert motor._state.is_idle
         motor._state.recovery_streak = 0
         cmd = MotorCommand.tap("forward")
-        assert motor.resolve(cmd) is None
         result = motor.resolve(cmd)
         assert result is not None
         assert result.key == "W"
