@@ -13,6 +13,7 @@ Backend Absence Recovery (DEGRADED state).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
@@ -109,6 +110,7 @@ class FSM:
         self._transition_count = 0
         self._degraded_context: State | None = None
         self._transition_table = self._build_table()
+        self.on_transition: Callable[[State, State, str], None] | None = None
 
     @property
     def state(self) -> State:
@@ -154,10 +156,13 @@ class FSM:
     def _do_transition(self, target: State, trigger: str) -> bool:
         if target == self._state:
             return False
-        _log(f"{self._state.name} → {target.name} (trigger: {trigger})")
-        self._prev_state = self._state
+        old = self._state
+        _log(f"{old.name} → {target.name} (trigger: {trigger})")
+        self._prev_state = old
         self._state = target
         self._transition_count += 1
+        if self.on_transition is not None:
+            self.on_transition(old, target, trigger)
         return True
 
     def _restore_from_degraded(self) -> bool:

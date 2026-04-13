@@ -70,6 +70,15 @@ SLOT_CONFIG: dict[str, tuple[Producer, float, float, float]] = {
     "vlm_suggested_action": (Producer.VLM, 600.0, 1200.0, 0.75),
 }
 
+# Type contracts for key slots (documentation, not runtime enforcement):
+#   current_subgoal: str — e.g. "find_tree", "approach_tree", "chop_trunk"
+#   plan_sequence: list[str] — ordered subgoal names
+#   crosshair_block: str — Minecraft block ID e.g. "oak_log", "air", "stone"
+#   health: float 0.0-1.0
+#   entities_nearby: list[str] — e.g. ["zombie", "cow"]
+#   last_action: str — adapter action name e.g. "forward", "attack"
+#   action_streak: int — consecutive identical action count
+
 _CONSISTENCY_WINDOW = 5
 _CONSISTENCY_BONUS_3 = 1.15
 _CONSISTENCY_BONUS_2 = 1.05
