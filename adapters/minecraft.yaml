@@ -9,8 +9,8 @@ schema_version: 1
 display_name: "Minecraft Java Edition"
 
 perception:
-  freshness_budget_ms: 750.0
-  tick_hz: 2.0
+  freshness_budget_ms: 1200.0
+  tick_hz: 1.0
 
 actions:
   forward: "W"

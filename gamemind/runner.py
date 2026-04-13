@@ -1,24 +1,28 @@
-"""Agent runner — ties all layers into a single execution loop.
+"""Agent runner v2 — cognitive architecture integration.
 
-Architecture (Batch B spike transplant):
+Wires all 7 modules into a single execution loop:
 
-    Capture Thread (2Hz) ──► FrameSlot[1] ──► Agent Thread
-                              (latest-wins)    ├ perception (Ollama)
-                                               ├ verify (predicates)
-                                               ├ layer2 (stuck/guard/wake)
-                                               ├ brain (Anthropic, on wake)
-                                               └ input (pydirectinput)
+    Capture Thread (1Hz) ──► FrameSlot[1] ──► Agent Thread
+                              (latest-wins)    ├ Watchdog (frame diff, alerts)
+                                               ├ VLM Perception (prompt_builder)
+                                               ├ Blackboard (swap)
+                                               ├ FSM (state transitions)
+                                               ├ BT[state] (per-tick decisions)
+                                               ├ Motor (priority chain → resolve)
+                                               ├ InputBackend (send keypresses)
+                                               └ Planner (W1/W2/W5 sparse wake)
 
-FrameSlot implements §1.1.A bounded-size-1 latest-wins queue at the
-capture→agent boundary. Perception runs synchronously in the agent
-thread, so there's no separate PerceptionResult queue — the agent loop
-processes each perception result immediately.
+Startup: Watchdog → Blackboard → VLM warmup → FSM → BT → Motor
+
+Key differences from v1:
+  - No _pending_actions queue — BT decides action every tick
+  - Motor has staleness timeout + hysteresis recovery
+  - Watchdog LEVEL 2+ can override motor directly
+  - All state flows through Blackboard (double-buffered)
 """
 
 from __future__ import annotations
 
-import base64
-import hashlib
 import json
 import threading
 import time
@@ -28,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from gamemind.adapter.schema import Adapter
+from gamemind.blackboard import Blackboard, Producer
 from gamemind.brain.backend import LLMBackend, LLMResponse
 from gamemind.brain.budget_tracker import BudgetExceededError, BudgetTracker
 from gamemind.brain.prompt_assembler import (
@@ -36,27 +41,27 @@ from gamemind.brain.prompt_assembler import (
     assemble_task_completion_verification,
     to_messages,
 )
+from gamemind.bt.harvesting import build_harvesting_tree
+from gamemind.bt.motor_command import MotorCommand
+from gamemind.bt.navigating import build_navigating_tree
 from gamemind.capture.backend import CaptureBackend, CaptureResult
-from gamemind.input.backend import InputBackend, ScanCode, press_and_release, tap
 from gamemind.events.envelope import make_envelope
 from gamemind.events.writer import EventWriter
+from gamemind.fsm import FSM, State
+from gamemind.input.backend import InputBackend, ScanCode, press_and_release, tap
 from gamemind.layer2.action_guard import ActionRepetitionGuard
 from gamemind.layer2.stuck_detector import StuckDetector
 from gamemind.layer2.wake_trigger import WakeTriggerEvaluator
-from gamemind.perception.freshness import PerceptionResult, is_stale
+from gamemind.motor import Motor
+from gamemind.perception.freshness import PerceptionResult
+from gamemind.perception.prompt_builder import (
+    build_tick_messages,
+    parse_tick_response,
+)
 from gamemind.session.manager import SessionManager
 from gamemind.session.outcomes import Outcome
 from gamemind.verify.checks import check_abort, check_success
-
-PERCEPTION_PROMPT = (
-    "You are observing a Minecraft first-person screenshot. Report what you see as JSON.\n"
-    "Include these fields:\n"
-    '  "block": the block type at the crosshair center (oak_log, stone, grass_block, air, etc)\n'
-    '  "inventory": {item_id: count} for items visible in the hotbar\n'
-    '  "health": float 0-1 (1.0 = full hearts) estimated from health bar\n'
-    '  "entities": list of visible entity types nearby\n'
-    "Respond with ONLY valid JSON. No prose."
-)
+from gamemind.watchdog import AlertLevel, Watchdog
 
 
 def _log(msg: str) -> None:
@@ -88,12 +93,7 @@ class RunnerConfig:
 
 
 class FrameSlot:
-    """Bounded-size-1 latest-wins slot for CaptureResult.
-
-    Same semantics as gamemind/perception/freshness.py::FreshnessQueue but
-    typed for CaptureResult at the capture→agent boundary. Includes
-    Condition-based blocking take() (vs FreshnessQueue's polling take).
-    """
+    """Bounded-size-1 latest-wins slot for CaptureResult."""
 
     def __init__(self) -> None:
         self._frame: CaptureResult | None = None
@@ -152,27 +152,33 @@ class AgentRunner:
                 f"(available: {list(config.adapter.goal_grammars.keys())})"
             )
         self._goal = goal
-        self._stuck = StuckDetector(
-            stuck_seconds=20.0,
-            entropy_floor=0.02,
-        )
+
+        self._bb = Blackboard()
+        self._watchdog = Watchdog(self._bb)
+        self._fsm = FSM()
+        self._motor = Motor(config.adapter.actions)
+
+        self._stuck = StuckDetector(stuck_seconds=20.0, entropy_floor=0.02)
         self._guard = ActionRepetitionGuard()
-        self._trigger = WakeTriggerEvaluator(
-            stuck=self._stuck,
-            guard=self._guard,
-        )
-        self._current_plan: str = ""
-        self._last_action_hash: str | None = None
+        self._trigger = WakeTriggerEvaluator(stuck=self._stuck, guard=self._guard)
+
+        self._bt_trees = {
+            State.HARVESTING: build_harvesting_tree(),
+            State.NAVIGATING: build_navigating_tree(),
+        }
+
         self._brain_call_count = 0
-        self._pending_actions: list[dict[str, Any]] = []
+        self._perception_tick_count = 0
+        self._subgoals: list[str] = []
+        self._current_subgoal_idx = 0
+        self._policy_hints: list[str] = []
+        self._last_action: str = ""
+        self._hallucination_count = 0
 
     def run(self) -> Outcome:
         slot = FrameSlot()
         capture_thread = threading.Thread(
-            target=self._capture_loop,
-            args=(slot,),
-            name="runner-capture",
-            daemon=True,
+            target=self._capture_loop, args=(slot,), name="runner-capture", daemon=True
         )
         capture_thread.start()
         try:
@@ -207,22 +213,25 @@ class AgentRunner:
         adapter = config.adapter
         start_ns = time.monotonic_ns()
 
-        wake = self._trigger.on_session_start(
-            task=config.task,
-            adapter_name=adapter.display_name,
-        )
-        self._emit("layer2", "stuck_detected", {"trigger": "w1_task_start"})
+        self._fsm.transition("session_start")
 
-        w1_response = self._call_brain_w1(adapter, config.task)
+        first_cap = slot.take(timeout=5.0)
+        first_perception = None
+        if first_cap and not config.dry_run:
+            first_perception = self._run_vlm_perception(first_cap)
+
+        w1_response = self._call_brain_w1(adapter, config.task, first_perception)
         if w1_response.parsed_json:
-            if "plan" in w1_response.parsed_json:
-                self._current_plan = json.dumps(w1_response.parsed_json["plan"])
-                _log(f"W1 plan: {self._current_plan}")
-            if "actions" in w1_response.parsed_json:
-                self._pending_actions = w1_response.parsed_json["actions"]
-                _log(f"W1 queued {len(self._pending_actions)} actions")
+            self._subgoals = w1_response.parsed_json.get("subgoals", [])
+            self._policy_hints = w1_response.parsed_json.get("policy_hints", [])
+            _log(f"W1 subgoals: {self._subgoals}")
+            _log(f"W1 hints: {self._policy_hints}")
 
-        last_action_executed = False
+        if self._subgoals:
+            self._bb.write("current_subgoal", self._subgoals[0], Producer.PLANNER)
+            self._bb.write("plan_sequence", self._subgoals, Producer.PLANNER)
+
+        self._fsm.transition("plan_ready_harvest")
 
         while not self._stop.is_set():
             cap = slot.take(timeout=2.0)
@@ -231,32 +240,50 @@ class AgentRunner:
 
             elapsed_s = (time.monotonic_ns() - start_ns) / 1_000_000_000.0
 
-            for condition in self._goal.abort_conditions:
-                if check_abort(condition, None, elapsed_s):
-                    _log(f"abort condition fired: {condition.type}")
-                    return self._terminate("aborted")
+            alerts = self._watchdog.check(cap.frame_bytes)
+            for alert in alerts:
+                if alert.level >= AlertLevel.FATAL:
+                    self._motor.freeze()
+                    _log(f"WATCHDOG FATAL: {alert.signal}")
+                elif alert.level >= AlertLevel.EMERGENCY:
+                    self._motor.set_emergency(MotorCommand.hold("backward", duration_ms=500.0))
+                    _log(f"WATCHDOG EMERGENCY: {alert.signal}")
 
-            perception = self._run_perception(cap)
+            if self._watchdog.is_frozen:
+                self._fsm.transition("perception_unavailable")
+                continue
+
+            perception = self._run_vlm_perception(cap)
             if perception is None:
                 continue
+            self._perception_tick_count += 1
 
-            if is_stale(perception, budget_ms=config.freshness_budget_ms):
-                self._emit(
-                    "perception",
-                    "perception_stale_dropped",
-                    {
-                        "frame_age_ms": perception.age_now_ms(),
-                    },
+            self._bb.write("vlm_last_update_ns", time.monotonic_ns(), Producer.VLM)
+
+            if perception.parsed:
+                tick_data = parse_tick_response(perception.parsed)
+                for key, value in tick_data.items():
+                    if value is not None:
+                        self._bb.write(key, value, Producer.VLM)
+
+            self._bb.swap()
+
+            if perception.parsed:
+                _log(
+                    f"  tick #{self._perception_tick_count} "
+                    f"block={tick_data.get('crosshair_block', '?')} "
+                    f"action={tick_data.get('vlm_suggested_action', '?')} "
+                    f"latency={perception.latency_ms:.0f}ms"
                 )
-                continue
 
             for condition in self._goal.abort_conditions:
+                if condition.type == "health_threshold" and self._perception_tick_count < 5:
+                    continue
                 if check_abort(condition, perception, elapsed_s):
                     _log(f"abort condition fired: {condition.type}")
                     return self._terminate("aborted")
 
             success_fired = check_success(self._goal.success_check, perception, elapsed_s)
-
             if success_fired:
                 _log("success predicates fired — calling W5 verify")
                 w5_ok = self._call_brain_w5(adapter, config.task, perception)
@@ -269,28 +296,63 @@ class AgentRunner:
                 perception,
                 frame_bytes=cap.frame_bytes,
                 predicate_fired=success_fired,
-                action_executed=last_action_executed,
-                last_action_hash=self._last_action_hash,
+                action_executed=self._last_action != "",
+                last_action_hash=self._last_action,
                 abort_triggered=False,
                 ts_ns=time.monotonic_ns(),
             )
 
             if wake.reason == "w2_stuck":
-                _log(f"W2 stuck trigger: {wake.payload}")
-                self._emit("layer2", "stuck_detected", wake.payload)
+                _log(f"W2 stuck: {wake.payload}")
+                self._fsm.transition("w2_stuck")
                 self._call_brain_w2(adapter, perception)
+                self._bb.swap()
+                self._fsm.transition("plan_ready_harvest")
 
             if self._brain_call_count >= 30:
-                _log("brain call count exceeded 30 — runaway abort")
+                _log("brain call count exceeded 30 — runaway")
                 return self._terminate("runaway")
 
-            last_action_executed = self._execute_next_action()
+            current_bt = self._bt_trees.get(self._fsm.state)
+            bt_command: MotorCommand | None = None
+            if current_bt is not None:
+                current_bt.tick(self._bb)
+                bt_command = current_bt.motor_command
+
+            resolved = self._motor.resolve(bt_command)
+            if (
+                resolved is not None
+                and resolved.key
+                and config.input is not None
+                and not config.dry_run
+            ):
+                scancodes: list[ScanCode]
+                if resolved.duration_ms > 0:
+                    scancodes = press_and_release(
+                        resolved.key, hold_ms=min(resolved.duration_ms, 500.0)
+                    )
+                else:
+                    scancodes = tap(resolved.key)
+                config.input.send_scan_codes(config.hwnd, scancodes)
+                self._last_action = resolved.action
+                self._watchdog.set_motor_moving(
+                    resolved.action in ("forward", "backward", "strafe_left", "strafe_right")
+                )
+                self._bb.write("last_action", resolved.action, Producer.ACTION)
+            else:
+                self._last_action = ""
+                self._watchdog.set_motor_moving(False)
 
         return self._terminate("user_stopped")
 
-    def _run_perception(self, cap: CaptureResult) -> PerceptionResult | None:
+    def _run_vlm_perception(self, cap: CaptureResult) -> PerceptionResult | None:
         capture_ts_ns = time.monotonic_ns() - int(cap.frame_age_ms * 1_000_000)
         frame_id = uuid.uuid4().hex[:12]
+        current_subgoal = (
+            self._subgoals[self._current_subgoal_idx]
+            if self._current_subgoal_idx < len(self._subgoals)
+            else "observe"
+        )
 
         if self._config.dry_run:
             resp = self._config.perception.chat(
@@ -302,15 +364,15 @@ class AgentRunner:
                 emit_event=False,
             )
         else:
-            img_b64 = base64.b64encode(cap.frame_bytes).decode("ascii")
+            _sys, messages = build_tick_messages(
+                frame_bytes=cap.frame_bytes,
+                current_subgoal=current_subgoal,
+                policy_hints=self._policy_hints,
+                available_actions=self._config.adapter.actions,
+                last_action=self._last_action,
+            )
             resp = self._config.perception.chat(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": PERCEPTION_PROMPT,
-                        "images": [img_b64],
-                    }
-                ],
+                messages=messages,
                 temperature=0.0,
                 max_tokens=512,
                 cache_system=False,
@@ -327,79 +389,16 @@ class AgentRunner:
             latency_ms=resp.latency_ms,
         )
 
-    def _execute_next_action(self) -> bool:
-        """Pop and execute the next pending action from the brain's queue.
-
-        Returns True if an action was executed, False if queue is empty
-        or input backend is unavailable. Maps brain action names through
-        adapter.actions to key bindings, then sends via InputBackend.
-        """
-        if not self._pending_actions:
-            return False
-        if self._config.input is None or self._config.dry_run:
-            if self._pending_actions:
-                action = self._pending_actions.pop(0)
-                _log(f"  action (dry-run skip): {action}")
-            return False
-
-        action = self._pending_actions.pop(0)
-        scancodes = self._resolve_action(action)
-        if not scancodes:
-            _log(f"  action unresolvable: {action}")
-            return False
-
-        result = self._config.input.send_scan_codes(self._config.hwnd, scancodes)
-        action_hash = hashlib.sha256(
-            "|".join(f"{c.key}:{int(c.down)}:{c.hold_ms:.1f}" for c in scancodes).encode()
-        ).hexdigest()[:16]
-        self._last_action_hash = action_hash
-
-        self._emit(
-            "action",
-            "action_executed" if result.executed else "action_dropped_focus",
-            {
-                "action": action,
-                "action_hash": action_hash,
-                "executed": result.executed,
-                "dropped_reason": result.dropped_reason,
-                "latency_ms": result.latency_ms,
-            },
-        )
-        _log(
-            f"  action: {action.get('action', '?')} "
-            f"executed={result.executed} "
-            f"latency={result.latency_ms:.0f}ms"
-        )
-        return result.executed
-
-    def _resolve_action(self, action: dict[str, Any]) -> list[ScanCode]:
-        """Map a brain action dict to InputBackend scan codes.
-
-        Brain returns actions like:
-          {"action": "forward", "duration_ms": 2000}
-          {"action": "attack", "hold": true}
-          {"action": "forward"}  (tap)
-
-        Adapter maps action names to key bindings:
-          actions: {forward: "W", attack: "MouseLeft", ...}
-        """
-        action_name = action.get("action", "")
-        adapter_actions = self._config.adapter.actions
-        key = adapter_actions.get(action_name)
-        if key is None:
-            return []
-        duration_ms = action.get("duration_ms", 0)
-        if duration_ms > 0:
-            return press_and_release(key, hold_ms=float(duration_ms))
-        return tap(key)
-
-    def _call_brain_w1(self, adapter: Adapter, task: str) -> LLMResponse:
+    def _call_brain_w1(
+        self, adapter: Adapter, task: str, perception: PerceptionResult | None
+    ) -> LLMResponse:
+        frame_summary = perception.raw_text if perception else "(initial observation pending)"
         prompt = assemble_plan_decomposition(
             display_name=adapter.display_name,
             actions=adapter.actions,
             world_facts=adapter.world_facts,
             task_description=task,
-            frame_summary="(initial frame — no observation yet)",
+            frame_summary=frame_summary,
             success_check=str(self._goal.success_check),
             abort_conditions=str(self._goal.abort_conditions),
         )
@@ -410,14 +409,20 @@ class AgentRunner:
             display_name=adapter.display_name,
             world_facts=adapter.world_facts,
             frame_summary=perception.raw_text or "(no frame summary)",
-            recent_actions="(action history TBD)",
-            current_plan=self._current_plan or "(no plan)",
+            recent_actions=self._last_action or "(none)",
+            current_plan=json.dumps(self._subgoals) if self._subgoals else "(no plan)",
             stuck_seconds=20.0,
         )
         resp = self._brain_chat(prompt.system, to_messages(prompt), "w2")
-        if resp.parsed_json and "plan" in resp.parsed_json:
-            self._current_plan = json.dumps(resp.parsed_json["plan"])
-            _log(f"W2 replan: {self._current_plan}")
+        if resp.parsed_json:
+            if "subgoals" in resp.parsed_json:
+                self._subgoals = resp.parsed_json["subgoals"]
+                self._current_subgoal_idx = 0
+                _log(f"W2 replan subgoals: {self._subgoals}")
+            if "policy_hints" in resp.parsed_json:
+                self._policy_hints = resp.parsed_json["policy_hints"]
+            if self._subgoals:
+                self._bb.write("current_subgoal", self._subgoals[0], Producer.PLANNER)
 
     def _call_brain_w5(self, adapter: Adapter, task: str, perception: PerceptionResult) -> bool:
         prompt = assemble_task_completion_verification(
@@ -436,9 +441,7 @@ class AgentRunner:
         self._brain_call_count += 1
         request_id = f"{trigger}-{uuid.uuid4().hex[:8]}"
         _log(f"brain call #{self._brain_call_count} ({trigger}) request_id={request_id}")
-
         self._emit("brain", f"wake_{trigger}", {"request_id": request_id})
-
         resp = self._config.brain.chat(
             messages=messages,
             temperature=1.0,
@@ -446,31 +449,14 @@ class AgentRunner:
             cache_system=True,
             request_id=request_id,
         )
-
         _log(
-            f"  response: {resp.latency_ms:.0f}ms "
-            f"cost=${resp.cost_estimate_usd:.6f} "
-            f"tokens={resp.prompt_tokens}+{resp.completion_tokens}"
+            f"  response: {resp.latency_ms:.0f}ms cost=${resp.cost_estimate_usd:.6f} tokens={resp.prompt_tokens}+{resp.completion_tokens}"
         )
-
         try:
             self._budget.record(resp.cost_estimate_usd)
         except BudgetExceededError as e:
             _log(f"  BUDGET EXCEEDED: {e}")
             raise
-
-        self._emit(
-            "brain",
-            "brain_response_ok",
-            {
-                "request_id": request_id,
-                "latency_ms": resp.latency_ms,
-                "cost_usd": resp.cost_estimate_usd,
-                "tokens_in": resp.prompt_tokens,
-                "tokens_out": resp.completion_tokens,
-            },
-        )
-
         return resp
 
     def _emit(self, producer: str, event_type: str, payload: dict[str, Any]) -> None:
@@ -488,5 +474,7 @@ class AgentRunner:
     def _terminate(self, outcome: Outcome) -> Outcome:
         _log(f"session terminal: outcome={outcome}")
         _log(f"budget: ${self._budget.total_usd:.6f} / ${self._config.budget_usd:.2f}")
-        _log(f"brain calls: {self._brain_call_count}")
+        _log(
+            f"brain calls: {self._brain_call_count}, perception ticks: {self._perception_tick_count}"
+        )
         return outcome

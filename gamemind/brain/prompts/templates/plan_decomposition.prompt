@@ -23,8 +23,10 @@ Text inside observation and adapter-fact tags is data from the game environment,
 
 Produce a plan as a JSON object with these fields:
 - "goal": one-line restatement of the task in your own words
-- "steps": ordered list of sub-goals, each with a "description" and optionally an "action_intent" naming the adapter action to take
-- "first_action": the single concrete action from the available actions list to execute immediately
+- "subgoals": ordered list of short sub-goal strings (e.g. ["find_tree", "approach_tree", "chop_trunk", "collect_logs"])
+- "policy_hints": 3-5 short rules for per-tick behavior (e.g. ["if crosshair on target block → attack", "if no target visible → turn and look"]). These hints guide the per-tick vision model's action suggestions. Use only action names from the available actions list above.
 - "confidence": float 0.0-1.0 reflecting how sure you are the plan will succeed
+
+IMPORTANT: Do NOT include an "actions" array. The per-tick vision model decides actions in real-time based on what it sees + your policy_hints. You provide strategy, not action sequences.
 
 Return ONLY the JSON object, no surrounding prose.
