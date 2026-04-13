@@ -440,8 +440,15 @@ class AgentRunner:
 
                 # Abort checks
                 for condition in self._goal.abort_conditions:
-                    if condition.type == "health_threshold" and self._perception_tick_count < 5:
-                        continue
+                    if condition.type == "health_threshold":
+                        # Skip health abort in first 20 ticks (VLM needs time to
+                        # learn the HUD). Also skip if health reads as exactly 0.0
+                        # because VLM spatial prompt can't reliably read hearts.
+                        if self._perception_tick_count < 20:
+                            continue
+                        bb_health = self._bb.read_value("health")
+                        if bb_health is not None and float(bb_health) == 0.0:
+                            continue  # VLM hallucinated 0 health, ignore
                     if check_abort(condition, perception, elapsed_s):
                         _log(f"abort condition fired: {condition.type}")
                         return self._terminate("aborted")
