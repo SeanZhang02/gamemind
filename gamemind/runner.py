@@ -33,6 +33,7 @@ import json
 import threading
 import time
 import uuid
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -174,6 +175,10 @@ class AgentRunner:
             {"jump", "open_inventory", "drop_item", "chat", "use_item", "third_person", "debug"}
         )
         # mouse_rel actions are detected by adapter key prefix at runtime
+
+        self._recent_actions: deque[tuple[str, str | None]] = deque(maxlen=5)
+        self._consecutive_camera: int = 0
+        self._last_non_camera_action: str = "forward"  # fallback
 
         self._brain_call_count = 0
         self._perception_tick_count = 0
@@ -385,6 +390,22 @@ class AgentRunner:
             # --- VLM direct drive: read suggested action ---
             vlm_action = self._bb.read_value("vlm_suggested_action")
 
+            # Camera guard: prevent >2 consecutive camera-only actions
+            camera_actions = {"look_up", "look_down", "turn_left", "turn_right"}
+
+            if vlm_action in camera_actions:
+                self._consecutive_camera += 1
+                if self._consecutive_camera > 2:
+                    _log(
+                        f"  camera_guard: overriding {vlm_action} → {self._last_non_camera_action}"
+                    )
+                    vlm_action = self._last_non_camera_action
+                    self._consecutive_camera = 0
+            else:
+                self._consecutive_camera = 0
+                if vlm_action:
+                    self._last_non_camera_action = vlm_action
+
             # Block-break event counting (hardened log collection)
             # Only count when character was ATTACKING a log for 3+ ticks
             current_block = self._bb.read_value("crosshair_block")
@@ -442,10 +463,16 @@ class AgentRunner:
                 return self._terminate("success")
 
             # Wake trigger evaluation (W2 stuck detection)
+            # Suppress W2 when actively attacking a log (productive work)
             wake = self._trigger.on_perception_tick(
                 perception,
                 frame_bytes=b"",
-                predicate_fired=success_fired,
+                predicate_fired=success_fired
+                or (
+                    vlm_action == "attack"
+                    and current_block is not None
+                    and "log" in current_block.lower()
+                ),
                 action_executed=self._last_action != "",
                 last_action_hash=self._last_action,
                 abort_triggered=False,
@@ -502,6 +529,7 @@ class AgentRunner:
                         config.input.key_down(config.hwnd, current_key)
                         self._held_keys.add(current_key)
                 elif resolved.command_type == MotorCommandType.MOUSE_MOVE:
+                    self._release_all_keys()  # stop attacking while moving camera
                     _log(f"  mouse_move: dx={resolved.dx} dy={resolved.dy}")
                     config.input.mouse_move_rel(config.hwnd, resolved.dx, resolved.dy)
                 elif resolved.command_type == MotorCommandType.TAP:
@@ -523,6 +551,10 @@ class AgentRunner:
                 self._release_all_keys()
                 self._last_action = ""
                 self._watchdog.set_motor_moving(False)
+
+            # Record action to history for VLM temporal context
+            current_block = self._bb.read_value("crosshair_block")
+            self._recent_actions.append((vlm_action or "none", current_block))
 
         return self._terminate("user_stopped")
 
@@ -551,6 +583,7 @@ class AgentRunner:
                 policy_hints=self._policy_hints,
                 available_actions=self._config.adapter.actions,
                 last_action=self._last_action,
+                recent_actions=list(self._recent_actions),
             )
             full_messages = [{"role": "system", "content": sys_prompt}, *messages]
             resp = self._config.perception.chat(

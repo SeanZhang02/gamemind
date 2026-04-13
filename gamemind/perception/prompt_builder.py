@@ -30,12 +30,15 @@ _SYSTEM_PROMPT = (
     "No other values are allowed.\n"
     '- The "block" field should be the block type the crosshair is pointing at '
     '(e.g. "oak_log", "stone", "air"), or null if unclear\n'
-    "- Be specific about block types — use Minecraft block IDs when possible"
+    "- Be specific about block types — use Minecraft block IDs when possible\n"
+    "- If your recent actions show the same action repeating without progress "
+    "(same block, no change), choose a DIFFERENT action to break the loop"
 )
 
 _TICK_TEMPLATE = (
     "Current subgoal: $subgoal\n"
     "Last action: $last_action\n"
+    "Recent actions: $recent_actions\n"
     "Hints: $hints\n"
     "\n"
     "AVAILABLE ACTIONS (choose EXACTLY ONE):\n"
@@ -71,6 +74,7 @@ def build_tick_prompt(
     policy_hints: list[str],
     available_actions: dict[str, str],
     last_action: str,
+    recent_actions: list[tuple[str, str | None]] | None = None,
 ) -> str:
     """Build the per-tick VLM prompt text.
 
@@ -82,11 +86,17 @@ def build_tick_prompt(
     truncated_hints = policy_hints[:3]
     hints_text = "; ".join(h[:80] for h in truncated_hints) if truncated_hints else "none"
 
+    if recent_actions:
+        recent_text = ", ".join(f"{act}\u2192{blk}" if blk else act for act, blk in recent_actions)
+    else:
+        recent_text = "(none)"
+
     return (
         _TICK_TEMPLATE.replace("$subgoal", current_subgoal or "observe")
         .replace("$hints", hints_text)
         .replace("$actions_list", actions_list)
         .replace("$last_action", last_action or "none")
+        .replace("$recent_actions", recent_text)
     )
 
 
@@ -97,6 +107,7 @@ def build_tick_messages(
     policy_hints: list[str],
     available_actions: dict[str, str],
     last_action: str,
+    recent_actions: list[tuple[str, str | None]] | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     """Build complete Ollama chat call arguments.
 
@@ -107,6 +118,7 @@ def build_tick_messages(
         policy_hints=policy_hints,
         available_actions=available_actions,
         last_action=last_action,
+        recent_actions=recent_actions,
     )
     img_b64 = encode_frame_b64(frame_bytes)
     messages = [
