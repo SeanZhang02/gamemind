@@ -37,7 +37,10 @@ from gamemind.input.backend import (
     _hash_sequence,
 )
 
-_MOUSE_KEYS = {"mouseleft", "mouseright", "mousemiddle", "mouseleftdouble"}
+_MOUSE_KEYS = {
+    "mouseleft", "mouseright", "mousemiddle", "mouseleftdouble",
+    "mouse_left", "mouse_right", "mouse_middle",
+}
 
 
 class PyDirectInputBackend:
@@ -46,6 +49,7 @@ class PyDirectInputBackend:
     def __init__(self) -> None:
         self._initialized = False
         self._init_error: str | None = None
+        self._held_keys: set[str] = set()
         if sys.platform != "win32":
             self._init_error = "PyDirectInputBackend requires Windows"
             return
@@ -148,6 +152,41 @@ class PyDirectInputBackend:
 
     def liveness(self) -> bool:
         return self._initialized
+
+    def key_down(self, hwnd: int, key: str) -> None:
+        """Press and hold a key. Key stays physically down until key_up() is called."""
+        if key in self._held_keys:
+            return
+        import pydirectinput  # noqa: PLC0415
+
+        key_lower = key.lower()
+        if key_lower in _MOUSE_KEYS:
+            button = {"mouse_left": "left", "mouse_right": "right", "mouse_middle": "middle"}.get(
+                key_lower, "left"
+            )
+            pydirectinput.mouseDown(button=button)
+        else:
+            pydirectinput.keyDown(key)
+        self._held_keys.add(key)
+
+    def key_up(self, hwnd: int, key: str) -> None:
+        """Release a previously held key."""
+        import pydirectinput  # noqa: PLC0415
+
+        key_lower = key.lower()
+        if key_lower in _MOUSE_KEYS:
+            button = {"mouse_left": "left", "mouse_right": "right", "mouse_middle": "middle"}.get(
+                key_lower, "left"
+            )
+            pydirectinput.mouseUp(button=button)
+        else:
+            pydirectinput.keyUp(key)
+        self._held_keys.discard(key)
+
+    def release_all(self, hwnd: int) -> None:
+        """Release all currently held keys. Called on shutdown/freeze for safety."""
+        for key in list(self._held_keys):
+            self.key_up(hwnd, key)
 
     def type_text(self, hwnd: int, text: str, *, interval_ms: float = 20.0) -> InputResult:
         """Type a plain string via pydirectinput.write.
