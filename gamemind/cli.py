@@ -595,7 +595,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
         print("[gamemind run] interrupted by user")
         outcome = "user_stopped"
     except Exception as exc:  # noqa: BLE001
+        import traceback  # noqa: PLC0415
         print(f"[gamemind run] unhandled error: {type(exc).__name__}: {exc}")
+        traceback.print_exc()
         outcome = "unhandled_exception"
 
     session_manager.transition_to_terminal(outcome=outcome)

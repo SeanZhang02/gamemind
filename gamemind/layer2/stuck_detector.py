@@ -31,7 +31,9 @@ class StuckCheckResult:
     metric_value: float
 
 
-def _decode_grayscale_64(frame_bytes: bytes) -> list[int]:
+def _decode_grayscale_64(frame_bytes: bytes) -> list[int] | None:
+    if not frame_bytes:
+        return None
     img = Image.open(io.BytesIO(frame_bytes))
     img = img.convert("L").resize((64, 64), Image.Resampling.NEAREST)
     return list(img.getdata())
@@ -86,6 +88,11 @@ class StuckDetector:
             self._action_executed_in_window = True
 
         pixels = _decode_grayscale_64(frame_bytes)
+
+        if pixels is None:
+            # No frame data (e.g., orchestrator thread without raw frames).
+            # Assume motion is happening — never trigger stuck from missing data.
+            return _NOT_STUCK
 
         ref = self._find_lookback(ts_ns)
         if ref is not None:
