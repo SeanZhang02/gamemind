@@ -1,28 +1,29 @@
-"""Agent runner v4 — VLM direct drive (no BT decision layer).
+"""Agent runner v5 — Intent-based architecture (spatial perception layer).
 
 Two-thread design separating perception from orchestration:
 
     Capture Thread (1Hz) ──► FrameSlot[1] ──► Perception Thread
                               (latest-wins)    ├ Watchdog (frame diff, alerts)
                                                ├ VLM Perception (prompt_builder)
+                                               ├ SpatialState update + swap
                                                ├ Blackboard write + swap
                                                └ signals Orchestrator via Event
                                                     │
                               Orchestrator Thread (perception-driven)
-                                               ├ reads Blackboard snapshot
-                                               ├ VLM action → direct motor command
+                                               ├ reads SpatialState snapshot
+                                               ├ IntentTracker progress check
+                                               ├ IntentExecutor → MotorCommand
                                                ├ Motor (staleness/hysteresis)
                                                ├ stateful key_down/key_up
-                                               └ Planner (W1/W2 sparse wake)
+                                               └ Brain intent decision (non-blocking)
 
-v4 changes from v3:
-  - BT trees REMOVED from decision path — VLM suggested action IS the
-    motor command (direct drive)
-  - FSM simplified — no BT-dependent transitions (target_reached,
-    resource_exhausted)
-  - W5 verify REMOVED — block-break event count is authoritative
-  - LOG COLLECTED detection hardened — requires sustained attack on log
-  - HOLD/TAP/MOUSE_MOVE classification by action semantics, not BT
+v5 changes from v4:
+  - VLM direct drive REMOVED — replaced by intent-based execution
+  - SpatialState (double-buffered world model) feeds IntentExecutor
+  - IntentTracker monitors progress, triggers Brain calls on stall/complete
+  - IntentExecutor (rule engine) maps (intent + spatial) → MotorCommand
+  - Camera guard REMOVED — facing correction is handled by IntentExecutor
+  - LOG COLLECTED detection and Bug 13 fix preserved
 """
 
 from __future__ import annotations
@@ -43,6 +44,7 @@ from gamemind.blackboard import Blackboard, Producer
 from gamemind.brain.backend import LLMBackend, LLMResponse
 from gamemind.brain.budget_tracker import BudgetExceededError, BudgetTracker
 from gamemind.brain.prompt_assembler import (
+    assemble_intent_decision,
     assemble_plan_decomposition,
     assemble_replan_from_stuck,
     to_messages,
@@ -53,6 +55,9 @@ from gamemind.events.envelope import make_envelope
 from gamemind.events.writer import EventWriter
 from gamemind.fsm import FSM
 from gamemind.input.backend import InputBackend, tap
+from gamemind.intent.executor import IntentExecutor
+from gamemind.intent.models import Intent, IntentStatus, IntentType
+from gamemind.intent.tracker import IntentTracker
 from gamemind.layer2.action_guard import ActionRepetitionGuard
 from gamemind.layer2.stuck_detector import StuckDetector
 from gamemind.layer2.wake_trigger import WakeTriggerEvaluator
@@ -60,10 +65,12 @@ from gamemind.motor import Motor
 from gamemind.perception.freshness import PerceptionResult
 from gamemind.perception.prompt_builder import (
     build_tick_messages,
+    parse_spatial_response,
     parse_tick_response,
 )
 from gamemind.session.manager import SessionManager
 from gamemind.session.outcomes import Outcome
+from gamemind.spatial.state import SpatialPerception, SpatialState
 from gamemind.verify.checks import check_abort, check_success
 from gamemind.watchdog import AlertLevel, Watchdog
 
@@ -166,19 +173,15 @@ class AgentRunner:
         self._guard = ActionRepetitionGuard()
         self._trigger = WakeTriggerEvaluator(stuck=self._stuck, guard=self._guard)
 
-        # VLM direct drive — action type classification
-        # Actions whose adapter key starts with "mouse_rel:" are MOUSE_MOVE
-        self._hold_actions = frozenset(
-            {"attack", "forward", "backward", "strafe_left", "strafe_right", "sprint", "sneak"}
-        )
-        self._tap_actions = frozenset(
-            {"jump", "open_inventory", "drop_item", "chat", "use_item", "third_person", "debug"}
-        )
-        # mouse_rel actions are detected by adapter key prefix at runtime
+        # Spatial perception layer (v5)
+        self._spatial = SpatialState(anchor_max_age_ns=int(10_000_000_000))
+        self._intent_executor = IntentExecutor(config.adapter.actions)
+        self._intent_tracker = IntentTracker()
+        self._current_intent: Intent | None = None
+        self._brain_call_pending = False
+        self._perception_fail_count = 0
 
         self._recent_actions: deque[tuple[str, str | None]] = deque(maxlen=5)
-        self._consecutive_camera: int = 0
-        self._last_non_camera_action: str = "forward"  # fallback
 
         self._brain_call_count = 0
         self._perception_tick_count = 0
@@ -280,14 +283,20 @@ class AgentRunner:
                 perception = self._run_vlm_perception(cap)
             except Exception as e:  # noqa: BLE001
                 _log(f"perception error (skipping frame): {type(e).__name__}: {e}")
+                self._perception_fail_count += 1
+                if self._perception_fail_count >= 3:
+                    self._freeze_event.set()
+                    _log("PERCEPTION UNAVAILABLE: 3 consecutive failures")
                 continue
             if perception is None:
                 continue
             self._perception_tick_count += 1
+            self._perception_fail_count = 0  # reset on success
 
             self._bb.write("vlm_last_update_ns", time.monotonic_ns(), Producer.VLM)
 
             if perception.parsed:
+                # Legacy Blackboard write (backward compat)
                 tick_data = parse_tick_response(
                     perception.parsed,
                     available_actions=self._config.adapter.actions,
@@ -296,23 +305,40 @@ class AgentRunner:
                     if value is not None:
                         self._bb.write(key, value, Producer.VLM)
 
+                # SpatialState integration — field name mapping
+                spatial_data = parse_spatial_response(perception.parsed)
+                spatial_perception = SpatialPerception(
+                    block=spatial_data.get("crosshair_block"),
+                    facing=spatial_data.get("player_facing"),
+                    spatial_context=spatial_data.get("spatial_context"),
+                    anchors=spatial_data.get("anchors"),
+                    health=spatial_data.get("health"),
+                    entities=spatial_data.get("entities_nearby"),
+                )
+                self._spatial.update(spatial_perception)
+
+                # Write spatial fields to BB for orchestrator reads
+                if spatial_data.get("player_facing") is not None:
+                    self._bb.write("player_facing", spatial_data["player_facing"], Producer.VLM)
+
                 _log(
                     f"  tick #{self._perception_tick_count} "
                     f"block={tick_data.get('crosshair_block', '?')} "
-                    f"action={tick_data.get('vlm_suggested_action', '?')} "
+                    f"facing={spatial_data.get('player_facing', '?')} "
                     f"latency={perception.latency_ms:.0f}ms"
                 )
 
             self._bb.swap()
+            self._spatial.swap()  # MUST be immediately after bb.swap()
             self._last_perception = perception  # for brain calls
             self._new_perception.set()  # signal orchestrator
 
     # ------------------------------------------------------------------
-    # Orchestrator thread (fast BT decision loop + stateful key mgmt)
+    # Orchestrator thread (intent-based execution + stateful key mgmt)
     # ------------------------------------------------------------------
 
     def _orchestrator_loop(self) -> Outcome:
-        """Orchestrator: fast BT decision loop with stateful key management."""
+        """Orchestrator: intent-based execution with stateful key management."""
         config = self._config
         adapter = config.adapter
         start_ns = time.monotonic_ns()
@@ -344,8 +370,8 @@ class AgentRunner:
         self._fsm.transition("plan_ready_navigate")
 
         # --- Main orchestrator loop ---
-        # VLM direct drive: each perception tick produces a suggested action
-        # which becomes the motor command directly (no BT intermediary).
+        # Intent-based execution: IntentTracker monitors progress,
+        # IntentExecutor produces MotorCommands from (intent + spatial state).
         while not self._stop.is_set():
             got_new = self._new_perception.wait(timeout=0.05)
             self._new_perception.clear()
@@ -372,43 +398,27 @@ class AgentRunner:
             if perception is None:
                 continue
 
-            # Subgoal advancement
-            if (
-                perception.parsed
-                and perception.parsed.get("subgoal_ok") is True
-                and self._current_subgoal_idx < len(self._subgoals) - 1
-            ):
-                self._current_subgoal_idx += 1
-                new_sg = self._subgoals[self._current_subgoal_idx]
-                self._bb.write("current_subgoal", new_sg, Producer.PLANNER)
-                self._bb.swap()
-                _log(
-                    f"  subgoal advanced → {new_sg} "
-                    f"({self._current_subgoal_idx}/{len(self._subgoals)})"
-                )
+            # Read spatial data from Blackboard (also available via SpatialState)
+            crosshair_block = self._bb.read_value("crosshair_block")
+            health_value = self._bb.read_value("health")
+            facing_value = self._bb.read_value("player_facing")
 
-            # --- VLM direct drive: read suggested action ---
-            vlm_action = self._bb.read_value("vlm_suggested_action")
+            # Extract facing from spatial snapshot if BB doesn't have it
+            if facing_value is None:
+                snap = self._spatial.snapshot()
+                if snap and "Camera:" in snap:
+                    # Parse "Camera: looking at horizon." → "looking_at_horizon"
+                    camera_part = snap.split("Camera:")[1].split(".")[0].strip()
+                    facing_value = camera_part.replace(" ", "_")
 
-            # Camera guard: prevent >2 consecutive camera-only actions
-            camera_actions = {"look_up", "look_down", "turn_left", "turn_right"}
-
-            if vlm_action in camera_actions:
-                self._consecutive_camera += 1
-                if self._consecutive_camera > 2:
-                    _log(
-                        f"  camera_guard: overriding {vlm_action} → {self._last_non_camera_action}"
-                    )
-                    vlm_action = self._last_non_camera_action
-                    self._consecutive_camera = 0
-            else:
-                self._consecutive_camera = 0
-                if vlm_action:
-                    self._last_non_camera_action = vlm_action
-
-            # Block-break event counting (hardened log collection)
+            # Block-break event counting (hardened log collection — Bug 13 fix preserved)
             # FIRST: check collection (uses counter from previous ticks)
-            current_block = self._bb.read_value("crosshair_block")
+            current_block = crosshair_block
+            # Determine current action for log counting
+            current_action_name = ""
+            if self._current_intent and self._current_intent.intent_type == IntentType.ATTACK_TARGET:
+                current_action_name = "attack"
+
             if (
                 self._prev_block
                 and "log" in self._prev_block.lower()
@@ -420,7 +430,11 @@ class AgentRunner:
                 _log(f"  LOG COLLECTED (attack-verified)! total={self._logs_collected}")
 
             # SECOND: update counter for THIS tick
-            if vlm_action == "attack" and current_block and "log" in current_block.lower():
+            if (
+                current_action_name == "attack"
+                and current_block
+                and "log" in current_block.lower()
+            ):
                 self._attack_on_log_ticks += 1
             else:
                 self._attack_on_log_ticks = 0
@@ -456,8 +470,6 @@ class AgentRunner:
                 self._goal.success_check, perception_with_inventory, elapsed_s
             )
             if success_fired:
-                # Auto-pass: block-break event count is authoritative.
-                # W5 visual verify removed — VLM cannot read hotbar reliably.
                 _log(
                     f"success predicates fired — task complete "
                     f"(event-verified, logs={self._logs_collected})"
@@ -471,7 +483,7 @@ class AgentRunner:
                 frame_bytes=b"",
                 predicate_fired=success_fired
                 or (
-                    vlm_action == "attack"
+                    current_action_name == "attack"
                     and current_block is not None
                     and "log" in current_block.lower()
                 ),
@@ -492,26 +504,76 @@ class AgentRunner:
                 _log("brain call count exceeded 30 — runaway")
                 return self._terminate("runaway")
 
-            # --- VLM direct drive: convert action → MotorCommand ---
-            vlm_command: MotorCommand | None = None
-            if vlm_action and vlm_action in config.adapter.actions:
-                key = config.adapter.actions[vlm_action]
-                if key.startswith("mouse_rel:"):
-                    # Camera movement — instant mouse_move per tick
-                    vlm_command = MotorCommand.mouse_move(vlm_action)
-                elif vlm_action in self._hold_actions:
-                    # Continuous actions — HOLD until next tick changes
-                    vlm_command = MotorCommand.hold(vlm_action)
-                elif vlm_action in self._tap_actions:
-                    # One-shot actions — TAP
-                    vlm_command = MotorCommand.tap(vlm_action)
-                else:
-                    # Fallback: default to TAP for unknown actions
-                    vlm_command = MotorCommand.tap(vlm_action)
-                _log(f"  vlm_direct: {vlm_action} → {vlm_command.command_type.name}")
+            # --- Intent-based execution ---
+            # Look up target anchor info from SpatialState
+            target_dir: str | None = None
+            target_dist: str | None = None
+            if self._current_intent and self._current_intent.target_anchor:
+                snap_text = self._spatial.snapshot()
+                target_label = self._current_intent.target_anchor
+                # Parse anchor direction/distance from snapshot text
+                # Snapshot format: "Nearby: oak_tree (ahead_right, close), ..."
+                if target_label in snap_text:
+                    try:
+                        after = snap_text.split(target_label)[1]
+                        paren_content = after.split("(")[1].split(")")[0]
+                        parts = [p.strip() for p in paren_content.split(",")]
+                        if len(parts) >= 2:
+                            target_dir = parts[0]
+                            target_dist = parts[1]
+                    except (IndexError, ValueError):
+                        pass  # anchor not in expected format
+
+            # Check intent progress
+            if self._current_intent:
+                intent_status = self._intent_tracker.check_progress(
+                    crosshair_block=crosshair_block,
+                    target_anchor_direction=target_dir,
+                    target_anchor_distance=target_dist,
+                    facing=facing_value,
+                    health=health_value,
+                )
+
+                if intent_status in (
+                    IntentStatus.COMPLETED,
+                    IntentStatus.STALLED,
+                    IntentStatus.BLOCKED,
+                ):
+                    _log(
+                        f"  intent {self._current_intent.intent_type.value} "
+                        f"status={intent_status.value}"
+                    )
+                    if not self._brain_call_pending:
+                        self._brain_call_pending = True
+                        self._brain_executor.submit(
+                            self._call_brain_intent_decision, intent_status
+                        )
+            else:
+                # No current intent — request initial Brain intent decision
+                if not self._brain_call_pending and self._subgoals:
+                    self._brain_call_pending = True
+                    self._brain_executor.submit(
+                        self._call_brain_intent_decision, IntentStatus.IDLE
+                    )
+
+            # Execute current intent action (even during brain call — non-blocking)
+            intent_command: MotorCommand | None = None
+            if self._current_intent:
+                intent_command = self._intent_executor.next_action(
+                    self._current_intent,
+                    spatial_snapshot=self._spatial.snapshot(),
+                    crosshair_block=crosshair_block,
+                    facing=facing_value,
+                    anchor_direction=target_dir,
+                )
+                _log(
+                    f"  intent_exec: {self._current_intent.intent_type.value} "
+                    f"→ {intent_command.action_name or 'idle'} "
+                    f"({intent_command.command_type.name})"
+                )
 
             # Motor resolve + stateful key management
-            resolved = self._motor.resolve(vlm_command)
+            resolved = self._motor.resolve(intent_command)
             if (
                 resolved is not None
                 and resolved.key
@@ -555,8 +617,8 @@ class AgentRunner:
                 self._watchdog.set_motor_moving(False)
 
             # Record action to history for VLM temporal context
-            # current_block already read above for block-break detection
-            self._recent_actions.append((vlm_action or "none", current_block))
+            action_name = intent_command.action_name if intent_command else "none"
+            self._recent_actions.append((action_name, current_block))
 
         return self._terminate("user_stopped")
 
@@ -586,6 +648,7 @@ class AgentRunner:
                 available_actions=self._config.adapter.actions,
                 last_action=self._last_action,
                 recent_actions=list(self._recent_actions),
+                last_frame_diff=self._spatial.diff(),
             )
             full_messages = [{"role": "system", "content": sys_prompt}, *messages]
             resp = self._config.perception.chat(
@@ -651,6 +714,63 @@ class AgentRunner:
                     self._bb.swap()
 
         self._brain_executor.submit(_w2_task)
+
+    def _call_brain_intent_decision(self, trigger_status: IntentStatus) -> None:
+        """Background thread: ask Claude for next intent."""
+        try:
+            spatial_snap = self._spatial.snapshot()
+            current_subgoal = (
+                self._subgoals[self._current_subgoal_idx]
+                if self._current_subgoal_idx < len(self._subgoals)
+                else "observe"
+            )
+
+            last_intents_text = "none"  # TODO: track last N intents for context
+            trigger_text = f"Previous intent {trigger_status.value}"
+            if self._current_intent:
+                trigger_text += (
+                    f": {self._current_intent.intent_type.value}"
+                    f" targeting {self._current_intent.target_anchor}"
+                )
+
+            available_intents = ", ".join(t.value for t in IntentType)
+
+            prompt = assemble_intent_decision(
+                display_name=self._config.adapter.display_name,
+                world_facts=self._config.adapter.world_facts,
+                spatial_snapshot=spatial_snap,
+                current_subgoal=current_subgoal,
+                last_intents=last_intents_text,
+                available_intents=available_intents,
+                trigger_reason=trigger_text,
+            )
+
+            resp = self._brain_chat(prompt.system, to_messages(prompt), "intent")
+
+            if resp.parsed_json:
+                intent_type_str = resp.parsed_json.get("intent", "look_around")
+                try:
+                    intent_type = IntentType(intent_type_str)
+                except ValueError:
+                    intent_type = IntentType.LOOK_AROUND  # fallback
+
+                new_intent = Intent(
+                    intent_type=intent_type,
+                    target_anchor=resp.parsed_json.get("target_anchor"),
+                    expected_outcome=resp.parsed_json.get("expected_outcome", ""),
+                    max_steps=resp.parsed_json.get("max_steps", 20),
+                    reason=resp.parsed_json.get("reason", ""),
+                )
+
+                self._current_intent = new_intent
+                self._intent_tracker.start(new_intent)
+                self._intent_executor.reset()
+                _log(
+                    f"  new intent: {new_intent.intent_type.value}"
+                    f" → {new_intent.target_anchor}"
+                )
+        finally:
+            self._brain_call_pending = False
 
     def _brain_chat(self, system: str, messages: list[dict[str, Any]], trigger: str) -> LLMResponse:
         self._brain_call_count += 1
