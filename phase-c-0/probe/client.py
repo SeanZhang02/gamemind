@@ -95,7 +95,7 @@ def infer(
     if text_for_parse.startswith("```"):
         lines = text_for_parse.split("\n")
         # Remove first line (```json) and last line (```)
-        inner = [l for l in lines[1:] if not l.strip().startswith("```")]
+        inner = [line for line in lines[1:] if not line.strip().startswith("```")]
         text_for_parse = "\n".join(inner).strip()
 
     parsed: dict[str, Any] | None = None
