@@ -159,8 +159,13 @@ def parse_tick_response(
 
     # Action field: validate against available actions to reject hallucinations
     action = parsed_json.get("action")
-    if available_actions and action and action not in available_actions:
-        action = None  # reject hallucinated action name
+    if action and isinstance(action, str):
+        action = action.strip()
+        # Case-insensitive match: VLM might return "Forward" instead of "forward"
+        if available_actions:
+            action_lower = action.lower()
+            matched = next((a for a in available_actions if a.lower() == action_lower), None)
+            action = matched  # None if no case-insensitive match
 
     return {
         "crosshair_block": block,

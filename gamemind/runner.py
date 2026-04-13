@@ -306,6 +306,10 @@ class AgentRunner:
         adapter = config.adapter
         start_ns = time.monotonic_ns()
 
+        # Bring game window to foreground before starting input
+        if config.hwnd and not config.dry_run:
+            self._bring_to_foreground(config.hwnd)
+
         # --- W1 brain call (blocking is OK — happens once at start) ---
         self._fsm.transition("session_start")
 
@@ -621,6 +625,18 @@ class AgentRunner:
             _log(f"  BUDGET EXCEEDED: {e}")
             raise
         return resp
+
+    @staticmethod
+    def _bring_to_foreground(hwnd: int) -> None:
+        """Bring the game window to foreground before starting input."""
+        try:
+            import ctypes  # noqa: PLC0415
+            user32 = ctypes.windll.user32
+            user32.SetForegroundWindow(hwnd)
+            _log(f"brought HWND {hwnd} to foreground")
+            time.sleep(0.3)  # brief pause for window manager to settle
+        except Exception as e:  # noqa: BLE001
+            _log(f"SetForegroundWindow failed (non-fatal): {e}")
 
     def _release_all_keys(self) -> None:
         """Release all physically held keys. Called on freeze/shutdown/idle."""
