@@ -212,7 +212,7 @@ def _cmd_daemon(args: argparse.Namespace) -> int:
 def _print_remediation_table() -> None:
     print("  remediation table (DX-SUB-2):")
     print("    (a) Ollama down       → `ollama serve`")
-    print("    (b) model not pulled  → `ollama pull qwen3-vl:8b-instruct-q4_K_M`")
+    print("    (b) model not pulled  → `ollama pull gemma4:26b-a4b-it-q4_K_M`")
     print("    (c) API key missing   → set ANTHROPIC_API_KEY env var")
     print("    (d) no game window    → focus the target game within 10s")
     print("    (e) wrong HWND picked → use --window-title filter")

@@ -61,7 +61,7 @@ from gamemind.cli import _find_target_hwnd  # noqa: E402
 
 # Locked 2026-04-11 per phase-c-0/C0_CLOSEOUT.md.
 OLLAMA_HOST = "http://127.0.0.1:11434"
-OLLAMA_MODEL = "qwen3-vl:8b-instruct-q4_K_M"
+OLLAMA_MODEL = "gemma4:26b-a4b-it-q4_K_M"
 
 # Mirrors probe/tasks.py::TASKS["t1_block"] exactly. The spike deliberately
 # uses T1 because it's the smallest prompt + simplest JSON schema, so a

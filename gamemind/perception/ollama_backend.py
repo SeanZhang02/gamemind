@@ -33,7 +33,7 @@ from PIL import Image
 from gamemind.brain.backend import LLMResponse
 
 DEFAULT_HOST = "http://127.0.0.1:11434"
-DEFAULT_MODEL = "qwen3-vl:8b-instruct-q4_K_M"
+DEFAULT_MODEL = "gemma4:26b-a4b-it-q4_K_M"
 DEFAULT_NUM_CTX = 4096
 DEFAULT_TIMEOUT_S = 120.0
 
@@ -118,6 +118,7 @@ class OllamaBackend:
                 "temperature": temperature,
                 "num_ctx": self.num_ctx,
                 "num_predict": max_tokens,
+                "num_visual_tokens": 280,
             },
         }
         t0 = time.perf_counter()

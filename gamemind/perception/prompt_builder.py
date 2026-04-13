@@ -45,8 +45,8 @@ _TICK_TEMPLATE = (
     '"health": <0.0-1.0>, "entities": [...], "subgoal_ok": <bool>, "reason": "<why>"}'
 )
 
-_TARGET_WIDTH = 640
-_TARGET_HEIGHT = 360
+_TARGET_WIDTH = 384
+_TARGET_HEIGHT = 216
 
 
 def downsample_frame(frame_bytes: bytes) -> bytes:

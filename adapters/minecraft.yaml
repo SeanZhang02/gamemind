@@ -9,8 +9,8 @@ schema_version: 1
 display_name: "Minecraft Java Edition"
 
 perception:
-  freshness_budget_ms: 1200.0
-  tick_hz: 1.0
+  freshness_budget_ms: 700.0
+  tick_hz: 2.0
 
 actions:
   forward: "W"
@@ -27,6 +27,10 @@ actions:
   chat: "T"
   third_person: "F5"
   debug: "F3"
+  look_up:    "mouse_rel:0,-80"
+  look_down:  "mouse_rel:0,80"
+  turn_left:  "mouse_rel:-150,0"
+  turn_right: "mouse_rel:150,0"
 
 world_facts:
   axe_crafting: "Two planks vertical in a crafting table yield one stick; three planks over two sticks yield an axe."

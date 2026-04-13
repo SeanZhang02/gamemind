@@ -225,6 +225,6 @@ Every backend has access to `backend_meta` for diagnostics the caller MUST NOT d
 - Backend-specific timing internals (`total_duration_ns`)
 - Cache accounting that varies per backend
 - Non-standard error codes
-- Model variant disambiguation (e.g. `qwen3-vl:8b-instruct-q4_K_M` vs `qwen3-vl:8b-thinking-q4_K_M`)
+- Model variant disambiguation (e.g. `gemma4:26b-a4b-it-q4_K_M` vs other quantization variants)
 
 **Never put required fields in `backend_meta`**. If the caller needs it, promote it to the typed dataclass.

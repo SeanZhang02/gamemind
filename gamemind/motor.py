@@ -108,6 +108,20 @@ class Motor:
         if not key:
             return None
 
+        # Mouse relative movement (camera control): parse "mouse_rel:dx,dy"
+        if key.startswith("mouse_rel:"):
+            parts = key[len("mouse_rel:") :].split(",")
+            dx, dy = int(parts[0]), int(parts[1])
+            self._state.current_action = bt_command.action_name
+            return ResolvedCommand(
+                action=bt_command.action_name,
+                key=key,
+                command_type=MotorCommandType.MOUSE_MOVE,
+                reason="bt",
+                dx=dx,
+                dy=dy,
+            )
+
         self._state.current_action = bt_command.action_name
         self._state.is_holding = bt_command.command_type == MotorCommandType.HOLD
 
@@ -144,3 +158,5 @@ class ResolvedCommand:
     command_type: MotorCommandType
     reason: str
     duration_ms: float = 0.0
+    dx: int = 0
+    dy: int = 0

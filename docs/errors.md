@@ -85,13 +85,13 @@ that builds the structured block.
 
 **Label**: Ollama does not have the required model loaded.
 **Common cause**: Model hasn't been pulled yet, or was removed.
-**Fix**: Run `ollama pull qwen3-vl:8b-instruct-q4_K_M`. Verify with `ollama list`. Override via `GAMEMIND_OLLAMA_MODEL` env var if using a non-default model.
+**Fix**: Run `ollama pull gemma4:26b-a4b-it-q4_K_M`. Verify with `ollama list`. Override via `GAMEMIND_OLLAMA_MODEL` env var if using a non-default model.
 **When recoverable**: Fatal at daemon startup — `/healthz` returns `degraded` until the model is pulled.
 
 ### E108 — `OllamaOOMError`
 
 **Label**: Ollama ran out of GPU memory during inference.
-**Common cause**: Another GPU-heavy process is competing for VRAM, or the model is too large for available VRAM (need ~6.1GB for `qwen3-vl:8b-instruct-q4_K_M`).
+**Common cause**: Another GPU-heavy process is competing for VRAM, or the model is too large for available VRAM (need ~6.1GB for `gemma4:26b-a4b-it-q4_K_M`).
 **Fix**: Close other GPU-heavy processes (games, video editors, CUDA workloads). Consider swapping to a smaller model variant if your GPU has <8GB VRAM.
 **When recoverable**: Fatal for the current session — OOM usually means the next inference will also OOM.
 
@@ -106,7 +106,7 @@ that builds the structured block.
 
 **Label**: Perception model response failed JSON parse.
 **Common cause**: Model occasionally returns non-JSON text, especially when the prompt is ambiguous. Also happens if `<think>` tags leak from a thinking-variant model.
-**Fix**: Retry once at `temperature=0`. If sustained, verify the model variant: `qwen3-vl:8b-thinking-q4_K_M` requires `think=False` API param to suppress CoT (Phase C-0 C0_CLOSEOUT finding). Use the `instruct` variant to avoid this entirely.
+**Fix**: Retry once at `temperature=0`. If sustained, check for `<think>` tag leakage (model variant issue). The `think=False` API param is set defensively to suppress CoT on models that support it.
 **When recoverable**: First retry is free; two consecutive parse failures on the same tick mark it as failed.
 
 ### E111 — `PerceptionBacklogError`

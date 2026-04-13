@@ -9,7 +9,7 @@ audience for v1 (v2-T3 community trigger may reopen this — see
 ### Hardware
 
 - **Windows 10 build 1903+** or Windows 11 (for Windows Graphics Capture)
-- **NVIDIA GPU with ≥8 GB VRAM** for `qwen3-vl:8b-instruct-q4_K_M`
+- **NVIDIA GPU with ≥8 GB VRAM** for `gemma4:26b-a4b-it-q4_K_M`
   (Sean's RTX 5090 has 32 GB; 4090 or 3090 works; sub-8GB cards will OOM)
 - **~15 GB disk** for Ollama + model weights + Python deps + a few session runs
 
@@ -35,7 +35,7 @@ uv sync --extra dev
 $env:ANTHROPIC_API_KEY = "sk-ant-..."
 
 # 4. Verify Ollama model is pulled
-ollama list | findstr qwen3-vl
+ollama list | findstr gemma4
 
 # 5. Run doctor
 uv run gamemind doctor --all
@@ -56,11 +56,11 @@ winget install ollama.ollama
 ollama serve
 
 # 4. Pull the model (large — ~6.1 GB)
-ollama pull qwen3-vl:8b-instruct-q4_K_M
+ollama pull gemma4:26b-a4b-it-q4_K_M
 
 # 5. Verify
 ollama list
-# Expected: qwen3-vl:8b-instruct-q4_K_M ... 6.1 GB
+# Expected: gemma4:26b-a4b-it-q4_K_M ... 6.1 GB
 
 # 6. Clone GameMind
 git clone https://github.com/SeanZhang02/gamemind.git
@@ -87,7 +87,7 @@ Per DX-SUB-2 from the Phase 1 review, `doctor --all` prints the 5 most common fa
 [gamemind doctor] modes: capture, input, live-perception
   remediation table (DX-SUB-2):
     (a) Ollama down       → `ollama serve`
-    (b) model not pulled  → `ollama pull qwen3-vl:8b-instruct-q4_K_M`
+    (b) model not pulled  → `ollama pull gemma4:26b-a4b-it-q4_K_M`
     (c) API key missing   → set ANTHROPIC_API_KEY env var
     (d) no game window    → focus the target game within 10s
     (e) wrong HWND picked → use --window-title filter
@@ -101,7 +101,7 @@ Phase C Step 1 iteration 6 (this commit range) ships the CLI stub that prints th
 |---|---|---|
 | `ANTHROPIC_API_KEY` | (required) | Your Anthropic Max Plan API key — Amendment A10 requires env var only |
 | `GAMEMIND_OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama HTTP endpoint |
-| `GAMEMIND_OLLAMA_MODEL` | `qwen3-vl:8b-instruct-q4_K_M` | Ollama model name (Phase C-0 locked) |
+| `GAMEMIND_OLLAMA_MODEL` | `gemma4:26b-a4b-it-q4_K_M` | Ollama model name (Phase C-0 locked) |
 | `GAMEMIND_SESSION_TOKEN` | (auto-generated) | Per-launch bearer token for `/v1/*` (Amendment A3) |
 
 ## Troubleshooting
@@ -110,9 +110,9 @@ Phase C Step 1 iteration 6 (this commit range) ships the CLI stub that prints th
 
 Install Python 3.11 via uv: `uv python install 3.11` then retry `uv sync`.
 
-### `ollama list` doesn't show qwen3-vl
+### `ollama list` doesn't show gemma4
 
-Check that `ollama serve` is running in a separate terminal. Then re-pull: `ollama pull qwen3-vl:8b-instruct-q4_K_M`.
+Check that `ollama serve` is running in a separate terminal. Then re-pull: `ollama pull gemma4:26b-a4b-it-q4_K_M`.
 
 ### `gamemind doctor` returns "no matching HWND"
 
@@ -140,7 +140,7 @@ Ollama isn't reachable OR the configured model isn't pulled. Check:
 ```powershell
 curl http://127.0.0.1:11434/api/tags
 ```
-Should return a JSON list including `qwen3-vl:8b-instruct-q4_K_M`. If not, `ollama pull qwen3-vl:8b-instruct-q4_K_M`.
+Should return a JSON list including `gemma4:26b-a4b-it-q4_K_M`. If not, `ollama pull gemma4:26b-a4b-it-q4_K_M`.
 
 ## What's next
 

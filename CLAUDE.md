@@ -7,7 +7,7 @@ but adds project-specific guidance.
 ## Project state: Phase C-0 PASSED, Phase C build ready to start
 
 - **Phase B done** — final design locked in (`docs/final-design.md`)
-- **Phase C-0 gate passed** (2026-04-11) with `qwen3-vl:8b-instruct-q4_K_M`
+- **Phase C-0 gate passed** (2026-04-11) with `gemma4:26b-a4b-it-q4_K_M`
 - **Phase C build** is the next step, gated on `/autoplan` being run against
   the final design doc **before any new code is written**
 

@@ -51,8 +51,8 @@ def test_downsample_reduces_size() -> None:
     large = _make_frame(1920, 1080)
     small = downsample_frame(large)
     img = Image.open(io.BytesIO(small))
-    assert img.width == 640
-    assert img.height == 360
+    assert img.width == 384
+    assert img.height == 216
     assert len(small) < len(large)
 
 

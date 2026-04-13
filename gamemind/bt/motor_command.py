@@ -15,6 +15,7 @@ class MotorCommandType(Enum):
     RELEASE = auto()
     TAP = auto()
     IDLE = auto()
+    MOUSE_MOVE = auto()
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,10 @@ class MotorCommand:
     @staticmethod
     def tap(action: str) -> MotorCommand:
         return MotorCommand(action, MotorCommandType.TAP)
+
+    @staticmethod
+    def mouse_move(action_name: str) -> MotorCommand:
+        return MotorCommand(action_name=action_name, command_type=MotorCommandType.MOUSE_MOVE)
 
     @staticmethod
     def idle() -> MotorCommand:

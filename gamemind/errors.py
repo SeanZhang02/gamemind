@@ -93,7 +93,7 @@ class OllamaConnectionError(GameMindError):
 class OllamaModelMissingError(GameMindError):
     code = "E107"
     label = "Ollama does not have the required model loaded"
-    fix = "Run `ollama pull qwen3-vl:8b-instruct-q4_K_M` and verify with `ollama list`."
+    fix = "Run `ollama pull gemma4:26b-a4b-it-q4_K_M` and verify with `ollama list`."
 
 
 class OllamaOOMError(GameMindError):
