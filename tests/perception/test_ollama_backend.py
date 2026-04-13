@@ -27,7 +27,7 @@ def _mock_ollama_chat_response(content: str = '{"block": "oak_log"}') -> dict:
 
 def test_defaults() -> None:
     assert DEFAULT_HOST == "http://127.0.0.1:11434"
-    assert DEFAULT_MODEL == "qwen3-vl:8b-instruct-q4_K_M"
+    assert DEFAULT_MODEL == "gemma4:26b-a4b-it-q4_K_M"
     assert DEFAULT_NUM_CTX == 4096
 
 

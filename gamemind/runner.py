@@ -518,6 +518,9 @@ class AgentRunner:
                         _log(f"  key_hold: pressing {current_key}")
                         config.input.key_down(config.hwnd, current_key)
                         self._held_keys.add(current_key)
+                elif resolved.command_type == MotorCommandType.MOUSE_MOVE:
+                    _log(f"  mouse_move: dx={resolved.dx} dy={resolved.dy}")
+                    config.input.mouse_move_rel(config.hwnd, resolved.dx, resolved.dy)
                 elif resolved.command_type == MotorCommandType.TAP:
                     _log(f"  key_tap: {resolved.key}")
                     self._release_all_keys()  # release holds before tapping

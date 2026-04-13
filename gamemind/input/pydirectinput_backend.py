@@ -220,6 +220,20 @@ class PyDirectInputBackend:
         for key in list(self._held_keys):
             self.key_up(hwnd, key)
 
+    def mouse_move_rel(self, hwnd: int, dx: int, dy: int) -> None:
+        """Move mouse by relative offset. For camera control in games."""
+        if not self._initialized:
+            _log(f"mouse_move_rel({dx},{dy}): not initialized, skipping")
+            return
+        if hwnd > 0 and not _is_foreground(hwnd):
+            _log(f"mouse_move_rel({dx},{dy}): HWND {hwnd} not foreground, skipping")
+            return
+
+        import pydirectinput  # noqa: PLC0415
+
+        pydirectinput.moveRel(dx, dy)
+        _log(f"mouse_move_rel: dx={dx} dy={dy}")
+
     def type_text(self, hwnd: int, text: str, *, interval_ms: float = 20.0) -> InputResult:
         """Type a plain string via pydirectinput.write.
 

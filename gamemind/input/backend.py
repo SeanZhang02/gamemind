@@ -119,6 +119,10 @@ class InputBackend(Protocol):
         """Release all currently held keys. Called on shutdown/freeze for safety."""
         ...
 
+    def mouse_move_rel(self, hwnd: int, dx: int, dy: int) -> None:
+        """Move mouse by relative offset. For camera control in games."""
+        ...
+
     def liveness(self) -> bool: ...
 
 

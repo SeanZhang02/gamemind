@@ -89,10 +89,19 @@ def infer(
 
     raw_text = data.get("message", {}).get("content", "")
     think_leaked = "<think>" in raw_text or "</think>" in raw_text
+
+    # Strip markdown code fences (Gemma 4 wraps JSON in ```json ... ```)
+    text_for_parse = raw_text.strip()
+    if text_for_parse.startswith("```"):
+        lines = text_for_parse.split("\n")
+        # Remove first line (```json) and last line (```)
+        inner = [line for line in lines[1:] if not line.strip().startswith("```")]
+        text_for_parse = "\n".join(inner).strip()
+
     parsed: dict[str, Any] | None = None
     json_ok = False
     try:
-        parsed = json.loads(raw_text)
+        parsed = json.loads(text_for_parse)
         json_ok = isinstance(parsed, dict)
     except (json.JSONDecodeError, TypeError):
         pass

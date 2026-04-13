@@ -53,7 +53,7 @@ def test_enable_dpi_awareness_never_raises() -> None:
 
 def test_defaults_sanity() -> None:
     assert DEFAULT_OLLAMA_HOST == "http://127.0.0.1:11434"
-    assert DEFAULT_OLLAMA_MODEL == "qwen3-vl:8b-instruct-q4_K_M"
+    assert DEFAULT_OLLAMA_MODEL == "gemma4:26b-a4b-it-q4_K_M"
 
 
 @pytest.mark.asyncio
@@ -70,7 +70,7 @@ async def test_check_ollama_parses_model_list() -> None:
     """Mock httpx.AsyncClient.get to return a fake /api/tags response."""
     fake_response_data = {
         "models": [
-            {"name": "qwen3-vl:8b-instruct-q4_K_M", "size": 6_200_000_000},
+            {"name": "gemma4:26b-a4b-it-q4_K_M", "size": 6_200_000_000},
             {"name": "llama3:8b", "size": 4_800_000_000},
         ]
     }

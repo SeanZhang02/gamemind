@@ -2,7 +2,7 @@
 
 **Universal game AI agent framework.** Play any game with vision + OS-level keyboard/mouse, driven by a local VLM with sparse cloud brain wakes. Adding a new game means writing a YAML adapter — not a Python module.
 
-**Status (2026-04-11)**: Phase C-0 (perception probe) passed with `qwen3-vl:8b-instruct-q4_K_M`. Phase C Step 1 scaffold ~80% complete — package layout, errors, events writer, adapter loader, perception primitives, brain backend, session manager, and CLI daemon lifecycle all land with unit tests (201 passing). Real Windows Graphics Capture / DXGI / pydirectinput bindings are the remaining runtime-dependent work.
+**Status (2026-04-11)**: Phase C-0 (perception probe) passed with `gemma4:26b-a4b-it-q4_K_M`. Phase C Step 1 scaffold ~80% complete — package layout, errors, events writer, adapter loader, perception primitives, brain backend, session manager, and CLI daemon lifecycle all land with unit tests (201 passing). Real Windows Graphics Capture / DXGI / pydirectinput bindings are the remaining runtime-dependent work.
 
 v1 is a personal tool. v2 is a research-artifact upgrade unlocked only by explicit trigger events within 90 days post-v1 ship. See `docs/final-design.md` §OQ-6 for the staging contract.
 
@@ -15,7 +15,7 @@ v1 is a personal tool. v2 is a research-artifact upgrade unlocked only by explic
 winget install astral-sh.uv
 winget install ollama.ollama
 ollama serve                                          # leave running
-ollama pull qwen3-vl:8b-instruct-q4_K_M
+ollama pull gemma4:26b-a4b-it-q4_K_M
 
 # 2. Clone + install
 git clone https://github.com/SeanZhang02/gamemind.git
@@ -56,7 +56,7 @@ Full install guide: [`docs/install.md`](docs/install.md).
 
 ## Architecture (one paragraph)
 
-Two-tier hybrid (**ARCH-C / Alt B2**). A small VLM runs locally at 2-3 Hz for continuous perception (Layer 1 — Qwen3-VL:8B-instruct via Ollama). Claude Sonnet 4.5+ runs sparsely via the Anthropic SDK, woken by 5 semantic triggers (W1-W5 in §1.4) to do plan decomposition, stuck replan, abort evaluation, vision-critic arbitration, and task completion verification. Actions go through anti-cheat-safe input primitives (`pydirectinput-rgx` scan codes via `SendInput`). Layer 5 skill library learns across sessions (JSONL + faiss). Per-game knowledge lives in declarative YAML adapters (Layer 6) — the wedge that differentiates GameMind from Cradle, Lumine, and UI-TARS-desktop.
+Two-tier hybrid (**ARCH-C / Alt B2**). A small VLM runs locally at 2-3 Hz for continuous perception (Layer 1 — Gemma 4:26B-a4b-it via Ollama). Claude Sonnet 4.5+ runs sparsely via the Anthropic SDK, woken by 5 semantic triggers (W1-W5 in §1.4) to do plan decomposition, stuck replan, abort evaluation, vision-critic arbitration, and task completion verification. Actions go through anti-cheat-safe input primitives (`pydirectinput-rgx` scan codes via `SendInput`). Layer 5 skill library learns across sessions (JSONL + faiss). Per-game knowledge lives in declarative YAML adapters (Layer 6) — the wedge that differentiates GameMind from Cradle, Lumine, and UI-TARS-desktop.
 
 Full design: [`docs/final-design.md`](docs/final-design.md) (~2400 lines, includes Phase 1 autoplan review + 15 applied amendments).
 

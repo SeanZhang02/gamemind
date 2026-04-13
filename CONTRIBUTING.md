@@ -54,7 +54,7 @@ To run the Phase C-0 probe locally:
 ```bash
 cd phase-c-0
 uv sync
-uv run python -m probe.run --model qwen3-vl:8b-instruct-q4_K_M
+uv run python -m probe.run --model gemma4:26b-a4b-it-q4_K_M
 ```
 
 Expected: `VERDICT: PASS` with T1 ≥ 50%, T3 ≥ 70%, T4 ≥ 70%, p90 latency
@@ -112,7 +112,7 @@ Sean retains approval authority on all merges to `main`.
 During Phase C, the scope is locked. We are not accepting:
 
 - New game adapters beyond Minecraft (v2 scope)
-- Alternative perception models beyond the selected `qwen3-vl:8b-instruct`
+- Alternative perception models beyond the selected `gemma4:26b-a4b-it`
   without a probe regression run
 - Refactors that dissolve the six-layer boundary
 - Anti-cheat "creative interpretations" — if it would be flagged by
