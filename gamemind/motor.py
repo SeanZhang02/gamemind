@@ -78,7 +78,9 @@ class Motor:
         now_ns = time.monotonic_ns()
 
         if self._frozen:
-            return ResolvedCommand(action="", key="", command_type=MotorCommandType.IDLE, reason="frozen")
+            return ResolvedCommand(
+                action="", key="", command_type=MotorCommandType.IDLE, reason="frozen"
+            )
 
         if self._emergency_command is not None:
             key = self._action_to_key.get(self._emergency_command.action_name, "")

@@ -71,14 +71,16 @@ def test_build_tick_messages_returns_system_and_messages() -> None:
 
 
 def test_parse_tick_response_valid() -> None:
-    result = parse_tick_response({
-        "block": "oak_log",
-        "health": 0.8,
-        "entities": ["zombie"],
-        "action": "attack",
-        "subgoal_ok": False,
-        "reason": "log at crosshair",
-    })
+    result = parse_tick_response(
+        {
+            "block": "oak_log",
+            "health": 0.8,
+            "entities": ["zombie"],
+            "action": "attack",
+            "subgoal_ok": False,
+            "reason": "log at crosshair",
+        }
+    )
     assert result["crosshair_block"] == "oak_log"
     assert result["health"] == 0.8
     assert result["vlm_suggested_action"] == "attack"
