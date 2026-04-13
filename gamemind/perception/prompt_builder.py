@@ -1,16 +1,16 @@
-"""Per-tick VLM prompt builder — perception + action suggestion in one call.
+"""Per-tick VLM prompt builder — spatial perception layer.
 
 Builds the Ollama prompt that runs every ~1100ms. Injects:
   - current_subgoal (from Planner via Blackboard)
   - policy_hints (from Claude W1/W2, max 3, max 40 tokens)
-  - available_actions (from adapter YAML, CSV format)
   - last_action (from Blackboard)
+  - last_frame_diff (optional, change-since-last context)
 
-Output schema drives Blackboard writes: crosshair_block, entities_nearby,
-health, action suggestion, subgoal assessment.
+Output schema drives Blackboard writes: crosshair_block, player_facing,
+spatial_context, anchors, entities_nearby, health.
 
 Prompt kept short (<300 input tokens) to minimize inference latency.
-Image downsampled to 640x360 before encoding.
+Image downsampled to 512x288 before encoding.
 """
 
 from __future__ import annotations
@@ -22,17 +22,16 @@ from typing import Any
 from PIL import Image
 
 _SYSTEM_PROMPT = (
-    "You observe a game screenshot each tick. Analyze what you see and choose the best action.\n"
+    "You observe a game screenshot each tick. Describe what you see in structured JSON.\n"
     "\n"
     "RULES:\n"
     "- Respond with ONLY valid JSON, no other text\n"
-    '- The "action" field MUST be exactly one value from the available actions list. '
-    "No other values are allowed.\n"
     '- The "block" field should be the block type the crosshair is pointing at '
     '(e.g. "oak_log", "stone", "air"), or null if unclear\n'
-    "- Be specific about block types — use Minecraft block IDs when possible\n"
-    "- If your recent actions show the same action repeating without progress "
-    "(same block, no change), choose a DIFFERENT action to break the loop"
+    "- Be specific about block types -- use Minecraft block IDs when possible\n"
+    '- The "facing" field describes your camera orientation: '
+    '"looking_down", "looking_at_horizon", or "looking_up"\n'
+    '- The "anchors" field lists notable objects with their relative direction and distance'
 )
 
 _TICK_TEMPLATE = (
@@ -41,22 +40,30 @@ _TICK_TEMPLATE = (
     "Recent actions: $recent_actions\n"
     "Hints: $hints\n"
     "\n"
-    "AVAILABLE ACTIONS (choose EXACTLY ONE):\n"
-    "$actions_list\n"
-    "\n"
-    'Respond with JSON: {"block": "<block_at_crosshair>", "action": "<one_from_list_above>", '
-    '"health": <0.0-1.0>, "entities": [...], "subgoal_ok": <bool>, "reason": "<why>"}'
+    "Respond with JSON:\n"
+    '{"block": "<block_at_crosshair>", '
+    '"facing": "<looking_down | looking_at_horizon | looking_up>", '
+    '"spatial_context": "<one sentence describing surroundings>", '
+    '"anchors": [{"label": "<thing>", "direction": "<ahead|left|right|behind|ahead_left|ahead_right>", '
+    '"distance": "<close|medium|far>"}], '
+    '"health": 0.0-1.0, '
+    '"entities": ["<entity_name>"]}'
 )
 
-_TARGET_WIDTH = 384
-_TARGET_HEIGHT = 216
+_TARGET_WIDTH = 512
+_TARGET_HEIGHT = 288
+
+_VALID_FACINGS = frozenset({"looking_down", "looking_at_horizon", "looking_up"})
+_VALID_DIRECTIONS = frozenset(
+    {"ahead", "left", "right", "behind", "ahead_left", "ahead_right"}
+)
+_VALID_DISTANCES = frozenset({"close", "medium", "far"})
 
 
 def downsample_frame(frame_bytes: bytes) -> bytes:
-    """Downsample captured frame to 640x360 WEBP for VLM input."""
+    """Downsample captured frame to 512x288 WEBP for VLM input."""
     img = Image.open(io.BytesIO(frame_bytes))
-    if img.width > _TARGET_WIDTH or img.height > _TARGET_HEIGHT:
-        img = img.resize((_TARGET_WIDTH, _TARGET_HEIGHT), Image.Resampling.LANCZOS)
+    img = img.resize((_TARGET_WIDTH, _TARGET_HEIGHT), Image.Resampling.LANCZOS)
     buf = io.BytesIO()
     img.save(buf, format="WEBP", quality=80)
     return buf.getvalue()
@@ -72,17 +79,17 @@ def build_tick_prompt(
     *,
     current_subgoal: str,
     policy_hints: list[str],
-    available_actions: dict[str, str],
     last_action: str,
     recent_actions: list[tuple[str, str | None]] | None = None,
+    available_actions: dict[str, str] | None = None,
 ) -> str:
     """Build the per-tick VLM prompt text.
 
-    Uses bulleted action list (one per line) so VLM can clearly see options.
     Max 3 policy hints, truncated to 80 chars each.
-    """
-    actions_list = "\n".join(f"- {a}" for a in sorted(available_actions.keys()))
 
+    The ``available_actions`` parameter is accepted for backward compatibility
+    but is ignored (actions are no longer part of the VLM output schema).
+    """
     truncated_hints = policy_hints[:3]
     hints_text = "; ".join(h[:80] for h in truncated_hints) if truncated_hints else "none"
 
@@ -94,7 +101,6 @@ def build_tick_prompt(
     return (
         _TICK_TEMPLATE.replace("$subgoal", current_subgoal or "observe")
         .replace("$hints", hints_text)
-        .replace("$actions_list", actions_list)
         .replace("$last_action", last_action or "none")
         .replace("$recent_actions", recent_text)
     )
@@ -105,21 +111,30 @@ def build_tick_messages(
     frame_bytes: bytes,
     current_subgoal: str,
     policy_hints: list[str],
-    available_actions: dict[str, str],
     last_action: str,
     recent_actions: list[tuple[str, str | None]] | None = None,
+    available_actions: dict[str, str] | None = None,
+    last_frame_diff: str | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     """Build complete Ollama chat call arguments.
 
     Returns (system_prompt, messages) ready for OllamaBackend.chat().
+
+    The ``available_actions`` parameter is accepted for backward compatibility
+    but is ignored (actions are no longer part of the VLM output schema).
+
+    If ``last_frame_diff`` is provided, it is prepended to the user message
+    as change-since-last context.
     """
     prompt_text = build_tick_prompt(
         current_subgoal=current_subgoal,
         policy_hints=policy_hints,
-        available_actions=available_actions,
         last_action=last_action,
         recent_actions=recent_actions,
     )
+    if last_frame_diff:
+        prompt_text = f"Since last frame: {last_frame_diff}\n{prompt_text}"
+
     img_b64 = encode_frame_b64(frame_bytes)
     messages = [
         {
@@ -136,12 +151,10 @@ def parse_tick_response(
     *,
     available_actions: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Extract Blackboard-ready fields from VLM response JSON.
+    """Extract Blackboard-ready fields from VLM response JSON (legacy).
 
-    Returns dict with standardized keys. Missing fields get None.
-
-    If *available_actions* is provided, the ``action`` field is validated
-    against its keys. Hallucinated action names are rejected (set to None).
+    Kept for backward compatibility. New code should use
+    ``parse_spatial_response()``.
     """
     if not parsed_json or not isinstance(parsed_json, dict):
         return {
@@ -173,7 +186,6 @@ def parse_tick_response(
     action = parsed_json.get("action")
     if action and isinstance(action, str):
         action = action.strip()
-        # Case-insensitive match: VLM might return "Forward" instead of "forward"
         if available_actions:
             action_lower = action.lower()
             matched = next((a for a in available_actions if a.lower() == action_lower), None)
@@ -186,4 +198,92 @@ def parse_tick_response(
         "vlm_suggested_action": action,
         "subgoal_ok": parsed_json.get("subgoal_ok"),
         "action_reason": parsed_json.get("reason"),
+    }
+
+
+def parse_spatial_response(
+    parsed_json: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Extract spatial perception fields from VLM response JSON.
+
+    Returns dict with standardized keys. Missing/invalid fields get None.
+    Validates ``facing`` against allowed categories and ``anchors``
+    entries against direction/distance enums.
+    """
+    if not parsed_json or not isinstance(parsed_json, dict):
+        return {
+            "crosshair_block": None,
+            "player_facing": None,
+            "spatial_context": None,
+            "anchors": None,
+            "health": None,
+            "entities_nearby": None,
+        }
+
+    # Health normalization (same logic as legacy)
+    health_raw = parsed_json.get("health")
+    if health_raw is not None:
+        try:
+            health_val = float(health_raw)
+            if health_val > 1.0:
+                health_val = health_val / 100.0
+            health_raw = max(0.0, min(1.0, health_val))
+        except (ValueError, TypeError):
+            health_raw = None
+
+    # Block field: try multiple key names the VLM might use
+    block = (
+        parsed_json.get("block")
+        or parsed_json.get("crosshair_block")
+        or parsed_json.get("crosshair")
+    )
+
+    # Facing field: validate against allowed categories
+    facing = parsed_json.get("facing")
+    if facing and isinstance(facing, str):
+        facing = facing.strip()
+        if facing not in _VALID_FACINGS:
+            facing = None
+    else:
+        facing = None
+
+    # Spatial context
+    spatial_context = parsed_json.get("spatial_context")
+    if spatial_context and isinstance(spatial_context, str):
+        spatial_context = spatial_context.strip()
+    else:
+        spatial_context = None
+
+    # Anchors: validate each entry
+    anchors_raw = parsed_json.get("anchors")
+    anchors = None
+    if anchors_raw and isinstance(anchors_raw, list):
+        validated = []
+        for item in anchors_raw:
+            if not isinstance(item, dict):
+                continue
+            label = item.get("label")
+            direction = item.get("direction")
+            distance = item.get("distance")
+            if (
+                label
+                and isinstance(label, str)
+                and isinstance(direction, str)
+                and isinstance(distance, str)
+                and direction in _VALID_DIRECTIONS
+                and distance in _VALID_DISTANCES
+            ):
+                validated.append(
+                    {"label": label, "direction": direction, "distance": distance}
+                )
+        if validated:
+            anchors = validated
+
+    return {
+        "crosshair_block": block,
+        "player_facing": facing,
+        "spatial_context": spatial_context,
+        "anchors": anchors,
+        "health": health_raw,
+        "entities_nearby": parsed_json.get("entities"),
     }
