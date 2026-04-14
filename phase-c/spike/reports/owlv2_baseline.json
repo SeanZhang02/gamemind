@@ -2,24 +2,24 @@
   "model": "google/owlv2-base-patch16-ensemble",
   "n_fixtures": 11,
   "iou_threshold": 0.5,
-  "score_threshold": 0.1,
+  "score_threshold": 0.2,
   "per_class": {
     "crafting_grid_2x2": {
       "tp": 3,
-      "fp": 305,
+      "fp": 74,
       "fn": 1,
-      "precision": 0.0097,
+      "precision": 0.039,
       "recall": 0.75,
-      "f1": 0.0192,
+      "f1": 0.0741,
       "mean_iou": 0.9424
     },
     "crafting_grid_3x3": {
       "tp": 2,
-      "fp": 14,
+      "fp": 6,
       "fn": 0,
-      "precision": 0.125,
+      "precision": 0.25,
       "recall": 1.0,
-      "f1": 0.2222,
+      "f1": 0.4,
       "mean_iou": 0.7881
     },
     "crafting_table": {
@@ -33,7 +33,7 @@
     },
     "creeper": {
       "tp": 0,
-      "fp": 128,
+      "fp": 13,
       "fn": 0,
       "precision": 0.0,
       "recall": null,
@@ -41,13 +41,13 @@
       "mean_iou": null
     },
     "grass_block": {
-      "tp": 3,
-      "fp": 152,
-      "fn": 2,
-      "precision": 0.0194,
-      "recall": 0.6,
-      "f1": 0.0375,
-      "mean_iou": 0.7129
+      "tp": 1,
+      "fp": 23,
+      "fn": 4,
+      "precision": 0.0417,
+      "recall": 0.2,
+      "f1": 0.069,
+      "mean_iou": 0.7547
     },
     "health_bar": {
       "tp": 0,
@@ -60,46 +60,37 @@
     },
     "hotbar": {
       "tp": 0,
-      "fp": 1,
+      "fp": 0,
       "fn": 11,
-      "precision": 0.0,
+      "precision": null,
       "recall": 0.0,
       "f1": null,
       "mean_iou": null
     },
     "hunger_bar": {
       "tp": 0,
-      "fp": 5,
+      "fp": 0,
       "fn": 5,
-      "precision": 0.0,
+      "precision": null,
       "recall": 0.0,
       "f1": null,
       "mean_iou": null
     },
     "inventory_grid": {
-      "tp": 1,
-      "fp": 6,
-      "fn": 5,
-      "precision": 0.1429,
-      "recall": 0.1667,
-      "f1": 0.1538,
-      "mean_iou": 0.8569
-    },
-    "inventory_slot": {
       "tp": 0,
-      "fp": 11,
+      "fp": 5,
       "fn": 6,
       "precision": 0.0,
       "recall": 0.0,
       "f1": null,
       "mean_iou": null
     },
-    "iron_ore": {
+    "inventory_slot": {
       "tp": 0,
-      "fp": 7,
-      "fn": 0,
-      "precision": 0.0,
-      "recall": null,
+      "fp": 0,
+      "fn": 6,
+      "precision": null,
+      "recall": 0.0,
       "f1": null,
       "mean_iou": null
     },
@@ -123,9 +114,9 @@
     },
     "oak_log": {
       "tp": 0,
-      "fp": 19,
+      "fp": 0,
       "fn": 4,
-      "precision": 0.0,
+      "precision": null,
       "recall": 0.0,
       "f1": null,
       "mean_iou": null
@@ -141,7 +132,7 @@
     },
     "stone": {
       "tp": 0,
-      "fp": 10,
+      "fp": 1,
       "fn": 0,
       "precision": 0.0,
       "recall": null,
@@ -158,13 +149,13 @@
       "mean_iou": null
     },
     "tree": {
-      "tp": 4,
-      "fp": 43,
-      "fn": 6,
-      "precision": 0.0851,
-      "recall": 0.4,
-      "f1": 0.1404,
-      "mean_iou": 0.5912
+      "tp": 0,
+      "fp": 4,
+      "fn": 10,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
     },
     "wooden_pickaxe": {
       "tp": 0,
@@ -177,7 +168,7 @@
     },
     "xp_bar": {
       "tp": 0,
-      "fp": 6,
+      "fp": 1,
       "fn": 0,
       "precision": 0.0,
       "recall": null,
@@ -186,7 +177,7 @@
     },
     "zombie": {
       "tp": 0,
-      "fp": 5,
+      "fp": 3,
       "fn": 0,
       "precision": 0.0,
       "recall": null,
@@ -195,19 +186,19 @@
     }
   },
   "micro": {
-    "tp": 13,
-    "fp": 712,
-    "fn": 96,
-    "precision": 0.0179,
-    "recall": 0.1193,
-    "f1": 0.0312,
-    "mean_iou": 0.751
+    "tp": 6,
+    "fp": 130,
+    "fn": 103,
+    "precision": 0.0441,
+    "recall": 0.055,
+    "f1": 0.049,
+    "mean_iou": 0.8597
   },
   "macro": {
-    "precision": 0.0273,
-    "recall": 0.1823,
-    "f1": 0.1146,
-    "mean_iou": 0.7783,
+    "precision": 0.0367,
+    "recall": 0.1219,
+    "f1": 0.181,
+    "mean_iou": 0.8284,
     "n_classes_with_support": 16
   },
   "vs_gd_tiny": {
@@ -216,40 +207,40 @@
     "hotbar_gd": "0/13",
     "hotbar_owlv2": "0/11",
     "tree_gd": "0/22",
-    "tree_owlv2": "4/10",
+    "tree_owlv2": "0/10",
     "micro_f1_gd": 0.152,
-    "micro_f1_owlv2": 0.0312
+    "micro_f1_owlv2": 0.049
   },
-  "verdict": "OWLv2 closes 1/3 GD-failed gaps",
+  "verdict": "OWLv2 has same domain limit as GD: zero-shot detectors cannot localize Minecraft screen-UI primitives (item_in_slot, hotbar, tree) on these fixtures. Track B refuted \u2014 concept-grain gap is not GD-specific.",
   "notes": "Single-pass union-vocab OWLv2 zero-shot. Same IoU=0.5 greedy matching as GD Day-2 baseline (eval_harness primitives reused). Score threshold 0.1 vs GD baseline's 0.2 \u2014 OWLv2 is calibrated lower per HF docs; if OWLv2 fires meaningfully a follow-up should re-run GD at 0.1 for fairness. Prompts use natural noun phrases ('an item in slot') because CLIP text encoder expects captions; raw snake_case hurts recall.",
   "_images": [
     {
       "image": "task1.png",
       "prompt_group": "combined",
       "n_gt": 8,
-      "n_pred": 52,
-      "tp": 2,
-      "fp": 50,
-      "fn": 6,
+      "n_pred": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 8,
       "matches": []
     },
     {
       "image": "task10.png",
       "prompt_group": "combined",
       "n_gt": 12,
-      "n_pred": 77,
-      "tp": 1,
-      "fp": 76,
-      "fn": 11,
+      "n_pred": 3,
+      "tp": 0,
+      "fp": 3,
+      "fn": 12,
       "matches": []
     },
     {
       "image": "task2.png",
       "prompt_group": "combined",
       "n_gt": 9,
-      "n_pred": 60,
+      "n_pred": 7,
       "tp": 1,
-      "fp": 59,
+      "fp": 6,
       "fn": 8,
       "matches": []
     },
@@ -257,9 +248,9 @@
       "image": "task3.png",
       "prompt_group": "combined",
       "n_gt": 6,
-      "n_pred": 72,
+      "n_pred": 18,
       "tp": 1,
-      "fp": 71,
+      "fp": 17,
       "fn": 5,
       "matches": []
     },
@@ -267,9 +258,9 @@
       "image": "task4.png",
       "prompt_group": "combined",
       "n_gt": 7,
-      "n_pred": 67,
+      "n_pred": 20,
       "tp": 1,
-      "fp": 66,
+      "fp": 19,
       "fn": 6,
       "matches": []
     },
@@ -277,9 +268,9 @@
       "image": "task5.1.png",
       "prompt_group": "combined",
       "n_gt": 12,
-      "n_pred": 71,
+      "n_pred": 25,
       "tp": 0,
-      "fp": 71,
+      "fp": 25,
       "fn": 12,
       "matches": []
     },
@@ -287,9 +278,9 @@
       "image": "task5.png",
       "prompt_group": "combined",
       "n_gt": 6,
-      "n_pred": 67,
+      "n_pred": 18,
       "tp": 1,
-      "fp": 66,
+      "fp": 17,
       "fn": 5,
       "matches": []
     },
@@ -297,9 +288,9 @@
       "image": "task6.png",
       "prompt_group": "combined",
       "n_gt": 9,
-      "n_pred": 62,
+      "n_pred": 6,
       "tp": 0,
-      "fp": 62,
+      "fp": 6,
       "fn": 9,
       "matches": []
     },
@@ -307,19 +298,19 @@
       "image": "task7.1.png",
       "prompt_group": "combined",
       "n_gt": 12,
-      "n_pred": 59,
-      "tp": 2,
-      "fp": 57,
-      "fn": 10,
+      "n_pred": 15,
+      "tp": 1,
+      "fp": 14,
+      "fn": 11,
       "matches": []
     },
     {
       "image": "task8.png",
       "prompt_group": "combined",
       "n_gt": 16,
-      "n_pred": 60,
+      "n_pred": 15,
       "tp": 1,
-      "fp": 59,
+      "fp": 14,
       "fn": 15,
       "matches": []
     },
@@ -327,10 +318,10 @@
       "image": "task9.png",
       "prompt_group": "combined",
       "n_gt": 12,
-      "n_pred": 78,
-      "tp": 3,
-      "fp": 75,
-      "fn": 9,
+      "n_pred": 7,
+      "tp": 0,
+      "fp": 7,
+      "fn": 12,
       "matches": []
     }
   ]

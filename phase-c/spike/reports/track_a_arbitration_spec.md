@@ -59,24 +59,41 @@ class_authority:
 **If the canonical producer fires**: use its detection, **discard the other producer's detection of the same class**.
 **If the canonical producer is silent**: fall through to the secondary producer (with confidence penalty — see Rule 3).
 
-### Rule 2: Cross-producer NMS
+### Rule 2: Cross-producer NMS (corrected — adversarial audit Q5)
 
-When **different classes** (or one class with multiple instances) overlap spatially, run NMS:
+When **different classes** (or one class with multiple instances) overlap spatially, suppress duplicates. Cross-producer comparison **cannot use raw confidence** because template correlation (CV) and GD sigmoid logit are on incomparable scales — multiplying by an "authority weight" was a hand-wave that did not resolve this.
+
+**Corrected protocol**:
 
 ```
 for det_a, det_b in pairs(all_detections):
     if det_a.cls != det_b.cls and IoU(det_a.bbox, det_b.bbox) > 0.7:
-        # Likely the same physical object detected as different classes
-        # Keep the one with higher (confidence × producer_authority_weight)
-        keep = max(det_a, det_b, key=lambda d: d.confidence * authority_weight(d))
-        discard = the other
+        # Same physical region detected as two different classes.
+        # Resolve by class authority hierarchy, not by confidence math.
+        if det_a.cls in cv_authoritative_classes and det_a.producer == 'cv':
+            keep = det_a
+        elif det_b.cls in cv_authoritative_classes and det_b.producer == 'cv':
+            keep = det_b
+        elif det_a.cls in gd_authoritative_classes and det_a.producer == 'gd':
+            keep = det_a
+        elif det_b.cls in gd_authoritative_classes and det_b.producer == 'gd':
+            keep = det_b
+        else:
+            # Neither is authoritative for its class. Suppress nothing —
+            # let WorldModel expose both with 'ambiguous_overlap' metadata flag
+            # and let Layer 2/3 disambiguate via VLM enrichment.
+            keep = both, mark_ambiguous = True
 ```
 
-`authority_weight(cv) = 1.2`, `authority_weight(gd) = 1.0` — slight CV bias because CV's pixel-perfect matching is more reliable when it fires than GD's probabilistic detection.
+Class authority is the **discrete, declarative** signal from §1 — never a numeric weight that pretends to compare incomparable confidence units.
 
-### Rule 3: Fall-through confidence penalty
+**Within-producer NMS** (same producer fires twice for the same class on overlapping bboxes) is fine to use raw score: comparing CV correlation to CV correlation, or GD logit to GD logit, is well-defined.
 
-If a class's canonical producer is silent and the secondary producer fires, the detection's confidence is multiplied by 0.7 before exposure. Example: GD detects what looks like an `inventory_grid` (cls='inventory_grid', conf=0.6) but CV's template match was below threshold. Exposed confidence = 0.42, which is below most consumer thresholds, so the detection effectively flags as "uncertain — VLM should verify".
+### Rule 3: Fall-through confidence penalty (consolidated — adversarial audit Q5)
+
+If a class's canonical producer is silent and the secondary producer fires, the detection is exposed with `metadata.fallthrough = True` and `metadata.canonical_producer_silent = True`. **Confidence is NOT mutated** — the multiplicative penalty in the previous draft overlapped redundantly with the §5 ambiguous-CV penalty (`conf × 0.8`), creating two implicit penalty systems.
+
+Layer 2/3 read `metadata.fallthrough` directly to apply per-class fall-back policy (e.g. "if `inventory_grid` came from GD not CV, queue VLM verification before acting on slot positions"). Penalty math is producer-internal only (CV uses correlation, GD uses logit-derived prob — both already calibrated within their domain).
 
 This is the **degradation signal** for Layer 2 (Qwen3-VL) and Layer 3 (Brain).
 
@@ -148,15 +165,23 @@ CV-Anchor pipeline:
 
 This gives **slot positions for all 15 GUI types from 15 anchor templates + 15 YAML grid specs**, no per-GUI Python.
 
-### Stress test gate
+### Stress test gate (UPDATED — adversarial audit Q3 + Q5)
 
-Track A is NOT ready until the template_stress.py P0.3 benchmark passes ≥0.85 correlation across:
-- GUI scale 0.9, 1.1
-- Cross-resolution (1280x720 from 1920x1080 source)
-- Brightness shifts ±20%
-- Gaussian noise σ=5
+P0.3 RESULT (2026-04-14): **2/5 PASS only**. Scale 0.9 → 0.52 correlation, Scale 1.1 → 0.73, Cross-resolution 1280x720 → 0.44. Plain `cv2.matchTemplate` is brittle as flagged.
 
-If P0.3 fails on any axis, the YAML approach above is brittle and Track A needs pyramid-match hardening or a learned anchor detector.
+**The pyramid-scale claim above is unverified**: this spec proposes pyramid scales 0.8, 0.9, 1.0, 1.1, 1.2 will recover, but it has not been benchmarked. Direction of perturbation matters — pyramid-matching the *template* against the *fixed target* tests one direction; pyramid-matching the target against a fixed template tests the other; the stress benchmark only tested 1 of these. Pyramid is plausible but not proven.
+
+**Stress test also missed three failure modes** the investigation report flagged but P0.3 ignored:
+- **GUI overlay** (chat box, F3 debug, kill feed, death screen) covering parts of the template
+- **Inventory contents change** — current template span (847,295)-(1716,700) covers the 2x2 craft grid; the test fixtures had it empty, but a real session has items in slots that perturb the template
+- **Translucent / tooltip overlay** (hovering a slot spawns a tooltip over adjacent slots)
+
+**Required follow-up before Track A code** (not in current scope):
+1. Build a 30-fixture stress battery covering scale, resolution, GUI overlay, inventory content, tooltip
+2. Implement pyramid-scale matcher and re-run on that battery
+3. Track A is NOT ready until the battery passes ≥0.85 correlation on ≥80% of fixtures
+
+If pyramid still fails after that work, fall back to feature-based matching (SIFT/ORB) or a small learned anchor detector. Either is a 1-2 day spike.
 
 ---
 
@@ -181,7 +206,9 @@ else:
     emit Detection(cls='slot_unknown_content', bbox=slot_bbox, conf=0.5, producer='cv')
 ```
 
-**Cost**: ~600 sprites × 18x18 px template match × N slots per frame. With C-optimized cv2 + integral image: ~10–30ms total per frame even for full inventory. Acceptable.
+**Cost (UNBENCHMARKED — flagged by adversarial audit Q5)**: full inventory = 36 main + 9 hotbar + 4 craft = 49 slots minimum. 600 sprites × 49 slots = 29,400 template invocations per frame. Even though each is on an 18x18 region, the Python-loop overhead dominates. The previous "10–30ms" estimate was vibes, not a benchmark — likely 100ms+ in practice.
+
+**Required PoC before this approach is committed**: a 200-iteration micro-benchmark that loads a sprite library and runs all-vs-all match on a real inventory crop, reporting actual P50/P90 latency. If >50ms per frame at full inventory, fall back to either: (a) per-slot mode where only changed slots are re-classified frame-to-frame (cache last result + delta), or (b) a small CNN classifier head trained on the sprite library (~5MB model, <5ms forward).
 
 **Coverage**: works for vanilla items only. Mods / resource packs / enchanted items (with overlay glint) need `score > 0.85` and metadata flagging.
 

@@ -7,7 +7,7 @@
   "torch_version": "2.9.1+cu128",
   "vram_total_gb": 34.19,
   "vram_after_load_gb": 0.69,
-  "vram_peak_gb": 2.04,
+  "vram_peak_gb": 2.05,
   "n_warmup": 100,
   "n_timed": 100,
   "fixtures_used": [
@@ -23,16 +23,37 @@
     "task8.png",
     "task9.png"
   ],
-  "prompt": "tree . oak_log . leaves . grass_block . stone . iron_ore . crafting_table . cow . zombie . creeper",
+  "prompts": {
+    "world": "tree . oak_log . leaves . grass_block . stone . iron_ore . crafting_table . cow . zombie . creeper",
+    "ui": "inventory_grid . crafting_grid_2x2 . crafting_grid_3x3 . hotbar . inventory_slot . item_in_slot . output_slot",
+    "hud": "health_bar . hunger_bar . xp_bar"
+  },
   "latency_ms": {
-    "p50": 75.18,
-    "p90": 79.44,
-    "p95": 80.1,
-    "mean": 75.73,
-    "max": 84.27,
-    "min": 71.16
+    "p50": 215.72,
+    "p90": 229.03,
+    "p95": 232.1,
+    "mean": 218.16,
+    "max": 332.45,
+    "min": 206.35
+  },
+  "latency_ms_single_pass": {
+    "p50": 71.74,
+    "p90": 75.4,
+    "p95": 78.52,
+    "mean": 72.16,
+    "max": 85.39,
+    "min": 67.71
+  },
+  "latency_ms_multi_pass": {
+    "p50": 215.72,
+    "p90": 229.03,
+    "p95": 232.1,
+    "mean": 218.16,
+    "max": 332.45,
+    "min": 206.35
   },
   "gate_p90_ms": 200.0,
-  "gate_status": "PASS",
-  "notes": "Round-robin over fixtures with per-call torch.cuda.synchronize() bracketing the forward pass. Includes processor() preprocessing cost per call to mimic Phase 2 frame ingestion. Compare against HF issue #31533 reports of 378-528ms on consumer GPUs."
+  "gate_status": "FAIL",
+  "gate_basis": "multi-pass (3 prompt groups, mirrors eval_harness --all-classes)",
+  "notes": "Two distributions reported. SINGLE-PASS = world group only, the Day-1-style measurement that gave a misleadingly low p90. MULTI-PASS = sum of forwards on all 3 groups (world+ui+hud), mirrors eval_harness --all-classes worst-case for a mixed-scene frame (inventory open + HUD visible + world entities). The gate is evaluated against multi-pass because that is the realistic Phase 2 production cost. HF issue #31533 reports 378-528ms on consumer GPUs (single forward) \u2014 sm_120 5090 well below that."
 }
