@@ -38,7 +38,7 @@ What's **under-supported** is the narrative that this generalizes to Sean's actu
 2. **Slot-coord math generalization**: calibration YAML covers *one* resolution. Producing coords for 2x2, 3x3, furnace, chest, anvil, etc. — each is a separate template + slot-grid spec. Minecraft has ~15 GUI types.
 3. **Item-in-slot sprite matching**: once you have slot bboxes from CV, you still need to classify what's inside (is this coal or iron? oak_log or spruce_log?). That's a second CV/VLM subsystem not currently scoped in Track A.
 4. **Fail-open behavior**: what happens when template correlation is 0.75 (ambiguous)? Fall back to GD? VLM? Raise exception? Each branch needs unit tests.
-5. **Integration surface with Layer 2 Qwen3-VL**: the handoff contract (what fields, what coordinate frame, what confidence semantics) isn't designed yet.
+5. **Integration surface with Layer 2 gemma4**: the handoff contract (what fields, what coordinate frame, what confidence semantics) isn't designed yet.
 
 Realistic: **3–4 days** for a defensible Track A, not 2. Sean should budget the slip explicitly.
 
@@ -86,7 +86,7 @@ External dependencies right now:
 
 **Watch items**:
 1. **Grounding DINO 1.5 Pro** is API-only (no weights). If the pivot drifts toward "let's just try GD-1.5-Pro to see if it's better" that's a metered API — price not published, but in DINO-X/DINO-Edge family it's been quoted ~$0.001–0.01/image. At 5 FPS × 8h session that's $144–1440/day. **Hard no.**
-2. **Qwen3-VL online variants** (via Alibaba cloud) would be the same trap. Stay on local `qwen3-vl:8b-instruct-q4_K_M` as locked in C-0.
+2. **Cloud VLM variants** (Qwen online / Gemini / etc.) would be the same trap. Stay on local `gemma4:26b-a4b-it-q4_K_M` as locked per docs/MODEL_DECISION.md.
 3. Claude API (Layer 3 brain) is Max-Plan allowance — effectively free *if* we stay in-budget. At sustained 2-second-cycle brain calls this could hit Max limits. Need a rate-limit story before live play.
 
 **Action**: add a CI guardrail that fails the build if any `http.*api.*dino|openai|anthropic|alibaba` URL appears in Layer 1/2 code paths. Fence the cost surface in code, not policy.
@@ -97,7 +97,7 @@ External dependencies right now:
 
 1. **We haven't measured latency yet.** Gate says p90 ≤ 200ms on 5090. 12 commits, no latency.json in `reports/`. If GD HF port hits the documented 378–528ms (issue #31533), we're already blown past the gate even before the pivot. **Run this benchmark in the next session before anything else.**
 
-2. **VRAM co-load not tested.** Gate says peak <28GB with GD + Qwen3-VL 8B q4_K_M loaded simultaneously. Evidence in reports/ is GD-only. We don't know if warm co-residency causes fragmentation, allocator thrash, or OOM under sustained load.
+2. **VRAM co-load not tested.** Gate says peak <28GB with GD + gemma4 26B MoE q4_K_M loaded simultaneously. Evidence in reports/ is GD-only. We don't know if warm co-residency causes fragmentation, allocator thrash, or OOM under sustained load.
 
 3. **Supervision / ByteTrack leak (#1164) unaddressed.** Research flagged it; spike code doesn't use Supervision yet so the leak surfaces only in Phase 2. If Track A ships without a tracker-reset story, hour-long sessions will OOM silently.
 
@@ -110,7 +110,7 @@ External dependencies right now:
 ## Action items for next session
 
 - [ ] **Run latency benchmark first** — 100 frames, warmup 10, report P50/P90/P95. Gate-blocking.
-- [ ] **Run VRAM co-load test** — GD-tiny + Qwen3-VL 8B simultaneously, 10min sustained, nvidia-smi log. Gate-blocking.
+- [ ] **Run VRAM co-load test** — GD-tiny + gemma4 26B MoE simultaneously, 10min sustained, nvidia-smi log. Gate-blocking.
 - [ ] **Stress-test template PoC**: add 5 perturbed fixtures (GUI scale change, different inventory contents, different resolution) and re-run. If correlation drops below 0.85 on any, the PoC is not ready.
 - [ ] **Capture 10 Delta Force fixtures + label 3 classes**, run existing eval harness. This is the *actual* Track D feasibility signal, not research speculation.
 - [ ] **Fence cost surface**: CI check that blocks external-API URLs in perception layer.

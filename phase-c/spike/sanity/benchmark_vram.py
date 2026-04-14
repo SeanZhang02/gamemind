@@ -2,16 +2,18 @@
 
 Purpose: validate the **co-load VRAM gate** of `phase-c/spike/README.md`:
 
-    Peak VRAM < 28 GB with Grounding DINO-tiny + Qwen3-VL 8B q4_K_M
+    Peak VRAM < 28 GB with Grounding DINO-tiny + gemma4 26B-a4b q4_K_M
     co-loaded on RTX 5090 32GB, sustained for 10 minutes of alternating
     inference.
 
 Why this matters: the two-layer hybrid perception design (final-design.md)
 assumes both models can be resident simultaneously. We have measured
-GD-tiny alone at 2.11 GB peak (Day 1 sanity) and Ollama documents
-qwen3-vl:8b q4_K_M as ~6 GB, but **fragmentation, allocator thrash, and
-KV cache growth under sustained alternation are unmeasured**. This is the
-last gate before Phase 2 commits to the architecture.
+GD-tiny alone at 2.11 GB peak (Day 1 sanity) and gemma4 26b-a4b q4_K_M is
+~17 GB on disk (Ollama runtime adds ~10 GB overhead per empirical qwen3
+baseline) — projected co-load ~29-30 GB against 28 GB gate. Actual
+**fragmentation, allocator thrash, and KV cache growth under sustained
+alternation are unmeasured**. This is the last gate before Phase 2 commits
+to the architecture.
 
 Procedure
 ---------
@@ -60,7 +62,7 @@ from typing import Any
 # ---- Configuration -----------------------------------------------------------
 
 OLLAMA_HOST = "http://localhost:11434"
-OLLAMA_MODEL = "qwen3-vl:8b-instruct-q4_K_M"
+OLLAMA_MODEL = "gemma4:26b-a4b-it-q4_K_M"
 GD_MODEL = "IDEA-Research/grounding-dino-tiny"
 GD_PROMPTS = "tree . cow . oak_log . inventory slot"
 
@@ -232,8 +234,8 @@ def main() -> int:
     torch.cuda.synchronize()
     after_gd_mb = sample("after_gd_load")
 
-    # ---- Stage 3: load Qwen3-VL via Ollama ----
-    print(f"[t={t_s():.1f}] triggering Ollama qwen3-vl load (first vision request)...")
+    # ---- Stage 3: load gemma4 via Ollama ----
+    print(f"[t={t_s():.1f}] triggering Ollama gemma4 load (first vision request)...")
     with fixtures[0].open("rb") as f:
         warm_b64 = base64.b64encode(f.read()).decode("ascii")
     cold_t0 = time.perf_counter()

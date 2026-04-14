@@ -6,7 +6,7 @@
 - World detection precision >= 0.5 @ IoU 0.5 on hand-labeled fixture set
 - UI detection "at least localizable" OR CV fallback viable
 - Inference latency p90 <= 200 ms/frame on RTX 5090
-- Peak VRAM < 28 GB with GD + Qwen3-VL 8B co-loaded
+- Peak VRAM < 28 GB with GD + gemma4 26B MoE q4_K_M co-loaded (Layer 1 per docs/MODEL_DECISION.md)
 
 **Kill-switch**: if world precision < 0.5 after 2 days → pivot to OWLv2 / Florence-2 / fine-tuned YOLO
 

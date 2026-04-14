@@ -95,7 +95,7 @@ If a class's canonical producer is silent and the secondary producer fires, the 
 
 Layer 2/3 read `metadata.fallthrough` directly to apply per-class fall-back policy (e.g. "if `inventory_grid` came from GD not CV, queue VLM verification before acting on slot positions"). Penalty math is producer-internal only (CV uses correlation, GD uses logit-derived prob — both already calibrated within their domain).
 
-This is the **degradation signal** for Layer 2 (Qwen3-VL) and Layer 3 (Brain).
+This is the **degradation signal** for Layer 2 (gemma4) and Layer 3 (Brain).
 
 ---
 
@@ -220,7 +220,7 @@ Stack count digits in slot corners are pixel-perfect. Run cv2 + tesseract on the
 
 ### Option C: VLM fallback for unknowns
 
-When sprite library returns `slot_unknown_content`, queue the slot crop for Layer 2 Qwen3-VL with prompt: "What single Minecraft item is shown in this 18x18 icon? One word answer." Cache results by sprite hash to avoid re-querying.
+When sprite library returns `slot_unknown_content`, queue the slot crop for Layer 2 gemma4 with prompt: "What single Minecraft item is shown in this 18x18 icon? One word answer." Cache results by sprite hash to avoid re-querying.
 
 **Recommended Track A scope**: implement A + B in adapter YAML; defer C to Phase 2 because it crosses Layer 1/2 boundary.
 
@@ -248,7 +248,7 @@ What happens at each ambiguity boundary:
 
 ---
 
-## 6. Layer 2 (Qwen3-VL) handoff contract
+## 6. Layer 2 (gemma4) handoff contract
 
 Layer 1 → Layer 2 interface:
 

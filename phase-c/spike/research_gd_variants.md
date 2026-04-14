@@ -12,7 +12,7 @@
 Recommend **`IDEA-Research/grounding-dino-tiny`** (HF transformers integration) as the Phase 1 default, with `owlv2-base-patch16-ensemble` kept as a fast-swap fallback. The tiny variant is the pragmatic choice because:
 
 1. There is **no public zero-shot benchmark on Minecraft or voxel/pixel-art imagery** for any of these models — tiny vs base accuracy gap on the narrow prompt set (`tree`, `cow`, `oak_log`, `inventory slot`) is an empirical unknown, not a known quantity.
-2. Tiny's ~2GB VRAM and faster inference leaves headroom for the Layer-2 Qwen3-VL on the same 32GB card; base gives us a marginal COCO mAP bump that may or may not translate to Minecraft.
+2. Tiny's ~2GB VRAM and faster inference leaves headroom for Layer-2 VLM (now gemma4 26B MoE per docs/MODEL_DECISION.md) on the same 32GB card; base gives us a marginal COCO mAP bump that may or may not translate to Minecraft.
 3. HF transformers integration sidesteps the CUDA ops compilation patch that the official IDEA repo requires on Blackwell (documented Linux pain; Windows is untested).
 4. Florence-2 has an `<OPEN_VOCABULARY_DETECTION>` task token but no public benchmarks against GD/OWLv2 on game content — parked as third option.
 
@@ -180,7 +180,7 @@ If nightly wheel is not available for Python 3.11 Windows cu128, fall back to WS
 4. **Per-frame latency P50/P95** at our actual input resolution (Minecraft window size — likely 1920×1080 downsampled to 800×800 or 640×640). (Performance budget.)
 5. **Supervision + ByteTrack on Windows install clean** (no C compiler required). (Tooling survivability.)
 6. **UI element detection failure mode**: does GD output anything sensible for `inventory slot`, or does it produce random garbage? This is the Layer-1 → Layer-2 handoff assumption. If GD cannot localize UI at all, the whole two-layer architecture needs revisiting before Phase 2.
-7. **VRAM footprint under real load**: model + CUDA context + Minecraft running on same box. Budget assumes ~2GB for GD-tiny; Minecraft itself can use 4–8GB if GPU-accelerated rendering. Verify combined headroom leaves room for Qwen3-VL 8B q4_K_M (~6GB).
+7. **VRAM footprint under real load**: model + CUDA context + Minecraft running on same box. Budget assumes ~2GB for GD-tiny; Minecraft itself can use 4–8GB if GPU-accelerated rendering. Verify combined headroom leaves room for gemma4:26b-a4b-it-q4_K_M (~17GB on disk + Ollama runtime overhead).
 8. **Long-session memory stability**: ByteTrack #1164 leak over a 1-hour session.
 
 ### Kill-switch criteria (when to abandon GD and try alternatives)
