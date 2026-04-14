@@ -1,0 +1,116 @@
+# Calibration constants extracted from Sean's verification of task1/4/6/9/10
+# (2026-04-14). Resolution: 2560x1400 Minecraft window.
+#
+# Use these as pre-fill bboxes for any world-view fixture at same resolution.
+# HUD elements stay in fixed positions across all fixtures where the game
+# is in first-person mode (not in inventory UI).
+
+resolution:
+  width: 2560
+  height: 1400
+
+# ============================================================
+# HUD — constant across all world-view fixtures
+# ============================================================
+hud_world_view:
+  health_bar:
+    bbox: [[820, 1194], [1234, 1250]]   # 10 hearts, full HP
+    size: [410, 56]
+  hunger_bar:
+    bbox: [[1327, 1193], [1735, 1252]]  # 10 drumsticks
+    size: [407, 57]
+  hotbar:
+    bbox: [[824, 1285], [1735, 1393]]   # 9-slot row at bottom of screen
+    size: [910, 108]
+
+# Individual hotbar slots — use when items are present
+# slot N (1-indexed from left): x_start = 831 + (N-1)*101
+hotbar_slot:
+  size: [93, 93]
+  y: [1290, 1383]
+  x_starts:
+    1: 831
+    2: 932
+    3: 1032
+    4: 1133
+    5: 1234
+    6: 1335
+    7: 1436
+    8: 1537
+    9: 1638
+
+# ============================================================
+# Inventory UI (when E key opens inventory) — task4 reference
+# ============================================================
+inventory_ui:
+  # Outer UI panel (the entire gray background)
+  inventory_grid:
+    bbox: [[847, 295], [1716, 1118]]
+    size: [868, 822]
+
+  # Inside the inventory UI, 2x2 crafting grid (top-right)
+  crafting_grid_2x2:
+    bbox: [[1322, 376], [1505, 558]]
+    size: [183, 181]
+
+  # Output slot — right of the arrow
+  output_slot:
+    bbox: [[1601, 426], [1700, 520]]
+    size: [99, 94]
+
+  # Main 3x9 inventory grid (middle-to-bottom of UI)
+  inventory_main_slot:
+    bbox: [[872, 707], [1686, 977]]
+    size: [813, 269]
+
+  # Hotbar row within inventory UI (distinct from world-view hotbar position)
+  inventory_hotbar:
+    bbox: [[871, 990], [1690, 1097]]
+    size: [819, 107]
+
+  # Individual inventory UI slots (slightly smaller than world-view hotbar)
+  ui_slot:
+    size: [85, 80]  # smaller than world hotbar slot
+
+# ============================================================
+# World objects — variable by scene. Examples below.
+# ============================================================
+world_objects_examples:
+  oak_log_trunk_close:    # task10: zoomed-in trunk being mined
+    size_range: [[400, 600], [1100, 1300]]  # narrow + tall
+  oak_log_single_block:   # task1: single stump face-on
+    size_range: [[230, 260], [750, 800]]
+  crafting_table_placed:  # task6: placed block on ground
+    size_range: [[370, 400], [360, 400]]
+  crafting_table_zoomed:  # task9: closer bottom-left view
+    size_range: [[670, 700], [550, 600]]
+  wooden_pickaxe_held:    # task9/10: pickaxe in hand bottom-right
+    bbox_approx: [[1950, 750], [2560, 1400]]
+    size_range: [[580, 650], [470, 670]]
+
+# ============================================================
+# Environmental regions — approximate, wide coverage
+# ============================================================
+environmental:
+  grass_block:
+    # Ground strip, varies by vertical camera angle
+    x_range: [0, 2560]
+    y_range_varies_by_view:
+      standing_look_forward: [820, 1260]
+      looking_down: [500, 1260]
+      tree_close_up: [1000, 1260]  # visible as thin strip
+  leaves:
+    # Upper canopy, varies by tree density
+    x_range: [0, 2560]
+    y_range_varies: [20, 700]  # can be quite deep in dense forest
+
+# ============================================================
+# Main-agent calibration learnings (improves next pre-labels)
+# ============================================================
+_learnings_from_sean_edits_20260414:
+  - "My UI bboxes were 5-15% too large on outer edges; Sean's are tight to chrome"
+  - "Output slot position: RIGHT of arrow sprite, not on arrow — I shifted wrong by 120 px"
+  - "Tree bbox size varies DRAMATICALLY by camera distance; don't use a fixed size estimate"
+  - "HUD positions invariant across fixtures — just copy constants"
+  - "Hotbar slot size 93x93 (world) vs 85x80 (inventory UI) — distinct slot types"
+  - "Pickaxe held in hand extends higher than I estimated — starts ~y=750 not y=1040"
