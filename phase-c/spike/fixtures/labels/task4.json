@@ -1,57 +1,136 @@
 {
   "version": "5.5.0",
   "flags": {},
-  "imagePath": "../task4.png",
-  "imageWidth": 2560,
-  "imageHeight": 1400,
-  "_annotator": "main-agent-pre-label-via-read",
-  "_source_fixture": "phase-c/spike/fixtures/task4.png",
-  "_scene_type": "UI — inventory with 2x2 crafting (oak_log → oak_planks)",
-  "_task_phase": "4 — crafting planks from logs",
-  "_confidence_notes": "inventory_grid outer bounds HIGH; 2x2 crafting_grid position HIGH; output_slot HIGH (critical for Motor click accuracy). Individual item_in_slot bboxes are approximate — 2x2 slots are tiny (~80x80 px at 2560 res).",
-  "_verified_by_sean": false,
   "shapes": [
     {
       "label": "inventory_grid",
-      "points": [[760, 260], [1870, 1090]],
+      "points": [
+        [
+          760,
+          260
+        ],
+        [
+          1870,
+          1090
+        ]
+      ],
+      "group_id": null,
+      "description": "Whole inventory UI panel",
       "shape_type": "rectangle",
-      "notes": "Whole inventory UI panel"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "crafting_grid_2x2",
-      "points": [[1410, 340], [1600, 490]],
+      "points": [
+        [
+          1410,
+          340
+        ],
+        [
+          1600,
+          490
+        ]
+      ],
+      "group_id": null,
+      "description": "2x2 crafting input (top-right of inventory UI)",
       "shape_type": "rectangle",
-      "notes": "2x2 crafting input (top-right of inventory UI)"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "output_slot",
-      "points": [[1720, 360], [1820, 460]],
+      "points": [
+        [
+          1720,
+          360
+        ],
+        [
+          1820,
+          460
+        ]
+      ],
+      "group_id": null,
+      "description": "Crafting output slot (right of arrow) — CRITICAL for Motor click target",
       "shape_type": "rectangle",
-      "notes": "Crafting output slot (right of arrow) — CRITICAL for Motor click target"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "item_in_slot",
-      "points": [[1415, 345], [1500, 425]],
+      "points": [
+        [
+          1415,
+          345
+        ],
+        [
+          1500,
+          425
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_log placed in 2x2 top-left slot (count visible)",
       "shape_type": "rectangle",
-      "notes": "oak_log placed in 2x2 top-left slot (count visible)"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "item_in_slot",
-      "points": [[1730, 370], [1815, 450]],
+      "points": [
+        [
+          1730,
+          370
+        ],
+        [
+          1815,
+          450
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_planks in output slot (4 planks)",
       "shape_type": "rectangle",
-      "notes": "oak_planks in output slot (4 planks)"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "inventory_slot",
-      "points": [[800, 680], [1870, 940]],
+      "points": [
+        [
+          800,
+          680
+        ],
+        [
+          1870,
+          940
+        ]
+      ],
+      "group_id": null,
+      "description": "Main 3x9 inventory grid region (empty)",
       "shape_type": "rectangle",
-      "notes": "Main 3x9 inventory grid region (empty)"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "hotbar",
-      "points": [[800, 980], [1870, 1060]],
+      "points": [
+        [
+          800,
+          980
+        ],
+        [
+          1870,
+          1060
+        ]
+      ],
+      "group_id": null,
+      "description": "Hotbar row within inventory UI panel (empty)",
       "shape_type": "rectangle",
-      "notes": "Hotbar row within inventory UI panel (empty)"
+      "flags": {},
+      "mask": null
     }
-  ]
+  ],
+  "imagePath": "../task4.png",
+  "imageData": null,
+  "imageHeight": 1400,
+  "imageWidth": 2560
 }

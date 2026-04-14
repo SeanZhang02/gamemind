@@ -1,82 +1,226 @@
 {
   "version": "5.5.0",
   "flags": {},
-  "imagePath": "../task10.png",
-  "imageWidth": 2560,
-  "imageHeight": 1400,
-  "_annotator": "main-agent-pre-label-via-read",
-  "_source_fixture": "phase-c/spike/fixtures/task10.png",
-  "_scene_type": "world — mining oak_log with wooden_pickaxe mid-animation",
-  "_task_phase": "10 — final step: pickaxe mining wood",
-  "_confidence_notes": "Foreground oak_log trunk is the crosshair target — bbox HIGH. Mining crack overlay is a separate perceptual concept (animation artifact) — I labeled as a sub-region 'mining_crack' which is NOT in prompts.yaml vocab (flagging for discussion). wooden_pickaxe in-hand position HIGH.",
-  "_verified_by_sean": false,
   "shapes": [
     {
       "label": "oak_log",
-      "points": [[780, 0], [1580, 1120]],
+      "points": [
+        [
+          780,
+          0
+        ],
+        [
+          1580,
+          1120
+        ]
+      ],
+      "group_id": null,
+      "description": "Foreground tree trunk being mined, crosshair target. Multi-block trunk (log pile).",
       "shape_type": "rectangle",
-      "notes": "Foreground tree trunk being mined, crosshair target. Multi-block trunk (log pile)."
+      "flags": {},
+      "mask": null
     },
     {
       "label": "wooden_pickaxe",
-      "points": [[1900, 1040], [2560, 1400]],
+      "points": [
+        [
+          1900,
+          1040
+        ],
+        [
+          2560,
+          1400
+        ]
+      ],
+      "group_id": null,
+      "description": "Pickaxe held in hand (bottom-right)",
       "shape_type": "rectangle",
-      "notes": "Pickaxe held in hand (bottom-right)"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "tree",
-      "points": [[100, 500], [320, 1000]],
+      "points": [
+        [
+          100,
+          500
+        ],
+        [
+          320,
+          1000
+        ]
+      ],
+      "group_id": null,
+      "description": "Distant birch tree left",
       "shape_type": "rectangle",
-      "notes": "Distant birch tree left"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "tree",
-      "points": [[1660, 520], [1900, 1000]],
+      "points": [
+        [
+          1660,
+          520
+        ],
+        [
+          1900,
+          1000
+        ]
+      ],
+      "group_id": null,
+      "description": "Distant birch tree right",
       "shape_type": "rectangle",
-      "notes": "Distant birch tree right"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "leaves",
-      "points": [[0, 0], [2560, 400]],
-      "shape_type": "rectangle"
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          2560,
+          400
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
     },
     {
       "label": "grass_block",
-      "points": [[0, 1000], [2560, 1260]],
-      "shape_type": "rectangle"
+      "points": [
+        [
+          0,
+          1000
+        ],
+        [
+          2560,
+          1260
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
     },
     {
       "label": "hotbar",
-      "points": [[920, 1210], [1750, 1310]],
-      "shape_type": "rectangle"
+      "points": [
+        [
+          920,
+          1210
+        ],
+        [
+          1750,
+          1310
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
     },
     {
       "label": "item_in_slot",
-      "points": [[925, 1215], [1018, 1308]],
+      "points": [
+        [
+          925,
+          1215
+        ],
+        [
+          1018,
+          1308
+        ]
+      ],
+      "group_id": null,
+      "description": "crafting_table x5",
       "shape_type": "rectangle",
-      "notes": "crafting_table x5"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "item_in_slot",
-      "points": [[1028, 1215], [1120, 1308]],
+      "points": [
+        [
+          1028,
+          1215
+        ],
+        [
+          1120,
+          1308
+        ]
+      ],
+      "group_id": null,
+      "description": "stick x6",
       "shape_type": "rectangle",
-      "notes": "stick x6"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "item_in_slot",
-      "points": [[1130, 1215], [1222, 1308]],
+      "points": [
+        [
+          1130,
+          1215
+        ],
+        [
+          1222,
+          1308
+        ]
+      ],
+      "group_id": null,
+      "description": "wooden_pickaxe (selected, still held)",
       "shape_type": "rectangle",
-      "notes": "wooden_pickaxe (selected, still held)"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "health_bar",
-      "points": [[990, 1130], [1340, 1180]],
-      "shape_type": "rectangle"
+      "points": [
+        [
+          990,
+          1130
+        ],
+        [
+          1340,
+          1180
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
     },
     {
       "label": "hunger_bar",
-      "points": [[1380, 1130], [1720, 1180]],
-      "shape_type": "rectangle"
+      "points": [
+        [
+          1380,
+          1130
+        ],
+        [
+          1720,
+          1180
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
     }
-  ]
+  ],
+  "imagePath": "../task10.png",
+  "imageData": null,
+  "imageHeight": 1400,
+  "imageWidth": 2560
 }

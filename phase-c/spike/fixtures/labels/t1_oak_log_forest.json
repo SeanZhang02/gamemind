@@ -1,61 +1,154 @@
 {
   "version": "5.5.0",
   "flags": {},
-  "imagePath": "../../../phase-c-0/fixtures/t1_oak_log_forest.png",
-  "imageWidth": 1919,
-  "imageHeight": 1079,
-  "_annotator": "main-agent-pre-label-via-read",
-  "_source_fixture": "phase-c-0/fixtures/t1_oak_log_forest.png",
-  "_confidence": "high for oak_log and HUD elements; medium for tree composition (semantic boundary blurry between tree/leaves/oak_log)",
-  "_verified_by_sean": false,
   "shapes": [
     {
       "label": "oak_log",
-      "points": [[720, 360], [1130, 780]],
+      "points": [
+        [
+          720,
+          360
+        ],
+        [
+          1130,
+          780
+        ]
+      ],
+      "group_id": null,
+      "description": "Center foreground block the crosshair points at — the stump shown face-on with tree rings on top",
       "shape_type": "rectangle",
-      "notes": "Center foreground block the crosshair points at — the stump shown face-on with tree rings on top"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "leaves",
-      "points": [[0, 0], [1919, 380]],
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          1919,
+          380
+        ]
+      ],
+      "group_id": null,
+      "description": "Top canopy, darker green leaves spanning the upper third",
       "shape_type": "rectangle",
-      "notes": "Top canopy, darker green leaves spanning the upper third"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "tree",
-      "points": [[0, 250], [380, 900]],
+      "points": [
+        [
+          0,
+          250
+        ],
+        [
+          380,
+          900
+        ]
+      ],
+      "group_id": null,
+      "description": "Left-background tree trunk (another tree behind the stump)",
       "shape_type": "rectangle",
-      "notes": "Left-background tree trunk (another tree behind the stump)"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "tree",
-      "points": [[1280, 620], [1919, 1079]],
+      "points": [
+        [
+          1280,
+          620
+        ],
+        [
+          1919,
+          1079
+        ]
+      ],
+      "group_id": null,
+      "description": "Right-foreground tree trunk (dark wood, partial view)",
       "shape_type": "rectangle",
-      "notes": "Right-foreground tree trunk (dark wood, partial view)"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "grass_block",
-      "points": [[300, 400], [1919, 700]],
+      "points": [
+        [
+          300,
+          400
+        ],
+        [
+          1919,
+          700
+        ]
+      ],
+      "group_id": null,
+      "description": "Green grass ground surrounding the stump",
       "shape_type": "rectangle",
-      "notes": "Green grass ground surrounding the stump"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "health_bar",
-      "points": [[400, 670], [620, 710]],
+      "points": [
+        [
+          400,
+          670
+        ],
+        [
+          620,
+          710
+        ]
+      ],
+      "group_id": null,
+      "description": "Hearts icons row in HUD",
       "shape_type": "rectangle",
-      "notes": "Hearts icons row in HUD"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "hunger_bar",
-      "points": [[1040, 670], [1260, 710]],
+      "points": [
+        [
+          1040,
+          670
+        ],
+        [
+          1260,
+          710
+        ]
+      ],
+      "group_id": null,
+      "description": "Drumstick icons row in HUD",
       "shape_type": "rectangle",
-      "notes": "Drumstick icons row in HUD"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "hotbar",
-      "points": [[330, 730], [1270, 795]],
+      "points": [
+        [
+          330,
+          730
+        ],
+        [
+          1270,
+          795
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom hotbar row — all 9 slots visible (empty)",
       "shape_type": "rectangle",
-      "notes": "Bottom hotbar row — all 9 slots visible (empty)"
+      "flags": {},
+      "mask": null
     }
-  ]
+  ],
+  "imagePath": "../t1_oak_log_forest.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
 }

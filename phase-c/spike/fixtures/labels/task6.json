@@ -1,67 +1,172 @@
 {
   "version": "5.5.0",
   "flags": {},
-  "imagePath": "../task6.png",
-  "imageWidth": 2560,
-  "imageHeight": 1400,
-  "_annotator": "main-agent-pre-label-via-read",
-  "_source_fixture": "phase-c/spike/fixtures/task6.png",
-  "_scene_type": "world — placed crafting_table block, pre-interaction",
-  "_task_phase": "6 — crafting_table placed on ground",
-  "_confidence_notes": "crafting_table bbox HIGH (isolated block, centered, clear). Secondary trees MEDIUM. HUD elements standard layout.",
-  "_verified_by_sean": false,
   "shapes": [
     {
       "label": "crafting_table",
-      "points": [[1060, 540], [1450, 930]],
+      "points": [
+        [
+          1060,
+          540
+        ],
+        [
+          1450,
+          930
+        ]
+      ],
+      "group_id": null,
+      "description": "Placed crafting_table block, centered foreground",
       "shape_type": "rectangle",
-      "notes": "Placed crafting_table block, centered foreground"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "tree",
-      "points": [[0, 280], [380, 920]],
+      "points": [
+        [
+          0,
+          280
+        ],
+        [
+          380,
+          920
+        ]
+      ],
+      "group_id": null,
+      "description": "Left-background birch tree",
       "shape_type": "rectangle",
-      "notes": "Left-background birch tree"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "tree",
-      "points": [[1900, 340], [2200, 900]],
+      "points": [
+        [
+          1900,
+          340
+        ],
+        [
+          2200,
+          900
+        ]
+      ],
+      "group_id": null,
+      "description": "Right-background birch tree",
       "shape_type": "rectangle",
-      "notes": "Right-background birch tree"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "grass_block",
-      "points": [[0, 900], [2560, 1260]],
+      "points": [
+        [
+          0,
+          900
+        ],
+        [
+          2560,
+          1260
+        ]
+      ],
+      "group_id": null,
+      "description": "Grass ground",
       "shape_type": "rectangle",
-      "notes": "Grass ground"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "leaves",
-      "points": [[0, 0], [2560, 380]],
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          2560,
+          380
+        ]
+      ],
+      "group_id": null,
+      "description": "Upper canopy",
       "shape_type": "rectangle",
-      "notes": "Upper canopy"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "hotbar",
-      "points": [[920, 1210], [1750, 1310]],
+      "points": [
+        [
+          920,
+          1210
+        ],
+        [
+          1750,
+          1310
+        ]
+      ],
+      "group_id": null,
+      "description": "Hotbar with oak_log x12 in slot 1",
       "shape_type": "rectangle",
-      "notes": "Hotbar with oak_log x12 in slot 1"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "item_in_slot",
-      "points": [[925, 1215], [1018, 1308]],
+      "points": [
+        [
+          925,
+          1215
+        ],
+        [
+          1018,
+          1308
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_log stack ('12' count visible) in hotbar slot 1",
       "shape_type": "rectangle",
-      "notes": "oak_log stack ('12' count visible) in hotbar slot 1"
+      "flags": {},
+      "mask": null
     },
     {
       "label": "health_bar",
-      "points": [[990, 1130], [1340, 1180]],
-      "shape_type": "rectangle"
+      "points": [
+        [
+          990,
+          1130
+        ],
+        [
+          1340,
+          1180
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
     },
     {
       "label": "hunger_bar",
-      "points": [[1380, 1130], [1720, 1180]],
-      "shape_type": "rectangle"
+      "points": [
+        [
+          1380,
+          1130
+        ],
+        [
+          1720,
+          1180
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
     }
-  ]
+  ],
+  "imagePath": "../task6.png",
+  "imageData": null,
+  "imageHeight": 1400,
+  "imageWidth": 2560
 }
