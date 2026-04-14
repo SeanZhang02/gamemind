@@ -96,7 +96,7 @@ jobs:
         run: |
           echo "phase-c-0-regression is in placeholder mode."
           echo "When a Windows self-hosted runner is available, this step runs:"
-          echo "  uv run python -m probe.run --model qwen3-vl:8b-instruct-q4_K_M"
+          echo "  uv run python -m probe.run --model gemma4:26b-a4b-it-q4_K_M"
           echo "with gates T1>=50%, T3>=70%, T4>=70%, p90<=1500ms, JSON>=95%."
           echo ""
           echo "To enable:"

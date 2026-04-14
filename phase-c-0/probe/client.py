@@ -22,8 +22,10 @@ DEFAULT_HOST = "http://127.0.0.1:11434"
 # Default model is gemma4:26b-a4b-it-q4_K_M per 2026-04-13 swap (commit 7cc5c40).
 # See docs/MODEL_DECISION.md for the authority. Historical: C-0 probe on
 # qwen3-vl-8b-instruct yielded T1 83.3% / p90 1353ms; gemma4 re-probe yielded
-# T1 100% / p90 721ms. qwen3-vl:8b and qwen2.5vl:7b are retained in Ollama as
-# regression baselines only; pass --model explicitly to use either.
+# T1 100% / p90 721ms. Prior qwen VLM tags were removed from local Ollama on
+# 2026-04-14 to reclaim disk + VRAM; to run the qwen regression baseline again,
+# re-pull the tag via `ollama pull qwen3-vl:8b-instruct-q4_K_M` and pass
+# --model explicitly.
 DEFAULT_MODEL = "gemma4:26b-a4b-it-q4_K_M"
 
 

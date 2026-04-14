@@ -1,5 +1,12 @@
 # Phase C-0 Fixtures — Labeling Guide
 
+> **Model note (2026-04-13)**: This guide describes the original C-0 labeling
+> session when Qwen2.5-VL-7B was the candidate. The final Layer 1 model
+> selected (after bake-off + re-probe) is `gemma4:26b-a4b-it-q4_K_M` — see
+> `docs/MODEL_DECISION.md` for the authoritative log. The labeling methodology
+> itself (class vocab, IoU thresholds, hand-label QA) is model-agnostic and
+> still applies to any future re-probe, including gemma4's 2026-04-13 pass.
+
 This is **Sean's 2-hour manual step** for Phase C-0 of GameMind. The probe
 harness (`probe/run.py`) is ready; it needs 20+ real Minecraft screenshots
 with ground-truth labels to produce a meaningful pass/fail verdict.
