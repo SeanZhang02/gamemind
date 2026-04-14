@@ -275,6 +275,26 @@ def pick_prompt_group(
     raise ValueError("no prompt groups defined")
 
 
+def build_combined_vocab(groups: dict[str, list[str]]) -> list[str]:
+    """Union of class names across all groups, preserving first-occurrence
+    order. Used by --all-classes mode so mixed-scene fixtures (e.g. task6
+    has both world `crafting_table` and ui `hotbar`) don't inflate FN.
+
+    Tradeoff: GD quality can degrade above ~15 classes per prompt. For this
+    spike's vocabulary (~22 classes) it's borderline. If precision/recall
+    look bad on simple classes (e.g. oak_log drops below Day-1 sanity
+    number), re-split into groups.
+    """
+    seen: set[str] = set()
+    combined: list[str] = []
+    for classes in groups.values():
+        for c in classes:
+            if c not in seen:
+                seen.add(c)
+                combined.append(c)
+    return combined
+
+
 # ---------------------------------------------------------------------------
 # Model wrapper
 # ---------------------------------------------------------------------------
@@ -342,8 +362,18 @@ class GDRunner:
 
 
 def build_prompt_string(classes: list[str]) -> str:
-    """GD expects classes joined by ' . '."""
-    return " . ".join(classes)
+    """GD expects classes joined by ' . '.
+
+    IMPORTANT: GD's BERT tokenizer treats underscores as distinct tokens,
+    breaking zero-shot phrase matching (e.g. "oak_log" tokenizes as
+    ["oak", "_", "log"] and GD's grounding head gets confused). Convert
+    class_names_with_underscores → natural-language phrases with spaces.
+    The label JSON stays snake_case; we only transform the PROMPT.
+
+    normalize_pred_label() reverses the space → underscore mapping when
+    parsing GD's emitted labels back to canonical class names.
+    """
+    return " . ".join(c.replace("_", " ") for c in classes)
 
 
 def normalize_pred_label(pred_label: str, prompt_classes: list[str]) -> str | None:
@@ -375,6 +405,7 @@ def evaluate(
     iou_threshold: float,
     allow_no_gt: bool,
     verbose: bool,
+    all_classes: bool = False,
 ) -> dict[str, Any]:
     """Iterate all .png fixtures, run GD, accumulate per-class stats.
 
@@ -402,33 +433,52 @@ def evaluate(
 
         gts = load_labelme_json(label_path) if has_gt else []
         gt_labels = {g.label for g in gts}
-        group = pick_prompt_group(gt_labels, prompts)
-        classes = prompts[group]
-        prompt_str = build_prompt_string(classes)
+
+        # Build list of (group_name, classes) to run GD on for this fixture.
+        # --all-classes now means MULTI-PASS: run GD once per group that
+        # overlaps with GT, keeping each prompt small (GD degrades above
+        # ~15 classes). Single-group mode remains for backwards compat.
+        runs: list[tuple[str, list[str]]] = []
+        if all_classes:
+            for gname, gclasses in prompts.items():
+                if set(gclasses) & gt_labels:
+                    runs.append((gname, gclasses))
+            if not runs:
+                runs.append(("world", prompts.get("world", [])))
+            group = "+".join(g for g, _ in runs)
+        else:
+            g = pick_prompt_group(gt_labels, prompts)
+            group = g
+            runs.append((g, prompts[g]))
 
         image = Image.open(img_path).convert("RGB")
         t0 = time.perf_counter()
-        raw_preds = runner.run(image, prompt_str, threshold, text_threshold)
-        dt_ms = (time.perf_counter() - t0) * 1000
-
-        # Re-map pred labels into prompt-class vocabulary, drop untranslatable.
         preds: list[Bbox] = []
         dropped = 0
-        for p in raw_preds:
-            canon = normalize_pred_label(p.label, classes)
-            if canon is None:
-                dropped += 1
-                continue
-            preds.append(
-                Bbox(
-                    label=canon,
-                    x1=p.x1,
-                    y1=p.y1,
-                    x2=p.x2,
-                    y2=p.y2,
-                    score=p.score,
+        all_vocab_for_fixture: list[str] = []
+        for _gname, classes in runs:
+            all_vocab_for_fixture.extend(c for c in classes if c not in all_vocab_for_fixture)
+            prompt_str = build_prompt_string(classes)
+            raw_preds = runner.run(image, prompt_str, threshold, text_threshold)
+            # Re-map pred labels into this group's vocabulary, drop untranslatable.
+            for p in raw_preds:
+                canon = normalize_pred_label(p.label, classes)
+                if canon is None:
+                    dropped += 1
+                    continue
+                preds.append(
+                    Bbox(
+                        label=canon,
+                        x1=p.x1,
+                        y1=p.y1,
+                        x2=p.x2,
+                        y2=p.y2,
+                        score=p.score,
+                    )
                 )
-            )
+        dt_ms = (time.perf_counter() - t0) * 1000
+        # Use combined vocab for downstream FP accounting
+        classes = all_vocab_for_fixture
 
         matches, matched_p, matched_g = greedy_match(gts, preds, iou_threshold)
 
@@ -647,6 +697,15 @@ def main() -> int:
         help="Run GD on fixtures without GT (all preds → FP). Default skips.",
     )
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument(
+        "--all-classes",
+        action="store_true",
+        help=(
+            "Build a single combined prompt (union of all groups) for every "
+            "fixture. Prevents FN inflation when fixtures have mixed-group "
+            "labels (e.g. world + ui in same scene)."
+        ),
+    )
     args = parser.parse_args()
 
     for p in (args.fixtures_dir, args.labels_dir, args.prompts_yaml):
@@ -675,6 +734,7 @@ def main() -> int:
         iou_threshold=args.iou_threshold,
         allow_no_gt=args.allow_no_gt,
         verbose=args.verbose,
+        all_classes=args.all_classes,
     )
 
     print(f"[3/3] Writing report to {args.output_json}...")

@@ -1,0 +1,307 @@
+{
+  "config": {
+    "score_threshold": 0.2,
+    "iou_threshold": 0.3
+  },
+  "per_class": {
+    "crafting_grid_2x2": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 4,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "crafting_grid_3x3": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "crafting_table": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "grass_block": {
+      "tp": 5,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.7143,
+      "recall": 1.0,
+      "f1": 0.8333,
+      "mean_iou": 0.5771
+    },
+    "health_bar": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 5,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "hotbar": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 11,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "hunger_bar": {
+      "tp": 0,
+      "fp": 5,
+      "fn": 5,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "inventory_grid": {
+      "tp": 6,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1": 0.8571,
+      "mean_iou": 0.9752
+    },
+    "inventory_slot": {
+      "tp": 0,
+      "fp": 3,
+      "fn": 6,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "iron_ore": {
+      "tp": 0,
+      "fp": 3,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "mean_iou": null
+    },
+    "item_in_slot": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 34,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "leaves": {
+      "tp": 1,
+      "fp": 1,
+      "fn": 4,
+      "precision": 0.5,
+      "recall": 0.2,
+      "f1": 0.2857,
+      "mean_iou": 0.9472
+    },
+    "oak_log": {
+      "tp": 2,
+      "fp": 14,
+      "fn": 2,
+      "precision": 0.125,
+      "recall": 0.5,
+      "f1": 0.2,
+      "mean_iou": 0.8443
+    },
+    "output_slot": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 6,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "stone": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "mean_iou": null
+    },
+    "tooltip_text": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "tree": {
+      "tp": 2,
+      "fp": 10,
+      "fn": 8,
+      "precision": 0.1667,
+      "recall": 0.2,
+      "f1": 0.1818,
+      "mean_iou": 0.39
+    },
+    "wooden_pickaxe": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "zombie": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "mean_iou": null
+    }
+  },
+  "micro": {
+    "tp": 16,
+    "fp": 46,
+    "fn": 93,
+    "precision": 0.2581,
+    "recall": 0.1468,
+    "f1": 0.1871,
+    "mean_iou": 0.7595
+  },
+  "macro": {
+    "precision": 0.2051,
+    "recall": 0.1812,
+    "f1": 0.4716,
+    "mean_iou": 0.7468,
+    "n_classes_with_support": 16
+  },
+  "images": [
+    {
+      "image": "task1.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 8,
+      "n_pred": 10,
+      "tp": 2,
+      "fp": 8,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task10.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 12,
+      "n_pred": 13,
+      "tp": 3,
+      "fp": 10,
+      "fn": 9,
+      "matches": []
+    },
+    {
+      "image": "task2.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 9,
+      "n_pred": 9,
+      "tp": 2,
+      "fp": 7,
+      "fn": 7,
+      "matches": []
+    },
+    {
+      "image": "task3.png",
+      "prompt_group": "ui",
+      "n_gt": 6,
+      "n_pred": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 5,
+      "matches": []
+    },
+    {
+      "image": "task4.png",
+      "prompt_group": "ui",
+      "n_gt": 7,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task5.1.png",
+      "prompt_group": "ui",
+      "n_gt": 12,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 11,
+      "matches": []
+    },
+    {
+      "image": "task5.png",
+      "prompt_group": "ui",
+      "n_gt": 6,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 5,
+      "matches": []
+    },
+    {
+      "image": "task6.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 9,
+      "n_pred": 11,
+      "tp": 2,
+      "fp": 9,
+      "fn": 7,
+      "matches": []
+    },
+    {
+      "image": "task7.1.png",
+      "prompt_group": "ui",
+      "n_gt": 12,
+      "n_pred": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 11,
+      "matches": []
+    },
+    {
+      "image": "task8.png",
+      "prompt_group": "ui",
+      "n_gt": 16,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 15,
+      "matches": []
+    },
+    {
+      "image": "task9.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 12,
+      "n_pred": 11,
+      "tp": 1,
+      "fp": 10,
+      "fn": 11,
+      "matches": []
+    }
+  ]
+}
