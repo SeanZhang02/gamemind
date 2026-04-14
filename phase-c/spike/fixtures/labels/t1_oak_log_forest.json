@@ -1,0 +1,61 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "imagePath": "../../../phase-c-0/fixtures/t1_oak_log_forest.png",
+  "imageWidth": 1919,
+  "imageHeight": 1079,
+  "_annotator": "main-agent-pre-label-via-read",
+  "_source_fixture": "phase-c-0/fixtures/t1_oak_log_forest.png",
+  "_confidence": "high for oak_log and HUD elements; medium for tree composition (semantic boundary blurry between tree/leaves/oak_log)",
+  "_verified_by_sean": false,
+  "shapes": [
+    {
+      "label": "oak_log",
+      "points": [[720, 360], [1130, 780]],
+      "shape_type": "rectangle",
+      "notes": "Center foreground block the crosshair points at — the stump shown face-on with tree rings on top"
+    },
+    {
+      "label": "leaves",
+      "points": [[0, 0], [1919, 380]],
+      "shape_type": "rectangle",
+      "notes": "Top canopy, darker green leaves spanning the upper third"
+    },
+    {
+      "label": "tree",
+      "points": [[0, 250], [380, 900]],
+      "shape_type": "rectangle",
+      "notes": "Left-background tree trunk (another tree behind the stump)"
+    },
+    {
+      "label": "tree",
+      "points": [[1280, 620], [1919, 1079]],
+      "shape_type": "rectangle",
+      "notes": "Right-foreground tree trunk (dark wood, partial view)"
+    },
+    {
+      "label": "grass_block",
+      "points": [[300, 400], [1919, 700]],
+      "shape_type": "rectangle",
+      "notes": "Green grass ground surrounding the stump"
+    },
+    {
+      "label": "health_bar",
+      "points": [[400, 670], [620, 710]],
+      "shape_type": "rectangle",
+      "notes": "Hearts icons row in HUD"
+    },
+    {
+      "label": "hunger_bar",
+      "points": [[1040, 670], [1260, 710]],
+      "shape_type": "rectangle",
+      "notes": "Drumstick icons row in HUD"
+    },
+    {
+      "label": "hotbar",
+      "points": [[330, 730], [1270, 795]],
+      "shape_type": "rectangle",
+      "notes": "Bottom hotbar row — all 9 slots visible (empty)"
+    }
+  ]
+}
