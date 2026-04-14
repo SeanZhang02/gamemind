@@ -1,111 +1,183 @@
 {
-  "version": "6.0.0",
+  "version": "5.5.0",
   "flags": {},
   "shapes": [
     {
-      "label": "oak_log",
+      "label": "inventory_grid",
       "points": [
         [
-          1024.2528735632184,
-          21.839080459770113
+          847,
+          295
         ],
         [
-          1465.632183908046,
-          1200.0
+          1716,
+          1118
         ]
       ],
       "group_id": null,
-      "description": "Foreground tree trunk being mined, crosshair target. Multi-block trunk (log pile).",
+      "description": "Inventory UI panel",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "wooden_pickaxe",
+      "label": "crafting_grid_2x2",
       "points": [
         [
-          1141.3793103448277,
-          719.3103448275863
+          1322,
+          376
         ],
         [
-          1782.8735632183907,
-          1196.551724137931
+          1505,
+          558
         ]
       ],
       "group_id": null,
-      "description": "Pickaxe held in hand (bottom-right)",
+      "description": "2x2 crafting — all 4 slots filled with oak_planks",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "tree",
+      "label": "item_in_slot",
       "points": [
         [
-          0.0,
-          34.48275862068965
+          1326,
+          381
         ],
         [
-          529.9999999999999,
-          973.5632183908045
+          1411,
+          461
         ]
       ],
       "group_id": null,
-      "description": "Distant birch tree left",
+      "description": "oak_plank in 2x2 crafting TL slot",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "tree",
+      "label": "item_in_slot",
       "points": [
         [
-          1520.8045977011495,
-          301.14942528735634
+          1415,
+          381
         ],
         [
-          1986.3218390804598,
-          997.7011494252873
+          1500,
+          461
         ]
       ],
       "group_id": null,
-      "description": "Distant birch tree right",
+      "description": "oak_plank in 2x2 crafting TR slot",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "leaves",
+      "label": "item_in_slot",
       "points": [
         [
-          0.0,
-          22.988505747126453
+          1326,
+          470
         ],
         [
-          2223.1034482758623,
-          695.4022988505751
+          1411,
+          550
         ]
       ],
       "group_id": null,
-      "description": "",
+      "description": "oak_plank in 2x2 crafting BL slot",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "grass_block",
+      "label": "item_in_slot",
       "points": [
         [
-          0.0,
-          1166.6666666666665
+          1415,
+          470
         ],
         [
-          2560.0,
-          1400.0
+          1500,
+          550
         ]
       ],
       "group_id": null,
-      "description": "",
+      "description": "oak_plank in 2x2 crafting BR slot",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "output_slot",
+      "points": [
+        [
+          1601,
+          426
+        ],
+        [
+          1700,
+          520
+        ]
+      ],
+      "group_id": null,
+      "description": "Output = crafting_table preview",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1609,
+          432
+        ],
+        [
+          1694,
+          512
+        ]
+      ],
+      "group_id": null,
+      "description": "crafting_table preview in output slot",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "tooltip_text",
+      "points": [
+        [
+          1720,
+          440
+        ],
+        [
+          2050,
+          500
+        ]
+      ],
+      "group_id": null,
+      "description": "\"Crafting Table\" tooltip shown on hover",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "inventory_slot",
+      "points": [
+        [
+          872,
+          707
+        ],
+        [
+          1686,
+          977
+        ]
+      ],
+      "group_id": null,
+      "description": "Main 3x9 inventory grid (empty)",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -114,16 +186,16 @@
       "label": "hotbar",
       "points": [
         [
-          830.344827586207,
-          1287.0114942528735
+          871,
+          990
         ],
         [
-          1736.896551724138,
-          1393.103448275862
+          1690,
+          1097
         ]
       ],
       "group_id": null,
-      "description": "",
+      "description": "Inventory UI hotbar row",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -132,94 +204,22 @@
       "label": "item_in_slot",
       "points": [
         [
-          836.4942528735633,
-          1289.712643678161
+          876,
+          995
         ],
         [
-          929.4942528735633,
-          1382.712643678161
+          961,
+          1075
         ]
       ],
       "group_id": null,
-      "description": "crafting_table x5",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "item_in_slot",
-      "points": [
-        [
-          932.5977011494252,
-          1289.712643678161
-        ],
-        [
-          1024.5977011494265,
-          1382.712643678161
-        ]
-      ],
-      "group_id": null,
-      "description": "stick x6",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "item_in_slot",
-      "points": [
-        [
-          1030.0,
-          1290.8620689655172
-        ],
-        [
-          1122.0,
-          1383.8620689655172
-        ]
-      ],
-      "group_id": null,
-      "description": "wooden_pickaxe (selected, still held)",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "health_bar",
-      "points": [
-        [
-          823.3333333333333,
-          1197.816091954023
-        ],
-        [
-          1233.448275862069,
-          1244.8275862068965
-        ]
-      ],
-      "group_id": null,
-      "description": "",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "hunger_bar",
-      "points": [
-        [
-          1331.7241379310344,
-          1196.6666666666667
-        ],
-        [
-          1735.7471264367816,
-          1252.8735632183907
-        ]
-      ],
-      "group_id": null,
-      "description": "",
+      "description": "oak_plank x12 in hotbar slot 1",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     }
   ],
-  "imagePath": "..\\task10.png",
+  "imagePath": "../task5.1.png",
   "imageData": null,
   "imageHeight": 1400,
   "imageWidth": 2560

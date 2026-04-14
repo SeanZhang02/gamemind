@@ -1,0 +1,298 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "inventory_grid",
+      "points": [
+        [
+          770,
+          280
+        ],
+        [
+          1790,
+          1118
+        ]
+      ],
+      "group_id": null,
+      "description": "Crafting Table UI panel (3x3 variant)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "crafting_grid_3x3",
+      "points": [
+        [
+          980,
+          310
+        ],
+        [
+          1330,
+          640
+        ]
+      ],
+      "group_id": null,
+      "description": "3x3 grid — T-shape pickaxe recipe: 3 planks top row + 2 sticks middle column",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          990,
+          320
+        ],
+        [
+          1075,
+          400
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_plank in 3x3 TL",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1100,
+          320
+        ],
+        [
+          1185,
+          400
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_plank in 3x3 TC",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1210,
+          320
+        ],
+        [
+          1295,
+          400
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_plank in 3x3 TR",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1100,
+          420
+        ],
+        [
+          1185,
+          500
+        ]
+      ],
+      "group_id": null,
+      "description": "stick in 3x3 MC",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1100,
+          520
+        ],
+        [
+          1185,
+          600
+        ]
+      ],
+      "group_id": null,
+      "description": "stick in 3x3 BC",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "output_slot",
+      "points": [
+        [
+          1470,
+          450
+        ],
+        [
+          1580,
+          560
+        ]
+      ],
+      "group_id": null,
+      "description": "Output = wooden_pickaxe preview",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1480,
+          460
+        ],
+        [
+          1570,
+          550
+        ]
+      ],
+      "group_id": null,
+      "description": "wooden_pickaxe preview in output",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "tooltip_text",
+      "points": [
+        [
+          1620,
+          390
+        ],
+        [
+          2020,
+          580
+        ]
+      ],
+      "group_id": null,
+      "description": "\"Wooden Pickaxe / 2 Attack Damage / 1.2 Attack Speed\" tooltip",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "inventory_slot",
+      "points": [
+        [
+          830,
+          730
+        ],
+        [
+          1720,
+          960
+        ]
+      ],
+      "group_id": null,
+      "description": "Player inventory region",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          830,
+          860
+        ],
+        [
+          920,
+          955
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_plank x5 in inventory",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          930,
+          860
+        ],
+        [
+          1020,
+          955
+        ]
+      ],
+      "group_id": null,
+      "description": "stick x2 in inventory",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "hotbar",
+      "points": [
+        [
+          830,
+          990
+        ],
+        [
+          1720,
+          1100
+        ]
+      ],
+      "group_id": null,
+      "description": "Hotbar row",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          830,
+          995
+        ],
+        [
+          920,
+          1085
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_plank x5 in hotbar slot 1",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          930,
+          995
+        ],
+        [
+          1020,
+          1085
+        ]
+      ],
+      "group_id": null,
+      "description": "stick x2 in hotbar slot 2",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../task8.png",
+  "imageData": null,
+  "imageHeight": 1400,
+  "imageWidth": 2560
+}

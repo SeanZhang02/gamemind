@@ -1,21 +1,39 @@
 {
-  "version": "6.0.0",
+  "version": "5.5.0",
   "flags": {},
   "shapes": [
     {
-      "label": "crafting_table",
+      "label": "oak_log",
       "points": [
         [
-          1058.7356321839081,
-          478.1609195402299
+          1060,
+          500
         ],
         [
-          1435.7471264367816,
-          842.5287356321838
+          1430,
+          900
         ]
       ],
       "group_id": null,
-      "description": "Placed crafting_table block, centered foreground",
+      "description": "Center stump (chopped tree base), crosshair target",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "oak_log",
+      "points": [
+        [
+          1445,
+          770
+        ],
+        [
+          1540,
+          870
+        ]
+      ],
+      "group_id": null,
+      "description": "Dropped oak_log item on ground to the right",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -24,16 +42,16 @@
       "label": "tree",
       "points": [
         [
-          0.0,
-          17.93103448275872
+          0,
+          20
         ],
         [
-          825.4022988505745,
-          620.6896551724137
+          320,
+          320
         ]
       ],
       "group_id": null,
-      "description": "Left-background birch tree",
+      "description": "Upper-left birch tree trunk + leaves",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -42,16 +60,16 @@
       "label": "tree",
       "points": [
         [
-          1086.3218390804598,
-          28.73563218390804
+          1710,
+          30
         ],
         [
-          1571.3793103448277,
-          475.86206896551727
+          2000,
+          320
         ]
       ],
       "group_id": null,
-      "description": "Right-background birch tree",
+      "description": "Upper-right birch trees cluster",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -60,16 +78,16 @@
       "label": "grass_block",
       "points": [
         [
-          21.954022988505642,
-          842.5287356321838
+          0,
+          540
         ],
         [
-          2560.0,
-          1260.0
+          2560,
+          1180
         ]
       ],
       "group_id": null,
-      "description": "Grass ground",
+      "description": "Ground grass (hills, varied elevation)",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -78,52 +96,16 @@
       "label": "leaves",
       "points": [
         [
-          0.0,
-          26.436781609195407
+          0,
+          0
         ],
         [
-          1178.2758620689656,
-          304.5977011494253
+          2560,
+          320
         ]
       ],
       "group_id": null,
-      "description": "Upper canopy",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "hotbar",
-      "points": [
-        [
-          824.5977011494253,
-          1288.16091954023
-        ],
-        [
-          1728.8505747126437,
-          1386.2068965517242
-        ]
-      ],
-      "group_id": null,
-      "description": "Hotbar with oak_log x12 in slot 1",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "item_in_slot",
-      "points": [
-        [
-          831.8965517241379,
-          1293.16091954023
-        ],
-        [
-          924.8965517241379,
-          1386.16091954023
-        ]
-      ],
-      "group_id": null,
-      "description": "oak_log stack ('12' count visible) in hotbar slot 1",
+      "description": "Sparse canopy cover top edge",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -132,16 +114,16 @@
       "label": "health_bar",
       "points": [
         [
-          824.4827586206898,
-          1196.6666666666667
+          820,
+          1194
         ],
         [
-          1234.5977011494253,
-          1244.8275862068965
+          1234,
+          1250
         ]
       ],
       "group_id": null,
-      "description": "",
+      "description": "HUD constant",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -150,22 +132,40 @@
       "label": "hunger_bar",
       "points": [
         [
-          1330.5747126436781,
-          1195.5172413793102
+          1327,
+          1193
         ],
         [
-          1734.5977011494253,
-          1251.7241379310344
+          1735,
+          1252
         ]
       ],
       "group_id": null,
-      "description": "",
+      "description": "HUD constant",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "hotbar",
+      "points": [
+        [
+          824,
+          1285
+        ],
+        [
+          1735,
+          1393
+        ]
+      ],
+      "group_id": null,
+      "description": "HUD constant, empty slots",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     }
   ],
-  "imagePath": "..\\task6.png",
+  "imagePath": "../task2.png",
   "imageData": null,
   "imageHeight": 1400,
   "imageWidth": 2560

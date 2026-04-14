@@ -1,0 +1,118 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "inventory_grid",
+      "points": [
+        [
+          847,
+          295
+        ],
+        [
+          1716,
+          1118
+        ]
+      ],
+      "group_id": null,
+      "description": "Inventory UI panel (calibrated from task4)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "crafting_grid_2x2",
+      "points": [
+        [
+          1322,
+          376
+        ],
+        [
+          1505,
+          558
+        ]
+      ],
+      "group_id": null,
+      "description": "2x2 crafting grid (empty)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "output_slot",
+      "points": [
+        [
+          1601,
+          426
+        ],
+        [
+          1700,
+          520
+        ]
+      ],
+      "group_id": null,
+      "description": "Empty output slot",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "inventory_slot",
+      "points": [
+        [
+          872,
+          707
+        ],
+        [
+          1686,
+          977
+        ]
+      ],
+      "group_id": null,
+      "description": "Main 3x9 inventory grid (empty)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "hotbar",
+      "points": [
+        [
+          871,
+          990
+        ],
+        [
+          1690,
+          1097
+        ]
+      ],
+      "group_id": null,
+      "description": "Inventory UI hotbar row",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          876,
+          995
+        ],
+        [
+          961,
+          1075
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_planks x16 (or similar) in hotbar slot 1",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../task5.png",
+  "imageData": null,
+  "imageHeight": 1400,
+  "imageWidth": 2560
+}

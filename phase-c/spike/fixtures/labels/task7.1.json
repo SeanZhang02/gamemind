@@ -1,111 +1,165 @@
 {
-  "version": "6.0.0",
+  "version": "5.5.0",
   "flags": {},
   "shapes": [
     {
-      "label": "oak_log",
+      "label": "inventory_grid",
       "points": [
         [
-          1024.2528735632184,
-          21.839080459770113
+          770,
+          280
         ],
         [
-          1465.632183908046,
-          1200.0
+          1790,
+          1118
         ]
       ],
       "group_id": null,
-      "description": "Foreground tree trunk being mined, crosshair target. Multi-block trunk (log pile).",
+      "description": "Crafting Table UI panel (3x3 variant, wider than 2x2 inventory UI)",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "wooden_pickaxe",
+      "label": "crafting_grid_3x3",
       "points": [
         [
-          1141.3793103448277,
-          719.3103448275863
+          980,
+          310
         ],
         [
-          1782.8735632183907,
-          1196.551724137931
+          1330,
+          640
         ]
       ],
       "group_id": null,
-      "description": "Pickaxe held in hand (bottom-right)",
+      "description": "3x3 crafting input grid — slightly estimated, Sean correct if off",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "tree",
+      "label": "item_in_slot",
       "points": [
         [
-          0.0,
-          34.48275862068965
+          1100,
+          420
         ],
         [
-          529.9999999999999,
-          973.5632183908045
+          1180,
+          500
         ]
       ],
       "group_id": null,
-      "description": "Distant birch tree left",
+      "description": "oak_plank in 3x3 middle-top slot (stick recipe column)",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "tree",
+      "label": "item_in_slot",
       "points": [
         [
-          1520.8045977011495,
-          301.14942528735634
+          1100,
+          520
         ],
         [
-          1986.3218390804598,
-          997.7011494252873
+          1180,
+          600
         ]
       ],
       "group_id": null,
-      "description": "Distant birch tree right",
+      "description": "oak_plank in 3x3 middle-middle slot",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "leaves",
+      "label": "output_slot",
       "points": [
         [
-          0.0,
-          22.988505747126453
+          1470,
+          450
         ],
         [
-          2223.1034482758623,
-          695.4022988505751
+          1580,
+          560
         ]
       ],
       "group_id": null,
-      "description": "",
+      "description": "Output = stick x4 (from 2 planks vertically)",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     },
     {
-      "label": "grass_block",
+      "label": "item_in_slot",
       "points": [
         [
-          0.0,
-          1166.6666666666665
+          1480,
+          460
         ],
         [
-          2560.0,
-          1400.0
+          1570,
+          550
         ]
       ],
       "group_id": null,
-      "description": "",
+      "description": "stick x4 in output slot",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "inventory_slot",
+      "points": [
+        [
+          830,
+          730
+        ],
+        [
+          1720,
+          960
+        ]
+      ],
+      "group_id": null,
+      "description": "Player inventory region below crafting grid",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          830,
+          860
+        ],
+        [
+          920,
+          955
+        ]
+      ],
+      "group_id": null,
+      "description": "oak_plank x8 in inventory bottom-left",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          930,
+          860
+        ],
+        [
+          1020,
+          955
+        ]
+      ],
+      "group_id": null,
+      "description": "stick x4 in inventory slot 2",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -114,16 +168,16 @@
       "label": "hotbar",
       "points": [
         [
-          830.344827586207,
-          1287.0114942528735
+          830,
+          990
         ],
         [
-          1736.896551724138,
-          1393.103448275862
+          1720,
+          1100
         ]
       ],
       "group_id": null,
-      "description": "",
+      "description": "Hotbar row in crafting_table UI",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -132,16 +186,16 @@
       "label": "item_in_slot",
       "points": [
         [
-          836.4942528735633,
-          1289.712643678161
+          830,
+          995
         ],
         [
-          929.4942528735633,
-          1382.712643678161
+          920,
+          1085
         ]
       ],
       "group_id": null,
-      "description": "crafting_table x5",
+      "description": "oak_plank x8 in hotbar slot 1",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
@@ -150,76 +204,22 @@
       "label": "item_in_slot",
       "points": [
         [
-          932.5977011494252,
-          1289.712643678161
+          930,
+          995
         ],
         [
-          1024.5977011494265,
-          1382.712643678161
+          1020,
+          1085
         ]
       ],
       "group_id": null,
-      "description": "stick x6",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "item_in_slot",
-      "points": [
-        [
-          1030.0,
-          1290.8620689655172
-        ],
-        [
-          1122.0,
-          1383.8620689655172
-        ]
-      ],
-      "group_id": null,
-      "description": "wooden_pickaxe (selected, still held)",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "health_bar",
-      "points": [
-        [
-          823.3333333333333,
-          1197.816091954023
-        ],
-        [
-          1233.448275862069,
-          1244.8275862068965
-        ]
-      ],
-      "group_id": null,
-      "description": "",
-      "shape_type": "rectangle",
-      "flags": {},
-      "mask": null
-    },
-    {
-      "label": "hunger_bar",
-      "points": [
-        [
-          1331.7241379310344,
-          1196.6666666666667
-        ],
-        [
-          1735.7471264367816,
-          1252.8735632183907
-        ]
-      ],
-      "group_id": null,
-      "description": "",
+      "description": "stick x4 in hotbar slot 2",
       "shape_type": "rectangle",
       "flags": {},
       "mask": null
     }
   ],
-  "imagePath": "..\\task10.png",
+  "imagePath": "../task7.1.png",
   "imageData": null,
   "imageHeight": 1400,
   "imageWidth": 2560
