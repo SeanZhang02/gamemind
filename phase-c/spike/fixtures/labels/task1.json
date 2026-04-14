@@ -1,0 +1,63 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "imagePath": "../task1.png",
+  "imageWidth": 2560,
+  "imageHeight": 1400,
+  "_annotator": "main-agent-pre-label-via-read",
+  "_source_fixture": "phase-c/spike/fixtures/task1.png",
+  "_scene_type": "world — intact tree, foreground + forest background",
+  "_task_phase": "1 — pre-chop tree identification",
+  "_confidence_notes": "oak_log trunk (foreground, crosshair target) HIGH; secondary trees MEDIUM (small + partial occlusion); leaves canopy and grass_block are broad regions, bounds approximate",
+  "_verified_by_sean": false,
+  "shapes": [
+    {
+      "label": "oak_log",
+      "points": [[1160, 80], [1400, 960]],
+      "shape_type": "rectangle",
+      "notes": "Foreground tree trunk, crosshair aimed at it"
+    },
+    {
+      "label": "tree",
+      "points": [[0, 200], [280, 620]],
+      "shape_type": "rectangle",
+      "notes": "Left-background birch tree"
+    },
+    {
+      "label": "tree",
+      "points": [[1700, 280], [1920, 620]],
+      "shape_type": "rectangle",
+      "notes": "Right-background tree"
+    },
+    {
+      "label": "leaves",
+      "points": [[0, 0], [2560, 400]],
+      "shape_type": "rectangle",
+      "notes": "Top canopy, dense leaf cover"
+    },
+    {
+      "label": "grass_block",
+      "points": [[0, 900], [2560, 1250]],
+      "shape_type": "rectangle",
+      "notes": "Ground grass"
+    },
+    {
+      "label": "health_bar",
+      "points": [[990, 1130], [1340, 1180]],
+      "shape_type": "rectangle",
+      "notes": "10 red heart icons, full HP"
+    },
+    {
+      "label": "hunger_bar",
+      "points": [[1380, 1130], [1720, 1180]],
+      "shape_type": "rectangle",
+      "notes": "Drumstick icons row"
+    },
+    {
+      "label": "hotbar",
+      "points": [[920, 1210], [1750, 1310]],
+      "shape_type": "rectangle",
+      "notes": "9-slot hotbar, all empty"
+    }
+  ]
+}

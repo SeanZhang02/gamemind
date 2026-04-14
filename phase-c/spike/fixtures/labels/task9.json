@@ -1,0 +1,84 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "imagePath": "../task9.png",
+  "imageWidth": 2560,
+  "imageHeight": 1400,
+  "_annotator": "main-agent-pre-label-via-read",
+  "_source_fixture": "phase-c/spike/fixtures/task9.png",
+  "_scene_type": "world — wooden_pickaxe selected in hotbar, held in hand",
+  "_task_phase": "9 — pickaxe equipped, approaching wood",
+  "_confidence_notes": "wooden_pickaxe in-hand bbox HIGH; hotbar item slots (crafting_table/sticks/pickaxe) MEDIUM due to small slot size ~110x110. Tooltip 'Wooden Pickaxe' text useful indicator but not a detection target per se.",
+  "_verified_by_sean": false,
+  "shapes": [
+    {
+      "label": "wooden_pickaxe",
+      "points": [[1900, 1040], [2560, 1400]],
+      "shape_type": "rectangle",
+      "notes": "Pickaxe held in hand (bottom-right), active equipment"
+    },
+    {
+      "label": "crafting_table",
+      "points": [[150, 800], [580, 1270]],
+      "shape_type": "rectangle",
+      "notes": "Crafting table placed earlier, now in world view (bottom-left)"
+    },
+    {
+      "label": "tree",
+      "points": [[50, 260], [480, 900]],
+      "shape_type": "rectangle",
+      "notes": "Left-background birch tree"
+    },
+    {
+      "label": "tree",
+      "points": [[1100, 280], [1340, 870]],
+      "shape_type": "rectangle",
+      "notes": "Center-distance birch tree"
+    },
+    {
+      "label": "grass_block",
+      "points": [[0, 900], [2560, 1200]],
+      "shape_type": "rectangle",
+      "notes": "Grass ground"
+    },
+    {
+      "label": "leaves",
+      "points": [[0, 0], [2560, 400]],
+      "shape_type": "rectangle"
+    },
+    {
+      "label": "hotbar",
+      "points": [[920, 1210], [1750, 1310]],
+      "shape_type": "rectangle",
+      "notes": "Hotbar with 3 items visible: crafting_table x5, stick x6, pickaxe"
+    },
+    {
+      "label": "item_in_slot",
+      "points": [[925, 1215], [1018, 1308]],
+      "shape_type": "rectangle",
+      "notes": "crafting_table x5 in slot 1"
+    },
+    {
+      "label": "item_in_slot",
+      "points": [[1028, 1215], [1120, 1308]],
+      "shape_type": "rectangle",
+      "notes": "stick x6 in slot 2"
+    },
+    {
+      "label": "item_in_slot",
+      "points": [[1130, 1215], [1222, 1308]],
+      "shape_type": "rectangle",
+      "notes": "wooden_pickaxe selected (highlighted border) in slot 3"
+    },
+    {
+      "label": "health_bar",
+      "points": [[990, 1130], [1340, 1180]],
+      "shape_type": "rectangle"
+    },
+    {
+      "label": "hunger_bar",
+      "points": [[1380, 1130], [1720, 1180]],
+      "shape_type": "rectangle"
+    }
+  ]
+}

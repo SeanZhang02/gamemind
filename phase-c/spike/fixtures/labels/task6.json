@@ -1,0 +1,67 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "imagePath": "../task6.png",
+  "imageWidth": 2560,
+  "imageHeight": 1400,
+  "_annotator": "main-agent-pre-label-via-read",
+  "_source_fixture": "phase-c/spike/fixtures/task6.png",
+  "_scene_type": "world — placed crafting_table block, pre-interaction",
+  "_task_phase": "6 — crafting_table placed on ground",
+  "_confidence_notes": "crafting_table bbox HIGH (isolated block, centered, clear). Secondary trees MEDIUM. HUD elements standard layout.",
+  "_verified_by_sean": false,
+  "shapes": [
+    {
+      "label": "crafting_table",
+      "points": [[1060, 540], [1450, 930]],
+      "shape_type": "rectangle",
+      "notes": "Placed crafting_table block, centered foreground"
+    },
+    {
+      "label": "tree",
+      "points": [[0, 280], [380, 920]],
+      "shape_type": "rectangle",
+      "notes": "Left-background birch tree"
+    },
+    {
+      "label": "tree",
+      "points": [[1900, 340], [2200, 900]],
+      "shape_type": "rectangle",
+      "notes": "Right-background birch tree"
+    },
+    {
+      "label": "grass_block",
+      "points": [[0, 900], [2560, 1260]],
+      "shape_type": "rectangle",
+      "notes": "Grass ground"
+    },
+    {
+      "label": "leaves",
+      "points": [[0, 0], [2560, 380]],
+      "shape_type": "rectangle",
+      "notes": "Upper canopy"
+    },
+    {
+      "label": "hotbar",
+      "points": [[920, 1210], [1750, 1310]],
+      "shape_type": "rectangle",
+      "notes": "Hotbar with oak_log x12 in slot 1"
+    },
+    {
+      "label": "item_in_slot",
+      "points": [[925, 1215], [1018, 1308]],
+      "shape_type": "rectangle",
+      "notes": "oak_log stack ('12' count visible) in hotbar slot 1"
+    },
+    {
+      "label": "health_bar",
+      "points": [[990, 1130], [1340, 1180]],
+      "shape_type": "rectangle"
+    },
+    {
+      "label": "hunger_bar",
+      "points": [[1380, 1130], [1720, 1180]],
+      "shape_type": "rectangle"
+    }
+  ]
+}

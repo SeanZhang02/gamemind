@@ -1,0 +1,82 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "imagePath": "../task10.png",
+  "imageWidth": 2560,
+  "imageHeight": 1400,
+  "_annotator": "main-agent-pre-label-via-read",
+  "_source_fixture": "phase-c/spike/fixtures/task10.png",
+  "_scene_type": "world — mining oak_log with wooden_pickaxe mid-animation",
+  "_task_phase": "10 — final step: pickaxe mining wood",
+  "_confidence_notes": "Foreground oak_log trunk is the crosshair target — bbox HIGH. Mining crack overlay is a separate perceptual concept (animation artifact) — I labeled as a sub-region 'mining_crack' which is NOT in prompts.yaml vocab (flagging for discussion). wooden_pickaxe in-hand position HIGH.",
+  "_verified_by_sean": false,
+  "shapes": [
+    {
+      "label": "oak_log",
+      "points": [[780, 0], [1580, 1120]],
+      "shape_type": "rectangle",
+      "notes": "Foreground tree trunk being mined, crosshair target. Multi-block trunk (log pile)."
+    },
+    {
+      "label": "wooden_pickaxe",
+      "points": [[1900, 1040], [2560, 1400]],
+      "shape_type": "rectangle",
+      "notes": "Pickaxe held in hand (bottom-right)"
+    },
+    {
+      "label": "tree",
+      "points": [[100, 500], [320, 1000]],
+      "shape_type": "rectangle",
+      "notes": "Distant birch tree left"
+    },
+    {
+      "label": "tree",
+      "points": [[1660, 520], [1900, 1000]],
+      "shape_type": "rectangle",
+      "notes": "Distant birch tree right"
+    },
+    {
+      "label": "leaves",
+      "points": [[0, 0], [2560, 400]],
+      "shape_type": "rectangle"
+    },
+    {
+      "label": "grass_block",
+      "points": [[0, 1000], [2560, 1260]],
+      "shape_type": "rectangle"
+    },
+    {
+      "label": "hotbar",
+      "points": [[920, 1210], [1750, 1310]],
+      "shape_type": "rectangle"
+    },
+    {
+      "label": "item_in_slot",
+      "points": [[925, 1215], [1018, 1308]],
+      "shape_type": "rectangle",
+      "notes": "crafting_table x5"
+    },
+    {
+      "label": "item_in_slot",
+      "points": [[1028, 1215], [1120, 1308]],
+      "shape_type": "rectangle",
+      "notes": "stick x6"
+    },
+    {
+      "label": "item_in_slot",
+      "points": [[1130, 1215], [1222, 1308]],
+      "shape_type": "rectangle",
+      "notes": "wooden_pickaxe (selected, still held)"
+    },
+    {
+      "label": "health_bar",
+      "points": [[990, 1130], [1340, 1180]],
+      "shape_type": "rectangle"
+    },
+    {
+      "label": "hunger_bar",
+      "points": [[1380, 1130], [1720, 1180]],
+      "shape_type": "rectangle"
+    }
+  ]
+}
