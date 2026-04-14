@@ -1,5 +1,10 @@
 # GameMind — Phase C-0 Probe
 
+> **Model note (2026-04-13)**: Layer 1 is now `gemma4:26b-a4b-it-q4_K_M` (re-probe PASS,
+> commit 7cc5c40). The qwen tags below were the C-0 bake-off candidates and are retained
+> as historical record. See `C0_CLOSEOUT.md` §0 and `docs/MODEL_DECISION.md` for the
+> current canonical choice.
+
 **Status**: probe infrastructure complete, smoke tested, waiting for Sean's
 manual screenshot-capture + labeling session.
 
@@ -16,8 +21,9 @@ If it fails, we pick from the D1-D5 fallback chain in
 | Component                       | Status                                           |
 | ------------------------------- | ------------------------------------------------ |
 | Ollama                          | ✓ running at http://127.0.0.1:11434 (v0.13.1)    |
-| qwen2.5vl:7b                    | ✓ pulled (6.0 GB, Q4_K_M) — baseline             |
-| qwen3-vl:8b-instruct-q4_K_M     | ✓ pulled (6.1 GB) — A/B candidate                |
+| gemma4:26b-a4b-it-q4_K_M        | ✓ pulled (6.1 GB) — **CANONICAL** (2026-04-13)   |
+| qwen2.5vl:7b                    | ✓ pulled (6.0 GB, Q4_K_M) — historical baseline  |
+| qwen3-vl:8b-instruct-q4_K_M     | ✓ pulled (6.1 GB) — historical C-0 pick          |
 | qwen3-vl:8b-thinking-q4_K_M     | ✓ pulled (6.1 GB) — **do NOT use** (latency)     |
 | GPU                             | ✓ RTX 5090, 32 GB VRAM, all variants fit         |
 | Processor                       | ✓ 100% GPU (no CPU offload)                      |
@@ -48,9 +54,12 @@ Key findings:
 4. The warmup path was tuned to eliminate a 2.5 s first-image cold start by
    issuing two warmup passes with the actual task prompt shape.
 
-**Decision**: run both qwen2.5vl:7b AND qwen3-vl:8b-instruct-q4_K_M on your
+**Decision (historical)**: run both qwen2.5vl:7b AND qwen3-vl:8b-instruct-q4_K_M on your
 real 20-image fixtures and compare empirically. See `fixtures/LABELING_GUIDE.md`
-for the dual-run instructions.
+for the dual-run instructions. This was the Phase C-0 bake-off that picked
+qwen3-vl:8b-instruct. A subsequent 2026-04-13 re-probe on gemma4:26b-a4b-it-q4_K_M
+(commit 7cc5c40) beat qwen3 on both accuracy and latency — gemma4 is the current
+locked choice. See `C0_CLOSEOUT.md` §0.
 
 ## What Sean does next (~1.5-2 hours)
 

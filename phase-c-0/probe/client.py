@@ -19,10 +19,12 @@ import requests
 from PIL import Image
 
 DEFAULT_HOST = "http://127.0.0.1:11434"
-# Locked 2026-04-11 per phase-c-0/C0_CLOSEOUT.md — qwen3-vl-8b-instruct
-# dominated qwen2.5-vl-7b on T1/T3/T4 real fixtures. qwen2.5vl:7b is retained
-# in Ollama as regression baseline only; pass --model explicitly to use it.
-DEFAULT_MODEL = "qwen3-vl:8b-instruct-q4_K_M"
+# Default model is gemma4:26b-a4b-it-q4_K_M per 2026-04-13 swap (commit 7cc5c40).
+# See docs/MODEL_DECISION.md for the authority. Historical: C-0 probe on
+# qwen3-vl-8b-instruct yielded T1 83.3% / p90 1353ms; gemma4 re-probe yielded
+# T1 100% / p90 721ms. qwen3-vl:8b and qwen2.5vl:7b are retained in Ollama as
+# regression baselines only; pass --model explicitly to use either.
+DEFAULT_MODEL = "gemma4:26b-a4b-it-q4_K_M"
 
 
 @dataclass

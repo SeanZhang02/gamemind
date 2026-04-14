@@ -16,7 +16,7 @@ Executive Summary (§0) + Architecture (§1). This is the load-bearing design re
 Don't read all 2400 lines yet — just §0 and §1.
 
 **Time to read**: 15 minutes.
-**What you'll understand after**: why Layer 1 is local (Qwen3-VL) and Layer 3 is sparse (Claude), why the declarative YAML adapter is the primary wedge, and what wake triggers W1-W5 mean.
+**What you'll understand after**: why Layer 1 is local (gemma4 26B MoE via Ollama) and Layer 3 is sparse (Claude), why the declarative YAML adapter is the primary wedge, and what wake triggers W1-W5 mean.
 
 ## 3. Write an adapter: [`adapter-schema.md`](adapter-schema.md)
 

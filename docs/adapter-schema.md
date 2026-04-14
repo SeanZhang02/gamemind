@@ -195,7 +195,7 @@ success_check:
 |---|---|---|
 | `inventory_count` | 2 (structured vision query) | `target: str`, `operator: str`, `value: int` |
 | `template_match` | 1 (cheapest) | `template: str` (path relative to adapter file) |
-| `vision_critic` | 3 (Qwen freeform yes/no) | `question: str` |
+| `vision_critic` | 3 (Layer 1 freeform yes/no) | `question: str` |
 | `health_threshold` | 2 (HUD numeric query) | `operator: str`, `value: float` |
 | `time_limit` | — (wall clock) | `seconds: float` |
 | `stuck_detector` | — (Layer 2 engine) | (no extra fields; uses Amendment A4 metric) |

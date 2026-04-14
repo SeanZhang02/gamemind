@@ -1,0 +1,63 @@
+name: Model Decision Drift Check
+
+on:
+  pull_request:
+    paths:
+      - 'docs/MODEL_DECISION.md'
+      - 'gamemind/daemon/lifespan.py'
+      - 'gamemind/perception/ollama_backend.py'
+      - 'docs/install.md'
+      - 'phase-c-0/probe/client.py'
+
+jobs:
+  check-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract current model from MODEL_DECISION.md
+        id: decision
+        run: |
+          # The first "## Current:" line defines the authoritative model
+          MODEL=$(grep -m1 '^## Current:' docs/MODEL_DECISION.md | sed 's|^## Current: *||' | xargs)
+          if [ -z "$MODEL" ]; then
+            echo "::error::No '## Current:' entry in docs/MODEL_DECISION.md"
+            exit 1
+          fi
+          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
+          echo "Current model: $MODEL"
+
+      - name: Check gamemind/daemon/lifespan.py default matches
+        run: |
+          MODEL="${{ steps.decision.outputs.model }}"
+          if ! grep -q "\"$MODEL\"" gamemind/daemon/lifespan.py; then
+            echo "::error::gamemind/daemon/lifespan.py does not reference \"$MODEL\" — update DEFAULT_OLLAMA_MODEL to match MODEL_DECISION.md"
+            exit 1
+          fi
+
+      - name: Check gamemind/perception/ollama_backend.py default matches
+        run: |
+          MODEL="${{ steps.decision.outputs.model }}"
+          if ! grep -q "\"$MODEL\"" gamemind/perception/ollama_backend.py; then
+            echo "::error::gamemind/perception/ollama_backend.py does not reference \"$MODEL\" — update DEFAULT_MODEL to match"
+            exit 1
+          fi
+
+      - name: Check docs/install.md references current model
+        run: |
+          MODEL="${{ steps.decision.outputs.model }}"
+          if ! grep -q "$MODEL" docs/install.md; then
+            echo "::error::docs/install.md does not reference $MODEL — update pull commands to match"
+            exit 1
+          fi
+
+      - name: Check probe/client.py DEFAULT_MODEL matches
+        run: |
+          MODEL="${{ steps.decision.outputs.model }}"
+          if ! grep -q "\"$MODEL\"" phase-c-0/probe/client.py; then
+            echo "::error::phase-c-0/probe/client.py DEFAULT_MODEL does not match MODEL_DECISION.md"
+            exit 1
+          fi
+
+      - name: Summary
+        run: echo "Model drift check passed — all five sources reference ${{ steps.decision.outputs.model }}"

@@ -1,5 +1,21 @@
 # Phase C-0 Closeout — 2026-04-11
 
+> **UPDATE 2026-04-13** — Superseded by gemma4:26b-a4b-it-q4_K_M model swap.
+>
+> Commit 7cc5c40 re-ran the probe on gemma4 and PASSED all gates:
+> - T1 block: 83.3% → **100%** (+16.7)
+> - T3 UI: 100% → 75% (still above 70% gate)
+> - T4 spatial: 91.7% (unchanged)
+> - p90 blocking latency: 1353ms → **721ms** (1.9x faster)
+> - JSON reliability: 100%
+>
+> Empirical artifact: `phase-c-0/results/report-20260413-130949.json`
+> Current authoritative model decision: see `docs/MODEL_DECISION.md`.
+>
+> The qwen3-vl narrative below is retained as historical record of the C-0 probe baseline. The actual locked Layer 1 model is now `gemma4:26b-a4b-it-q4_K_M`.
+
+---
+
 **Verdict**: **PASS** — proceed to Phase C build.
 **Model picked**: `qwen3-vl:8b-instruct-q4_K_M` via Ollama 0.13.1 on RTX 5090.
 
