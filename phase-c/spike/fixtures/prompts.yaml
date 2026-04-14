@@ -1,0 +1,42 @@
+# Phase 1 spike — Grounding DINO prompt sets.
+#
+# Three disjoint groups by scene type. The eval harness selects a group per
+# fixture by looking at which labels appear in the ground-truth .json:
+#   - any UI label  → use `ui` group
+#   - any HUD label → use `hud` group
+#   - otherwise     → use `world` group
+#
+# Per Grounding DINO spec, classes in a single prompt are joined by " . "
+# (dot with spaces around it). GD matches each prompt *token* back to a
+# class; keep class names lowercase snake_case so GD doesn't split them on
+# the subword tokenizer boundaries in weird ways.
+#
+# This file is hand-edited. If you add a class, also add a fixture that
+# contains it — otherwise per-class recall will be undefined (TP+FN == 0)
+# and the harness will report recall = NaN for that class.
+
+world:
+  - tree
+  - oak_log
+  - leaves
+  - grass_block
+  - stone
+  - iron_ore
+  - crafting_table
+  - cow
+  - zombie
+  - creeper
+
+ui:
+  - inventory_grid
+  - crafting_grid_2x2
+  - crafting_grid_3x3
+  - hotbar
+  - inventory_slot
+  - item_in_slot
+  - output_slot
+
+hud:
+  - health_bar
+  - hunger_bar
+  - xp_bar
