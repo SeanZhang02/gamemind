@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "test": "template_matching_stress",
+  "baseline_n": 4,
+  "baseline_fixtures": [
+    "task3",
+    "task4",
+    "task5",
+    "task5.1"
+  ],
+  "baseline_correlation_mean": 1.0,
+  "baseline_caveat": "All 4 baseline fixtures are pixel-identical inventory UIs from the same session/resolution. PoC achieved 4/4 perfect matches but this is a ceiling, not a working range.",
+  "template_source": "task4.png crop (847,295)-(1716,700)",
+  "template_size_wh": [
+    869,
+    405
+  ],
+  "self_match_sanity": 1.0,
+  "gate_threshold": 0.85,
+  "stress_fixtures": [
+    {
+      "name": "scale_90",
+      "correlation": 0.523814,
+      "loc_xy": [
+        725,
+        265
+      ],
+      "perturbed_shape_wh": [
+        2304,
+        1260
+      ],
+      "fixture_path": "fixtures\\stress\\scale_90.png",
+      "gate_status": "FAIL",
+      "notes": "task4 resized to 0.9x (smaller GUI/window). Template is original-size: a 0.9x panel cannot perfectly match a 1.0x template."
+    },
+    {
+      "name": "scale_110",
+      "correlation": 0.72576,
+      "loc_xy": [
+        968,
+        325
+      ],
+      "perturbed_shape_wh": [
+        2816,
+        1540
+      ],
+      "fixture_path": "fixtures\\stress\\scale_110.png",
+      "gate_status": "FAIL",
+      "notes": "task4 resized to 1.1x (larger GUI/window)."
+    },
+    {
+      "name": "resolution_1280x720",
+      "correlation": 0.440813,
+      "loc_xy": [
+        5,
+        150
+      ],
+      "perturbed_shape_wh": [
+        1280,
+        720
+      ],
+      "fixture_path": "fixtures\\stress\\resolution_1280x720.png",
+      "gate_status": "FAIL",
+      "notes": "task4 hard-resized to 1280x720 (cross-resolution)."
+    },
+    {
+      "name": "noise_gaussian",
+      "correlation": 0.998446,
+      "loc_xy": [
+        847,
+        295
+      ],
+      "perturbed_shape_wh": [
+        2560,
+        1400
+      ],
+      "fixture_path": "fixtures\\stress\\noise_gaussian.png",
+      "gate_status": "PASS",
+      "notes": "task4 + Gaussian noise sigma=5 (screen capture noise)."
+    },
+    {
+      "name": "brightness_minus_20",
+      "correlation": 0.999996,
+      "loc_xy": [
+        847,
+        295
+      ],
+      "perturbed_shape_wh": [
+        2560,
+        1400
+      ],
+      "fixture_path": "fixtures\\stress\\brightness_minus_20.png",
+      "gate_status": "PASS",
+      "notes": "task4 * 0.8 brightness (shader/lighting shift)."
+    }
+  ],
+  "overall_gate": "FAIL",
+  "track_a_ready": false,
+  "failure_modes": [
+    "scale_90 (correlation=0.5238): task4 resized to 0.9x (smaller GUI/window). Template is original-size: a 0.9x panel cannot perfectly match a 1.0x template.",
+    "scale_110 (correlation=0.7258): task4 resized to 1.1x (larger GUI/window).",
+    "resolution_1280x720 (correlation=0.4408): task4 hard-resized to 1280x720 (cross-resolution)."
+  ],
+  "notes": "Stress test perturbs ONLY task4 (the reference) along 5 axes (scale, resolution, noise, brightness). The template is cut from ORIGINAL task4 \u2014 perturbed fixtures are matched against the unperturbed template. This isolates the template-matching robustness from any session-to-session UI variation. If even simple perturbations of the SAME source image fail the 0.85 gate, Track A's hybrid (GD anchor + template slot detection) is not viable for real-world deployment where UI scale/resolution will vary."
+}

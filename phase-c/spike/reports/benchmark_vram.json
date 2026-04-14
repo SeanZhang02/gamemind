@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-04-14T21:12:57.559933+00:00",
+  "duration_s": 623.0,
+  "duration_loop_s": 601.6,
+  "sample_interval_s": 30,
+  "tick_count": 374,
+  "error_tick_count": 0,
+  "samples": [
+    {
+      "t_s": 0.05,
+      "used_mb": 2155,
+      "free_mb": 30033,
+      "phase": "baseline"
+    },
+    {
+      "t_s": 3.26,
+      "used_mb": 4810,
+      "free_mb": 27378,
+      "phase": "after_gd_load"
+    },
+    {
+      "t_s": 21.4,
+      "used_mb": 21177,
+      "free_mb": 11011,
+      "phase": "after_qwen_load",
+      "note": "cold_load_dt=18.1s"
+    },
+    {
+      "t_s": 54.46,
+      "used_mb": 21683,
+      "free_mb": 10505,
+      "phase": "sustained",
+      "note": "tick=20 last_workload=qwen"
+    },
+    {
+      "t_s": 84.11,
+      "used_mb": 21483,
+      "free_mb": 10705,
+      "phase": "sustained",
+      "note": "tick=38 last_workload=qwen"
+    },
+    {
+      "t_s": 112.73,
+      "used_mb": 21552,
+      "free_mb": 10636,
+      "phase": "sustained",
+      "note": "tick=56 last_workload=qwen"
+    },
+    {
+      "t_s": 144.44,
+      "used_mb": 21504,
+      "free_mb": 10684,
+      "phase": "sustained",
+      "note": "tick=76 last_workload=qwen"
+    },
+    {
+      "t_s": 173.92,
+      "used_mb": 21423,
+      "free_mb": 10765,
+      "phase": "sustained",
+      "note": "tick=94 last_workload=qwen"
+    },
+    {
+      "t_s": 203.15,
+      "used_mb": 21622,
+      "free_mb": 10566,
+      "phase": "sustained",
+      "note": "tick=112 last_workload=qwen"
+    },
+    {
+      "t_s": 234.49,
+      "used_mb": 21393,
+      "free_mb": 10795,
+      "phase": "sustained",
+      "note": "tick=132 last_workload=qwen"
+    },
+    {
+      "t_s": 262.35,
+      "used_mb": 21354,
+      "free_mb": 10834,
+      "phase": "sustained",
+      "note": "tick=150 last_workload=qwen"
+    },
+    {
+      "t_s": 293.9,
+      "used_mb": 21351,
+      "free_mb": 10837,
+      "phase": "sustained",
+      "note": "tick=170 last_workload=qwen"
+    },
+    {
+      "t_s": 322.66,
+      "used_mb": 21351,
+      "free_mb": 10837,
+      "phase": "sustained",
+      "note": "tick=188 last_workload=qwen"
+    },
+    {
+      "t_s": 354.29,
+      "used_mb": 21350,
+      "free_mb": 10838,
+      "phase": "sustained",
+      "note": "tick=208 last_workload=qwen"
+    },
+    {
+      "t_s": 383.17,
+      "used_mb": 21351,
+      "free_mb": 10837,
+      "phase": "sustained",
+      "note": "tick=226 last_workload=qwen"
+    },
+    {
+      "t_s": 412.54,
+      "used_mb": 21374,
+      "free_mb": 10814,
+      "phase": "sustained",
+      "note": "tick=244 last_workload=qwen"
+    },
+    {
+      "t_s": 442.13,
+      "used_mb": 21350,
+      "free_mb": 10838,
+      "phase": "sustained",
+      "note": "tick=262 last_workload=qwen"
+    },
+    {
+      "t_s": 474.49,
+      "used_mb": 21358,
+      "free_mb": 10830,
+      "phase": "sustained",
+      "note": "tick=282 last_workload=qwen"
+    },
+    {
+      "t_s": 503.57,
+      "used_mb": 21350,
+      "free_mb": 10838,
+      "phase": "sustained",
+      "note": "tick=300 last_workload=qwen"
+    },
+    {
+      "t_s": 533.03,
+      "used_mb": 21360,
+      "free_mb": 10828,
+      "phase": "sustained",
+      "note": "tick=318 last_workload=qwen"
+    },
+    {
+      "t_s": 564.27,
+      "used_mb": 21344,
+      "free_mb": 10844,
+      "phase": "sustained",
+      "note": "tick=338 last_workload=qwen"
+    },
+    {
+      "t_s": 593.87,
+      "used_mb": 21356,
+      "free_mb": 10832,
+      "phase": "sustained",
+      "note": "tick=356 last_workload=qwen"
+    },
+    {
+      "t_s": 622.95,
+      "used_mb": 21345,
+      "free_mb": 10843,
+      "phase": "sustained",
+      "note": "tick=374 last_workload=qwen"
+    },
+    {
+      "t_s": 622.98,
+      "used_mb": 21345,
+      "free_mb": 10843,
+      "phase": "final"
+    }
+  ],
+  "vram_mb": {
+    "baseline": 2155,
+    "after_gd": 4810,
+    "after_qwen": 21177,
+    "peak": 21683,
+    "mean_sustained": 21412.7,
+    "final": 21345
+  },
+  "gate_peak_mb": 28672,
+  "gate_status": "PASS",
+  "fragmentation_signs": "none",
+  "ollama_model": "qwen3-vl:8b-instruct-q4_K_M",
+  "gd_model": "IDEA-Research/grounding-dino-tiny",
+  "notes": "Workload alternates GD/Qwen ticks; nvidia-smi sampled every 30s. Errors during loop = 0. Cold-load Ollama latency captured in after_qwen_load sample note."
+}

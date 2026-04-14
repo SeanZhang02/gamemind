@@ -1,0 +1,38 @@
+{
+  "model": "grounding-dino-tiny",
+  "model_id": "IDEA-Research/grounding-dino-tiny",
+  "device": "cuda",
+  "device_name": "NVIDIA GeForce RTX 5090",
+  "compute_capability": "sm_120",
+  "torch_version": "2.9.1+cu128",
+  "vram_total_gb": 34.19,
+  "vram_after_load_gb": 0.69,
+  "vram_peak_gb": 2.04,
+  "n_warmup": 100,
+  "n_timed": 100,
+  "fixtures_used": [
+    "task1.png",
+    "task10.png",
+    "task2.png",
+    "task3.png",
+    "task4.png",
+    "task5.1.png",
+    "task5.png",
+    "task6.png",
+    "task7.1.png",
+    "task8.png",
+    "task9.png"
+  ],
+  "prompt": "tree . oak_log . leaves . grass_block . stone . iron_ore . crafting_table . cow . zombie . creeper",
+  "latency_ms": {
+    "p50": 75.18,
+    "p90": 79.44,
+    "p95": 80.1,
+    "mean": 75.73,
+    "max": 84.27,
+    "min": 71.16
+  },
+  "gate_p90_ms": 200.0,
+  "gate_status": "PASS",
+  "notes": "Round-robin over fixtures with per-call torch.cuda.synchronize() bracketing the forward pass. Includes processor() preprocessing cost per call to mimic Phase 2 frame ingestion. Compare against HF issue #31533 reports of 378-528ms on consumer GPUs."
+}
