@@ -117,10 +117,11 @@ def main() -> int:
     avg_dt_ms = (time.perf_counter() - t0) / 10 * 1000
 
     # Post-process the last output (HF Grounding DINO post-process API)
+    # transformers >= 5.x renamed box_threshold -> threshold
     results = processor.post_process_grounded_object_detection(
         outputs,
         inputs.input_ids,
-        box_threshold=args.box_threshold,
+        threshold=args.box_threshold,
         text_threshold=args.text_threshold,
         target_sizes=[image.size[::-1]],  # (H, W)
     )[0]

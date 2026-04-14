@@ -10,8 +10,10 @@ requires-python = ">=3.11"
 # - Avoids Windows/Blackwell CUDA C++ compile pain
 # - Allows Fallback A (OWLv2) swap without restructuring
 dependencies = [
-    "torch>=2.5.0",          # sm_120 support — may need cu128 wheel on Windows
-    "torchvision>=0.20.0",
+    # torch 2.9.1+cu128 — Blackwell sm_120 support confirmed in PyTorch cu128 index.
+    # Pypi default torch is CPU-only on Windows; we MUST pull from pytorch.org.
+    "torch>=2.9.0,<2.10",
+    "torchvision>=0.24.0,<0.25",
     "transformers>=4.47.0",   # mature GroundingDINO integration w/ fast image processor
     "supervision>=0.25.0",    # ByteTrack + visualization primitives
     "numpy<2.0",              # supervision compatibility warning (see research Q3)
@@ -20,6 +22,18 @@ dependencies = [
     "opencv-python>=4.10.0",  # CV2 overlay rendering
     "httpx>=0.28.0",          # Ollama HTTP client
 ]
+
+# Pin torch/torchvision to PyTorch's cu128 index for Blackwell (sm_120) support.
+# Pypi default wheels are CPU-only or older CUDA; only download.pytorch.org/whl/cu128
+# ships wheels built with CUDA 12.8 that include Blackwell binaries.
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
 
 [project.optional-dependencies]
 dev = [
