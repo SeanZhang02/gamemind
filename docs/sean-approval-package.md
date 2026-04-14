@@ -1,5 +1,7 @@
 # GameMind — Sean's Approval Package
 
+> **Post-approval note (2026-04-13)**: Since this approval was signed, the Layer 1 model decision was revised from Qwen2.5-VL-7B (the approval baseline) to `gemma4:26b-a4b-it-q4_K_M` via empirical re-probe (commit 7cc5c40). See `docs/MODEL_DECISION.md` and `phase-c-0/C0_CLOSEOUT.md` §0 for details. The rest of this approval artifact is preserved verbatim for historical integrity.
+
 **Phase B output** — consolidated for Sean's approval decision
 **Generated**: 2026-04-10
 **Full design doc**: `gamemind-final-design.md` (480 lines, architect-written, team-audited)

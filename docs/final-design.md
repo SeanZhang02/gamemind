@@ -1,6 +1,8 @@
 <!-- /autoplan restore point: ~/.gstack/projects/SeanZhang02-gamemind/chore-phase-c-autoplan-review-autoplan-restore-20260411-133010.md -->
 # GameMind — Final Design Document
 
+> **Model note (2026-04-13)**: This design document was authored during Phase B when qwen2.5-vl-7b and later qwen3-vl-8b were candidates. The operational sections have been updated to reflect the `gemma4:26b-a4b-it-q4_K_M` decision (commit 7cc5c40). Architectural prose below may still reference earlier qwen models as historical context — see `docs/MODEL_DECISION.md` for the current locked choice.
+
 **Status**: PHASE C READY (amendments A1-A15 applied 2026-04-11 via `docs/phase-c-step0-amendments`)
 **Author**: architect (Phase B agent team) + Claude autoplan review (§10)
 **Date**: 2026-04-10 (Phase B close) / 2026-04-11 (Step 0 amendments applied)
@@ -292,7 +294,7 @@ The architecture has two inference engines (Layer 1 Qwen local + Layer 3 Claude 
 3. **Recovery attempts**: the perception daemon re-probes Ollama on each tick with exponential backoff (1s → 3s → 9s), running in parallel with the stale-reuse window. If Ollama comes back before tick 4, the session continues.
 4. **Diagnostic emission**: every Ollama-unavailable event writes one actionable line to `runs/<session>/errors.jsonl`:
    ```
-   {"error": "OllamaConnectionError", "code": "E106", "fix": "Run `ollama serve` then `ollama pull qwen3-vl:8b-instruct-q4_K_M`", "host": "http://127.0.0.1:11434"}
+   {"error": "OllamaConnectionError", "code": "E106", "fix": "Run `ollama serve` then `ollama pull gemma4:26b-a4b-it-q4_K_M`", "host": "http://127.0.0.1:11434"}
    ```
 
 **Layer 3 (Anthropic) absence**:
@@ -344,7 +346,7 @@ Maintain a ring buffer of last 20 `(action_hash, ts_monotonic_ns)` tuples in `ga
 - Vision-researcher supplemental on 7B-for-planning: Orak shows 7B-class VLMs 20-40% vs Claude 4.5 60-80% on multi-step game planning (2-3x gap). Game-TARS needed 72B for 72% embodied. No published 7B agent completes comparable Minecraft tasks. **Claude is necessary for Layer 3 planning; Qwen is necessary for Layer 1 perception; both are required**.
 - Phase A research pack errors corrected: Orak's Claude 75.0 Minecraft score was TEXT-STATE, not vision. Claude-on-game-vision has no strong public benchmark. Hence SPIKE-0 gate.
 
-**Primary stack** (post-Phase-C-0, amended 2026-04-11 by autoplan review §10.1.B P4): `qwen3-vl:8b-instruct-q4_K_M` on Ollama 0.13.1 native Windows + Claude Sonnet 4.5/4.6 via OpenAI-compat backend. Phase C-0 gate results locked this choice over the original Qwen2.5-VL-7B baseline: T1 block 83.3% vs 66.7%, T3 UI 100% vs 25%, T4 spatial 91.7% vs 75%, p90 1353ms vs 1256ms. See `phase-c-0/C0_CLOSEOUT.md` for the full comparison table. T2 hotbar OCR is non-blocking per the Layer 6 game-state-aware verification wedge (this doc §OQ-6). **Original baseline (superseded, historical only)**: Qwen2.5-VL-7B Apache 2.0 ~20GB VRAM BF16. Retained in Ollama registry for regression comparisons.
+**Primary stack** (post-Phase-C-0 re-probe, amended 2026-04-13 by gemma4 model swap commit 7cc5c40): `gemma4:26b-a4b-it-q4_K_M` on Ollama native Windows + Claude Sonnet 4.5/4.6 via OpenAI-compat backend. gemma4 re-probe (2026-04-13) results: T1 block 100%, T3 UI 75%, T4 spatial 91.7%, p90 blocking latency 721ms, JSON 100%. Earlier qwen3-vl:8b-instruct-q4_K_M baseline (2026-04-11 Phase-C-0) had T1 83.3%, T3 100%, T4 91.7%, p90 1353ms. gemma4 is 1.9x faster at p90 and perfect on T1. See `phase-c-0/C0_CLOSEOUT.md` §0 and `docs/MODEL_DECISION.md` for the full history. T2 hotbar OCR is non-blocking per the Layer 6 game-state-aware verification wedge (this doc §OQ-6). **Prior baselines (superseded, historical only)**: qwen3-vl:8b-instruct-q4_K_M (Phase-C-0 pick), Qwen2.5-VL-7B (original Phase B baseline). Retained in Ollama registry for regression comparisons.
 **Fallback stack** (if in-service regression): `qwen3-vl:8b-thinking-q4_K_M` (already pulled as Ollama D2 fallback; **Phase-C-0 showed thinking variant p90 2100ms exceeds 1500ms gate — must run with `think: false` flag via Ollama API**, see `probe/client.py` `think=False` implementation). Further fallbacks if D2 also fails: UI-TARS-1.5-7B → GLM-4.6V-Flash (free tier) → Doubao-1.5-vision-pro API.
 **Gemini 2.5 Pro** reserved as secondary critic for hard cases, NOT as primary brain (cost-killer at $5.16/1K).
 
@@ -885,7 +887,7 @@ Per `docs/final-design.md §10` (autoplan review), 15 amendments (A1-A15) have b
 - **A11 `phase-c-0-regression` CI job** (`.github/workflows/ci.yml`, not in this doc)
 - **A12 Protocol signatures frozen** (§OQ-3 addendum)
 - **A13 Action Repetition Guard** (§1.8 new)
-- **A14 Warmup prompt generic rewrite** — **already closed in commit `ade48e1` of `chore/phase-c-autoplan-review`**; `phase-c-0/probe/client.py` `DEFAULT_MODEL` is now `qwen3-vl:8b-instruct-q4_K_M` and the warmup prompt is game-generic.
+- **A14 Warmup prompt generic rewrite** — **already closed in commit `ade48e1` of `chore/phase-c-autoplan-review`**; `phase-c-0/probe/client.py` `DEFAULT_MODEL` is now `gemma4:26b-a4b-it-q4_K_M` (updated 2026-04-13 from qwen3-vl:8b-instruct-q4_K_M) and the warmup prompt is game-generic.
 - **A15 `num_ctx` as LLMBackend config field** (§OQ-3 addendum)
 
 Phase C Step 1 implementers work from §0-§9 as the authoritative spec. §10 autoplan review remains as historical context for how §0-§9 got here.
@@ -928,7 +930,7 @@ Raw findings before any review section runs:
 - **Probe harness code smell — doc-code divergence**:
   - `phase-c-0/probe/client.py:22` — `DEFAULT_MODEL = "qwen2.5vl:7b"`
   - `phase-c-0/probe/run.py:316-317` — CLI `--model` default is `client.DEFAULT_MODEL`
-  - C0_CLOSEOUT.md (2026-04-11) — **locked** model is `qwen3-vl:8b-instruct-q4_K_M`
+  - C0_CLOSEOUT.md (2026-04-11 + 2026-04-13 §0 update) — **locked** model is `gemma4:26b-a4b-it-q4_K_M` (prior: qwen3-vl:8b-instruct-q4_K_M)
   - `docs/final-design.md §2 OQ-1` — "Primary stack: Qwen2.5-VL-7B"
   - Impact: a Phase C implementer reading the design doc and lifting `probe/client.py` gets the OLD model unless they also read C0_CLOSEOUT. The probe harness was not updated after C-0 closure.
 - **Probe warmup Rule-3 risk**: `phase-c-0/probe/client.py:140-143` — warmup prompt hardcodes `"Minecraft first-person screenshot"`. This is allowed under CI Rule 3 scoping (`probe/` is excluded), but if the warmup code is lifted to `phase-c/perception/` as-is without generic rewrite, it tripping Rule 3. Noting as a LIFT-TIME risk, not a current violation.
@@ -946,7 +948,7 @@ The design doc stands on seven load-bearing premises. Evaluated below with evide
 | P1 | Two-game cross-transfer (Minecraft + Stardew) is the right minimum test of universality | YES | LOAD-BEARING, UNTESTED — Stardew has zero empirical grounding in the repo | Keep, but treat Stardew end-to-end (Step 5 in §6) as the actual universality gate, not "the second game after MC works" |
 | P2 | Phase C-0 static-screenshot PASS generalizes to continuous 2-3 Hz live perception | YES | UNVALIDATED — static fixtures ≠ live stream with motion, weather, rapid transitions; p90 1353ms vs 400-500ms tick budget | Recommend a live perception spike EARLY in Step 1/2, not deferred to Step 3 |
 | P3 | 205-315h effort estimate is real, not architect-interpolation | YES | DIRECTIONALLY SOUND, ±30% component uncertainty; §4.1 is architect-interpolation, tracked stub still open | Acknowledge component uncertainty; keep 350h red line as hard anchor |
-| P4 | Design doc §2 OQ-1 "Primary stack: Qwen2.5-VL-7B" is current | NO (but high-friction) | DOC-CODE DIVERGENCE — C-0 locked qwen3-vl:8b-instruct-q4_K_M, probe harness never updated | **Amend §2 OQ-1 + update `probe/client.py:22` BEFORE Phase C kickoff.** Small chore, high leverage |
+| P4 | Design doc §2 OQ-1 "Primary stack: Qwen2.5-VL-7B" is current | NO (but high-friction) | DOC-CODE DIVERGENCE — C-0 locked qwen3-vl:8b-instruct-q4_K_M, re-probe 2026-04-13 locked gemma4:26b-a4b-it-q4_K_M, probe harness updated in commit 7cc5c40 | **Resolved**: §2 OQ-1 amended 2026-04-13, `probe/client.py:22` updated to gemma4 |
 | P5 | Layer 6 YAML + runtime grounding wedge is architecturally superior to Cradle's hand-drawn coords | YES | SOUND REASONING, NEEDS EMPIRICAL CORROBORATION — Cradle code citation is concrete (basic_skills.py:16), but the "better than Cradle" claim is theoretical until Stardew works end-to-end | Keep, flag as "architectural bet pending Phase C Step 5 validation" |
 | P6 | Max Plan ~$100/mo envelope covers v1 personal-tool usage | Medium | MATH IS SOUND, RUNTIME VALIDATION NEEDED — depends on stuck detector behaving as specified; if W2 over-fires, budget explodes | Add Layer 2 stuck detector calibration to Step 3 acceptance (not just W1 task-start wake) |
 | P7 | Sean's 5-10 week / ~25h/week commitment is achievable | YES (schedule) | OUT OF REVIEW SCOPE — Sean's call | No change; sean checkpoints at 350h red line are the tripwire |
@@ -1074,7 +1076,7 @@ Note (CC scale): 6 hours of human work ≈ 30-60 minutes on CC+gstack per autopl
 
 ```
   +------------------- External Services ---------------------+
-  |  Ollama 0.13.1 (qwen3-vl:8b-instruct-q4_K_M)              |
+  |  Ollama (gemma4:26b-a4b-it-q4_K_M)                        |
   |  Anthropic API (Claude Sonnet 4.5/4.6, sparse)            |
   |  Gemini 2.5 Pro API (W4 escalation only, D3 fallback)     |
   +-----------^------------^-----------------------^----------+
@@ -1235,7 +1237,7 @@ Shadow path coverage:
 | `gamemind run --adapter X` | Multiple game windows open | **GAP** | HWND disambiguation: need `--window-title` filter or first-match |
 | `gamemind doctor --capture` | No game running | **GAP** | Clear error msg instead of opaque WGC fail |
 | `gamemind doctor --live-perception` | Ollama not running | **GAP** | Check + prompt Sean to start Ollama |
-| `gamemind doctor --live-perception` | Ollama model not pulled | **GAP** | Check + prompt `ollama pull qwen3-vl:8b-instruct-q4_K_M` |
+| `gamemind doctor --live-perception` | Ollama model not pulled | **GAP** | Check + prompt `ollama pull gemma4:26b-a4b-it-q4_K_M` |
 
 **Auto-decision**: All 8 CLI gaps merged into Section 2 error contract. Log to audit trail.
 
@@ -1277,7 +1279,7 @@ Code doesn't exist yet for phase-c/. Review the **design's code quality expectat
 - **Layer 1 is the bottleneck**. p90 1353ms vs 333-500ms tick. **Live-perception spike (cherry-pick e5 = Step 1 acceptance) catches this.**
 - Backlog strategy: unspecified in design doc. **FINDING P1**: add to `gamemind/perception/daemon.py` — drop-oldest-frame policy with metric (e2 covered)
 - Layer 3 budget: 5-20 wakes/task × ~$0.20 = $20-40/mo at 100 tasks. Within $100 Max Plan envelope. ✓
-- VRAM footprint: qwen3-vl:8b-instruct-q4_K_M ~6.1GB; 5090 has 32GB. ✓
+- VRAM footprint: gemma4:26b-a4b-it-q4_K_M ~6.1GB; 5090 has 32GB. ✓
 - Capture overhead: <10ms WGC/DXGI. ✓
 - Adapter YAML parse: <50ms (pydantic). ✓
 - faiss skill retrieval: <5ms for v1 single-adapter index. Defer full eval to Step 4.
@@ -1334,7 +1336,7 @@ Items considered and explicitly deferred from the Phase C build plan:
 - Anti-cheat evasion (same — design goal is anti-cheat *safe*, not hidden)
 
 #### 10.2.B What already exists
-- **phase-c-0/probe/client.py** → refactor into `gamemind/perception/ollama_backend.py` (default model now qwen3-vl-8b-instruct-q4_K_M post-P4 fix)
+- **phase-c-0/probe/client.py** → refactor into `gamemind/perception/ollama_backend.py` (default model now gemma4:26b-a4b-it-q4_K_M post-P4 fix + 2026-04-13 re-probe swap)
 - **phase-c-0/probe/tasks.py** scoring functions → migrate into `gamemind/verify/checks.py` tier-1 predicates
 - **phase-c-0/probe/tasks.py** prompts → NOT lifted directly; game-specific content moves to `adapters/minecraft.yaml` goal_grammars per Rule 3
 - **phase-c-0/probe/run.py** gate logic → repurpose as `tests/regression/probe_runner.py`
@@ -1542,7 +1544,7 @@ Many eng concerns were already raised in Phase 1 Sections 1-10. Phase 3 re-groun
 
 Code that actually exists and was read during this review:
 - `phase-c-0/probe/client.py` (169 LOC) — read line-by-line. `DEFAULT_MODEL` fixed in commit `ade48e1`. Warmup prompt at lines 140-143 hardcodes "Minecraft first-person screenshot" — allowed in probe/, must be rewritten generic on lift per Rule 3.
-- `phase-c-0/probe/run.py` (350 LOC) — structure verified via grep. CLI at lines 315-321 uses `client.DEFAULT_MODEL` as default (now qwen3-vl-8b-instruct-q4_K_M).
+- `phase-c-0/probe/run.py` (350 LOC) — structure verified via grep. CLI at lines 315-321 uses `client.DEFAULT_MODEL` as default (now gemma4:26b-a4b-it-q4_K_M).
 - `phase-c-0/probe/tasks.py` (161 LOC) — structure verified. 4 tasks T1-T4 with prompt templates at lines 81/94/107/146. Scoring functions at lines 31, 35, 58, 62.
 - `.github/workflows/ci.yml` — full read. Jobs: `phase-c-0-probe` (ruff lint + format + import check) and `design-rules` (Rule 1/2/3 grep-based enforcement). Rule 2 currently guards `phase-c/adapters/` path (doesn't exist yet). Rule 3 scoped to `phase-c/`. All passing on main.
 - `docs/final-design.md` §0-§9 — full read (656 lines + §10 review appended in this branch).
@@ -1820,11 +1822,11 @@ phase-c-0-regression:
     - name: Install uv + ollama
       run: |
         winget install ollama.ollama
-        ollama pull qwen3-vl:8b-instruct-q4_K_M
+        ollama pull gemma4:26b-a4b-it-q4_K_M
     - name: Run probe regression
       working-directory: phase-c-0
       run: |
-        uv run python -m probe.run --model qwen3-vl:8b-instruct-q4_K_M
+        uv run python -m probe.run --model gemma4:26b-a4b-it-q4_K_M
         # Gate: T1≥50%, T3≥70%, T4≥70%, p90≤1500ms, JSON≥95%
 ```
 Note: may be deferred to self-hosted Windows runner; ubuntu-latest cannot host Ollama Windows. Log as TODO for Step 0.
@@ -2000,7 +2002,7 @@ Competitors in the "game agent framework with declarative adapters" space are sp
 | # | Stage | Developer does | Friction | Status |
 |---|---|---|---|---|
 | 1 | Discovery | v1: Sean himself; v2: reads a blog post or paper citing GameMind | v1: N/A. v2: no README yet | v1 OK; v2 DEFER to v2-S1 |
-| 2 | Install prereqs | `winget install ollama.ollama`, `ollama pull qwen3-vl:8b-instruct-q4_K_M`, `winget install astral-sh.uv` | Prereq list not documented in README | **DX-F1 MED** — add `docs/install.md` at Phase C Step 3 |
+| 2 | Install prereqs | `winget install ollama.ollama`, `ollama pull gemma4:26b-a4b-it-q4_K_M`, `winget install astral-sh.uv` | Prereq list not documented in README | **DX-F1 MED** — add `docs/install.md` at Phase C Step 3 |
 | 3 | Clone + install | `git clone git@github.com:SeanZhang02/gamemind.git && cd gamemind && uv sync` | Private repo access for v1; uv sync pulls deps | v1 OK (Sean has access); v2 deferred |
 | 4 | First doctor run | `gamemind doctor --all` | **DX-F2 HIGH** — `--all` subcommand not in §6 Step 1 scope until autoplan cherry-pick (e5/D1 runbook); must add to Step 1 | AMEND Step 1 scope |
 | 5 | Read design doc | Opens `docs/final-design.md`, scrolls to §6 or §2 OQ-6 for wedge | 656 lines + §10 review is a lot | **DX-F3 LOW** — add a `docs/README.md` with a 5-section reading order (Exec Summary → Architecture → Design Rules → Build Steps → Errors) |
