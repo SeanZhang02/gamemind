@@ -1,0 +1,1025 @@
+{
+  "config": {
+    "score_threshold": 0.2,
+    "iou_threshold": 0.5
+  },
+  "per_class": {
+    "crafting_grid_2x2": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 4,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "crafting_grid_3x3": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "crafting_table": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "grass_block": {
+      "tp": 4,
+      "fp": 3,
+      "fn": 1,
+      "precision": 0.5714,
+      "recall": 0.8,
+      "f1": 0.6667,
+      "mean_iou": 0.7684
+    },
+    "health_bar": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 5,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "hotbar": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 11,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "hunger_bar": {
+      "tp": 0,
+      "fp": 5,
+      "fn": 5,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "inventory_grid": {
+      "tp": 6,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1": 0.8571,
+      "mean_iou": 0.9752
+    },
+    "inventory_slot": {
+      "tp": 0,
+      "fp": 3,
+      "fn": 6,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "iron_ore": {
+      "tp": 0,
+      "fp": 3,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "mean_iou": null
+    },
+    "item_in_slot": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 34,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "leaves": {
+      "tp": 1,
+      "fp": 1,
+      "fn": 4,
+      "precision": 0.5,
+      "recall": 0.2,
+      "f1": 0.2857,
+      "mean_iou": 0.9472
+    },
+    "oak_log": {
+      "tp": 2,
+      "fp": 14,
+      "fn": 2,
+      "precision": 0.125,
+      "recall": 0.5,
+      "f1": 0.2,
+      "mean_iou": 0.8443
+    },
+    "output_slot": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 6,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "stone": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "mean_iou": null
+    },
+    "tooltip_text": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "tree": {
+      "tp": 0,
+      "fp": 12,
+      "fn": 10,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "wooden_pickaxe": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "zombie": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "mean_iou": null
+    }
+  },
+  "micro": {
+    "tp": 13,
+    "fp": 49,
+    "fn": 96,
+    "precision": 0.2097,
+    "recall": 0.1193,
+    "f1": 0.152,
+    "mean_iou": 0.8893
+  },
+  "macro": {
+    "precision": 0.1769,
+    "recall": 0.1562,
+    "f1": 0.5024,
+    "mean_iou": 0.8838,
+    "n_classes_with_support": 16
+  },
+  "images": [
+    {
+      "image": "task1.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 8,
+      "n_pred": 10,
+      "tp": 2,
+      "fp": 8,
+      "fn": 6,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "oak_log",
+          "score": 0.317,
+          "iou": 0.792
+        },
+        {
+          "type": "TP",
+          "label": "grass_block",
+          "score": 0.308,
+          "iou": 0.581
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.27
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.283
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.25
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.373
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.254
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.32
+        },
+        {
+          "type": "FP",
+          "label": "hunger_bar",
+          "score": 0.213
+        },
+        {
+          "type": "FP",
+          "label": "hunger_bar",
+          "score": 0.251
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "leaves"
+        },
+        {
+          "type": "FN",
+          "label": "health_bar"
+        },
+        {
+          "type": "FN",
+          "label": "hunger_bar"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        }
+      ]
+    },
+    {
+      "image": "task10.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 12,
+      "n_pred": 13,
+      "tp": 2,
+      "fp": 11,
+      "fn": 10,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "oak_log",
+          "score": 0.246,
+          "iou": 0.896
+        },
+        {
+          "type": "TP",
+          "label": "grass_block",
+          "score": 0.221,
+          "iou": 0.904
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.381
+        },
+        {
+          "type": "FP",
+          "label": "grass_block",
+          "score": 0.37
+        },
+        {
+          "type": "FP",
+          "label": "iron_ore",
+          "score": 0.419
+        },
+        {
+          "type": "FP",
+          "label": "stone",
+          "score": 0.268
+        },
+        {
+          "type": "FP",
+          "label": "stone",
+          "score": 0.226
+        },
+        {
+          "type": "FP",
+          "label": "grass_block",
+          "score": 0.223
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.201
+        },
+        {
+          "type": "FP",
+          "label": "zombie",
+          "score": 0.202
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.202
+        },
+        {
+          "type": "FP",
+          "label": "inventory_grid",
+          "score": 0.254
+        },
+        {
+          "type": "FP",
+          "label": "hunger_bar",
+          "score": 0.202
+        },
+        {
+          "type": "FN",
+          "label": "wooden_pickaxe"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "leaves"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "health_bar"
+        },
+        {
+          "type": "FN",
+          "label": "hunger_bar"
+        }
+      ]
+    },
+    {
+      "image": "task2.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 9,
+      "n_pred": 9,
+      "tp": 1,
+      "fp": 8,
+      "fn": 8,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "grass_block",
+          "score": 0.307,
+          "iou": 0.796
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.242
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.207
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.26
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.227
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.228
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.232
+        },
+        {
+          "type": "FP",
+          "label": "hotbar",
+          "score": 0.229
+        },
+        {
+          "type": "FP",
+          "label": "hunger_bar",
+          "score": 0.22
+        },
+        {
+          "type": "FN",
+          "label": "oak_log"
+        },
+        {
+          "type": "FN",
+          "label": "oak_log"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "leaves"
+        },
+        {
+          "type": "FN",
+          "label": "health_bar"
+        },
+        {
+          "type": "FN",
+          "label": "hunger_bar"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        }
+      ]
+    },
+    {
+      "image": "task3.png",
+      "prompt_group": "ui",
+      "n_gt": 6,
+      "n_pred": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 5,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "inventory_grid",
+          "score": 0.279,
+          "iou": 0.967
+        },
+        {
+          "type": "FP",
+          "label": "inventory_slot",
+          "score": 0.249
+        },
+        {
+          "type": "FN",
+          "label": "crafting_grid_2x2"
+        },
+        {
+          "type": "FN",
+          "label": "output_slot"
+        },
+        {
+          "type": "FN",
+          "label": "inventory_slot"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        }
+      ]
+    },
+    {
+      "image": "task4.png",
+      "prompt_group": "ui",
+      "n_gt": 7,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 6,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "inventory_grid",
+          "score": 0.302,
+          "iou": 0.969
+        },
+        {
+          "type": "FN",
+          "label": "crafting_grid_2x2"
+        },
+        {
+          "type": "FN",
+          "label": "output_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "inventory_slot"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        }
+      ]
+    },
+    {
+      "image": "task5.1.png",
+      "prompt_group": "ui",
+      "n_gt": 12,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 11,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "inventory_grid",
+          "score": 0.29,
+          "iou": 0.972
+        },
+        {
+          "type": "FN",
+          "label": "crafting_grid_2x2"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "output_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "tooltip_text"
+        },
+        {
+          "type": "FN",
+          "label": "inventory_slot"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        }
+      ]
+    },
+    {
+      "image": "task5.png",
+      "prompt_group": "ui",
+      "n_gt": 6,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 5,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "inventory_grid",
+          "score": 0.284,
+          "iou": 0.97
+        },
+        {
+          "type": "FN",
+          "label": "crafting_grid_2x2"
+        },
+        {
+          "type": "FN",
+          "label": "output_slot"
+        },
+        {
+          "type": "FN",
+          "label": "inventory_slot"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        }
+      ]
+    },
+    {
+      "image": "task6.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 9,
+      "n_pred": 11,
+      "tp": 1,
+      "fp": 10,
+      "fn": 8,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "leaves",
+          "score": 0.235,
+          "iou": 0.947
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.404
+        },
+        {
+          "type": "FP",
+          "label": "grass_block",
+          "score": 0.358
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.264
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.226
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.382
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.217
+        },
+        {
+          "type": "FP",
+          "label": "leaves",
+          "score": 0.217
+        },
+        {
+          "type": "FP",
+          "label": "zombie",
+          "score": 0.203
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.258
+        },
+        {
+          "type": "FP",
+          "label": "inventory_grid",
+          "score": 0.23
+        },
+        {
+          "type": "FN",
+          "label": "crafting_table"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "grass_block"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "health_bar"
+        },
+        {
+          "type": "FN",
+          "label": "hunger_bar"
+        }
+      ]
+    },
+    {
+      "image": "task7.1.png",
+      "prompt_group": "ui",
+      "n_gt": 12,
+      "n_pred": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 11,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "inventory_grid",
+          "score": 0.295,
+          "iou": 0.983
+        },
+        {
+          "type": "FP",
+          "label": "hotbar",
+          "score": 0.314
+        },
+        {
+          "type": "FN",
+          "label": "crafting_grid_3x3"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "output_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "inventory_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        }
+      ]
+    },
+    {
+      "image": "task8.png",
+      "prompt_group": "ui",
+      "n_gt": 16,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 15,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "inventory_grid",
+          "score": 0.26,
+          "iou": 0.99
+        },
+        {
+          "type": "FN",
+          "label": "crafting_grid_3x3"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "output_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "tooltip_text"
+        },
+        {
+          "type": "FN",
+          "label": "inventory_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        }
+      ]
+    },
+    {
+      "image": "task9.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 12,
+      "n_pred": 11,
+      "tp": 1,
+      "fp": 10,
+      "fn": 11,
+      "matches": [
+        {
+          "type": "TP",
+          "label": "grass_block",
+          "score": 0.292,
+          "iou": 0.792
+        },
+        {
+          "type": "FP",
+          "label": "tree",
+          "score": 0.338
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.306
+        },
+        {
+          "type": "FP",
+          "label": "iron_ore",
+          "score": 0.255
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.248
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.209
+        },
+        {
+          "type": "FP",
+          "label": "oak_log",
+          "score": 0.212
+        },
+        {
+          "type": "FP",
+          "label": "iron_ore",
+          "score": 0.209
+        },
+        {
+          "type": "FP",
+          "label": "inventory_slot",
+          "score": 0.213
+        },
+        {
+          "type": "FP",
+          "label": "inventory_slot",
+          "score": 0.226
+        },
+        {
+          "type": "FP",
+          "label": "hunger_bar",
+          "score": 0.237
+        },
+        {
+          "type": "FN",
+          "label": "wooden_pickaxe"
+        },
+        {
+          "type": "FN",
+          "label": "crafting_table"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "tree"
+        },
+        {
+          "type": "FN",
+          "label": "leaves"
+        },
+        {
+          "type": "FN",
+          "label": "hotbar"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "item_in_slot"
+        },
+        {
+          "type": "FN",
+          "label": "health_bar"
+        },
+        {
+          "type": "FN",
+          "label": "hunger_bar"
+        }
+      ]
+    }
+  ]
+}
