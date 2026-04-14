@@ -11,10 +11,10 @@ jobs:
     name: phase-c-0 probe — lint & import check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           python-version: "3.11"
 
@@ -44,10 +44,10 @@ jobs:
     name: gamemind package — lint, format, import & smoke tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           python-version: "3.11"
 
@@ -91,7 +91,7 @@ jobs:
       (contains(join(github.event.pull_request.labels.*.name, ','), 'perception') ||
        contains(join(github.event.pull_request.labels.*.name, ','), 'adapter'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       - name: Placeholder — real probe run requires Windows self-hosted runner
         run: |
           echo "phase-c-0-regression is in placeholder mode."
@@ -109,7 +109,7 @@ jobs:
     name: Three Design Rules enforcement
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Rule 1 — no hand-authored mouse coordinates
         run: |
