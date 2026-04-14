@@ -1,0 +1,44 @@
+[project]
+name = "gamemind-phase-c-spike"
+version = "0.0.1"
+description = "Phase 1 spike — Grounding DINO zero-shot on Minecraft world + UI. Isolated from main gamemind/ package."
+readme = "README.md"
+requires-python = ">=3.11"
+
+# Per phase-c/spike/research_gd_variants.md recommendation:
+# - GD-tiny via HF transformers (NOT IDEA's CUDA-extension repo)
+# - Avoids Windows/Blackwell CUDA C++ compile pain
+# - Allows Fallback A (OWLv2) swap without restructuring
+dependencies = [
+    "torch>=2.5.0",          # sm_120 support — may need cu128 wheel on Windows
+    "torchvision>=0.20.0",
+    "transformers>=4.47.0",   # mature GroundingDINO integration w/ fast image processor
+    "supervision>=0.25.0",    # ByteTrack + visualization primitives
+    "numpy<2.0",              # supervision compatibility warning (see research Q3)
+    "pillow>=10.0.0",
+    "mss>=9.0.0",             # screen capture (Minecraft window frames)
+    "opencv-python>=4.10.0",  # CV2 overlay rendering
+    "httpx>=0.28.0",          # Ollama HTTP client
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.14.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# spike is not a real package — this is just to make `uv sync` work
+packages = ["sanity"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "N", "UP", "B", "SIM"]
+ignore = ["E501", "SIM105", "SIM108"]
