@@ -66,3 +66,6 @@ credentials.json
 
 # Claude Code local state
 .claude/
+
+# gstack local state (security reports, review logs, checkpoints — never commit)
+.gstack/
