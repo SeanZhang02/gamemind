@@ -1,0 +1,190 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "character_model",
+      "points": [
+        [
+          53.84615384615387,
+          -1.1368683772161603e-13
+        ],
+        [
+          538.8461538461538,
+          1079.0
+        ]
+      ],
+      "group_id": null,
+      "description": "Left panel full-body player character avatar (same layout as task5)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "inventory_grid",
+      "points": [
+        [
+          724.5299145299143,
+          76.70940170940173
+        ],
+        [
+          1225.311965811966,
+          963.4316239316239
+        ]
+      ],
+      "group_id": null,
+      "description": "Right-side character gear grid",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "weapon",
+      "points": [
+        [
+          106.62393162393164,
+          165.34188034188034
+        ],
+        [
+          212.491452991453,
+          396.7649572649572
+        ]
+      ],
+      "group_id": null,
+      "description": "Pistol held by character",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "weapon",
+      "points": [
+        [
+          442.64957264957263,
+          722.5641025641025
+        ],
+        [
+          715.9102564102564,
+          965.1410256410256
+        ]
+      ],
+      "group_id": null,
+      "description": "Rifle slung on character (large, lower half)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          741.3675213675212,
+          471.3247863247864
+        ],
+        [
+          1003.0897435897436,
+          671.1239316239316
+        ]
+      ],
+      "group_id": null,
+      "description": "Helmet icon",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          740.5128205128206,
+          165.2136752136752
+        ],
+        [
+          1080.8675213675215,
+          297.6196581196581
+        ]
+      ],
+      "group_id": null,
+      "description": "Rifle in horizontal slot",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          583.247863247863,
+          165.64102564102564
+        ],
+        [
+          718.4743589743591,
+          438.6452991452991
+        ]
+      ],
+      "group_id": null,
+      "description": "Green medkit (cross-marked)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          738.1196581196582,
+          351.8376068376068
+        ],
+        [
+          828.1196581196582,
+          426.8376068376068
+        ]
+      ],
+      "group_id": null,
+      "description": "Magazine / ammo stack middle grid",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "health_hud",
+      "points": [
+        [
+          0.0,
+          940.0
+        ],
+        [
+          340.0,
+          1065.0
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-left health bar",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "safe_box",
+      "points": [
+        [
+          737.0940170940169,
+          779.8717948717949
+        ],
+        [
+          1206.508547008547,
+          951.4658119658119
+        ]
+      ],
+      "group_id": null,
+      "description": "Helmet icon",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "task6.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
+}

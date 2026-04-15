@@ -1,0 +1,154 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "minimap",
+      "points": [
+        [
+          50,
+          30
+        ],
+        [
+          470,
+          370
+        ]
+      ],
+      "group_id": null,
+      "description": "Upper-left circular minimap",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "compass",
+      "points": [
+        [
+          415,
+          0
+        ],
+        [
+          1500,
+          110
+        ]
+      ],
+      "group_id": null,
+      "description": "Top-center compass bar (北/东/南/西 numerics)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "building",
+      "points": [
+        [
+          110,
+          100
+        ],
+        [
+          1345,
+          575
+        ]
+      ],
+      "group_id": null,
+      "description": "Warehouse facade in background, primary structure",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "vehicle",
+      "points": [
+        [
+          990,
+          340
+        ],
+        [
+          1900,
+          700
+        ]
+      ],
+      "group_id": null,
+      "description": "Truck on right side of street (primary), orange-red cab with trailer",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "vehicle",
+      "points": [
+        [
+          900,
+          440
+        ],
+        [
+          1060,
+          610
+        ]
+      ],
+      "group_id": null,
+      "description": "Secondary small vehicle/cart behind left of main truck (approximate — please verify)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "loot_container",
+      "points": [
+        [
+          280,
+          495
+        ],
+        [
+          400,
+          615
+        ]
+      ],
+      "group_id": null,
+      "description": "Small crate on left side near building (candidate — may be just scenery)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "health_hud",
+      "points": [
+        [
+          0,
+          940
+        ],
+        [
+          340,
+          1065
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-left health + character icon bar",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "ammo_count",
+      "points": [
+        [
+          1500,
+          830
+        ],
+        [
+          1890,
+          1060
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-right weapon/ammo icons row",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../task1.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
+}

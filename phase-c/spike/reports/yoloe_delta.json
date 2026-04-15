@@ -1,0 +1,374 @@
+{
+  "model": "yoloe-v8l-seg.pt",
+  "model_family": "YOLOE (ICCV 2025, THU-MIG)",
+  "n_fixtures": 11,
+  "iou_threshold": 0.5,
+  "score_threshold": 0.2,
+  "latency": {
+    "cold_ms": 571.7,
+    "warm_median_ms": 72.22,
+    "warm_mean_ms": 68.97,
+    "warm_p95_ms": 81.27,
+    "warm_min_ms": 46.4,
+    "warm_max_ms": 85.38,
+    "n_samples": 20
+  },
+  "per_class": {
+    "ammo_count": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 9,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "building": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 5,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "character_model": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "compass": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 9,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "crosshair": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 3,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "door": {
+      "tp": 0,
+      "fp": 3,
+      "fn": 4,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "health_hud": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 11,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "inventory_grid": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "item_in_slot": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 10,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "loot_grid": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "loot_item": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "lootable_container": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "minimap": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 9,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "plant": {
+      "tp": 1,
+      "fp": 4,
+      "fn": 0,
+      "precision": 0.2,
+      "recall": 1.0,
+      "f1": 0.3333,
+      "mean_iou": 0.8183
+    },
+    "player_enemy": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 3,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "safe_box": {
+      "tp": 0,
+      "fp": 7,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "stairs": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "status": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "unlootable_container": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 4,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "vehicle": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.6667,
+      "mean_iou": 0.6332
+    },
+    "weapon": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 6,
+      "precision": 1.0,
+      "recall": 0.25,
+      "f1": 0.4,
+      "mean_iou": 0.8217
+    }
+  },
+  "micro": {
+    "tp": 4,
+    "fp": 18,
+    "fn": 87,
+    "precision": 0.1818,
+    "recall": 0.044,
+    "f1": 0.0708,
+    "mean_iou": 0.7737
+  },
+  "macro": {
+    "precision": 0.3143,
+    "recall": 0.0833,
+    "f1": 0.4667,
+    "mean_iou": 0.7577,
+    "n_classes_with_support": 21
+  },
+  "vs_gd_tiny": {
+    "item_in_slot_gd": "0/34",
+    "item_in_slot_yoloe": "0/10",
+    "hotbar_gd": "0/13",
+    "hotbar_yoloe": "0/0 (class absent)",
+    "tree_gd": "0/22",
+    "tree_yoloe": "0/0 (class absent)",
+    "micro_f1_gd": 0.152,
+    "micro_f1_yoloe": 0.0708
+  },
+  "kill_switch": {
+    "gates": [
+      {
+        "name": "sm_120_load",
+        "passed": true,
+        "device": "NVIDIA GeForce RTX 5090",
+        "cuda_capability": "sm_120",
+        "note": "Runner init succeeded. If the actual GPU is NOT sm_120 (Blackwell), this gate is vacuous for the 5090 target \u2014 re-run on the real hardware."
+      },
+      {
+        "name": "warm_latency_under_50ms",
+        "threshold_ms": 50.0,
+        "measured_warm_median_ms": 72.22,
+        "passed": false
+      },
+      {
+        "name": "micro_f1_at_or_above_0.10",
+        "threshold": 0.1,
+        "measured": 0.0708,
+        "passed": false
+      }
+    ],
+    "all_passed": false,
+    "verdict": "RED FLAG on warm_latency_under_50ms, micro_f1_at_or_above_0.10 \u2014 spike stops, stay on GD path."
+  },
+  "visual_prompt_stretch": {
+    "status": "not_requested"
+  },
+  "notes": "Single-pass union-vocab YOLOE zero-shot (text-prompt path via set_classes/get_text_pe). Same IoU=0.5 greedy matching as GD and OWLv2 baselines (eval_harness primitives reused verbatim). Score threshold 0.2 apples-to-apples. YOLOE does NMS-free detection via dual label assignment, so no post-NMS applied. Visual-prompt stretch is gated on --visual-prompt-stretch flag and task4.png availability.",
+  "_images": [
+    {
+      "image": "task1.png",
+      "prompt_group": "combined",
+      "n_gt": 8,
+      "n_pred": 1,
+      "tp": 1,
+      "fp": 0,
+      "fn": 7,
+      "matches": []
+    },
+    {
+      "image": "task2.png",
+      "prompt_group": "combined",
+      "n_gt": 8,
+      "n_pred": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 8,
+      "matches": []
+    },
+    {
+      "image": "task3.png",
+      "prompt_group": "combined",
+      "n_gt": 8,
+      "n_pred": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 8,
+      "matches": []
+    },
+    {
+      "image": "task4.1.png",
+      "prompt_group": "combined",
+      "n_gt": 6,
+      "n_pred": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task4.png",
+      "prompt_group": "combined",
+      "n_gt": 6,
+      "n_pred": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task5.png",
+      "prompt_group": "combined",
+      "n_gt": 14,
+      "n_pred": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 13,
+      "matches": []
+    },
+    {
+      "image": "task6.png",
+      "prompt_group": "combined",
+      "n_gt": 10,
+      "n_pred": 2,
+      "tp": 1,
+      "fp": 1,
+      "fn": 9,
+      "matches": []
+    },
+    {
+      "image": "task7.png",
+      "prompt_group": "combined",
+      "n_gt": 9,
+      "n_pred": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 9,
+      "matches": []
+    },
+    {
+      "image": "task8.1.png",
+      "prompt_group": "combined",
+      "n_gt": 7,
+      "n_pred": 3,
+      "tp": 0,
+      "fp": 3,
+      "fn": 7,
+      "matches": []
+    },
+    {
+      "image": "task8.png",
+      "prompt_group": "combined",
+      "n_gt": 7,
+      "n_pred": 2,
+      "tp": 0,
+      "fp": 2,
+      "fn": 7,
+      "matches": []
+    },
+    {
+      "image": "task9.png",
+      "prompt_group": "combined",
+      "n_gt": 8,
+      "n_pred": 4,
+      "tp": 1,
+      "fp": 3,
+      "fn": 7,
+      "matches": []
+    }
+  ]
+}

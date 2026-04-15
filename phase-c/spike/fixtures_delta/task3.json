@@ -1,0 +1,154 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "minimap",
+      "points": [
+        [
+          50.0,
+          30.0
+        ],
+        [
+          303.94444444444446,
+          331.80769230769226
+        ]
+      ],
+      "group_id": null,
+      "description": "Upper-left minimap",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "compass",
+      "points": [
+        [
+          415.0,
+          0.0
+        ],
+        [
+          1502.235042735043,
+          78.81623931623925
+        ]
+      ],
+      "group_id": null,
+      "description": "Top-center compass bar (showing 北/东 direction, ammo '202')",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "weapon",
+      "points": [
+        [
+          920.769230769231,
+          555.0
+        ],
+        [
+          1670.769230769231,
+          1079.0
+        ]
+      ],
+      "group_id": null,
+      "description": "Rifle held by player",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "stairs",
+      "points": [
+        [
+          95.3974358974359,
+          277.96153846153845
+        ],
+        [
+          1876.594017094017,
+          805.3119658119635
+        ]
+      ],
+      "group_id": null,
+      "description": "Narrow passage / top of stairs looking down into hallway (hard scene — please adjust or relabel as corridor if not clearly stairs)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "unlootable_container",
+      "points": [
+        [
+          958.8888888888889,
+          172.35042735042734
+        ],
+        [
+          1148.888888888889,
+          427.35042735042725
+        ]
+      ],
+      "group_id": null,
+      "description": "Cardboard/wood crates at far end of corridor (candidate)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "door",
+      "points": [
+        [
+          1045.2991452991453,
+          289.14529914529913
+        ],
+        [
+          1196.252136752137,
+          495.91025641025635
+        ]
+      ],
+      "group_id": null,
+      "description": "Doorway at end of corridor (candidate)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "health_hud",
+      "points": [
+        [
+          0.0,
+          940.0
+        ],
+        [
+          340.0,
+          1065.0
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-left health bar",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "ammo_count",
+      "points": [
+        [
+          1648.3888888888891,
+          901.0384615384615
+        ],
+        [
+          1900.0,
+          1020.0
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-right ammo number '015'",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "task3.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
+}

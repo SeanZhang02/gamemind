@@ -1,0 +1,136 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "minimap",
+      "points": [
+        [
+          50,
+          30
+        ],
+        [
+          470,
+          370
+        ]
+      ],
+      "group_id": null,
+      "description": "Upper-left minimap",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "compass",
+      "points": [
+        [
+          415,
+          0
+        ],
+        [
+          1500,
+          110
+        ]
+      ],
+      "group_id": null,
+      "description": "Top-center compass bar (20° direction, hazard marker visible)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "player_enemy",
+      "points": [
+        [
+          860,
+          350
+        ],
+        [
+          1060,
+          670
+        ]
+      ],
+      "group_id": null,
+      "description": "Enemy player in mid-distance office, partly behind cubicle divider, holding weapon",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "weapon",
+      "points": [
+        [
+          690,
+          555
+        ],
+        [
+          1440,
+          1079
+        ]
+      ],
+      "group_id": null,
+      "description": "Player's own rifle held at bottom",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "building",
+      "points": [
+        [
+          0,
+          90
+        ],
+        [
+          1919,
+          970
+        ]
+      ],
+      "group_id": null,
+      "description": "Office building interior (whole scene is indoor structure)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "health_hud",
+      "points": [
+        [
+          0,
+          940
+        ],
+        [
+          340,
+          1065
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-left health bar",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "ammo_count",
+      "points": [
+        [
+          1500,
+          830
+        ],
+        [
+          1890,
+          1060
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-right ammo icons",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../task8.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
+}

@@ -1,0 +1,40 @@
+# Delta Force (\u4e09\u89d2\u6d32\u884c\u52a8) — Grounding DINO prompt sets for Track D.
+#
+# Mirrors phase-c/spike/fixtures/prompts.yaml structure. Three groups by scene
+# type; eval harness selects by GT label overlap (world / ui / hud).
+#
+# Vocabulary reflects Sean's verified labeling pass 2026-04-15:
+# - lootable_container / unlootable_container: white border in-game indicates
+#   interactable (lootable); no border = scenery (unlootable). Split preserves
+#   the interaction-state signal that matters for 跑刀 decisions.
+# - safe_box: items placed here survive death. Distinct game mechanic.
+# - medkit / ammo / player_body / loot_container: dropped during verification,
+#   merged into item_in_slot (UI) or split into lootable/unlootable.
+
+world:
+  - player_enemy
+  - player_friendly
+  - weapon
+  - loot_item
+  - lootable_container
+  - unlootable_container
+  - safe_box
+  - door
+  - stairs
+  - vehicle
+  - building
+  - plant
+
+ui:
+  - inventory_grid
+  - loot_grid
+  - item_in_slot
+  - character_model
+
+hud:
+  - health_hud
+  - ammo_count
+  - crosshair
+  - minimap
+  - compass
+  - status

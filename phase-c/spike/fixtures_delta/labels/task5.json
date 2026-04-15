@@ -1,0 +1,226 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "character_model",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          485,
+          1079
+        ]
+      ],
+      "group_id": null,
+      "description": "Left panel full-body player character avatar with gear equipped",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "loot_grid",
+      "points": [
+        [
+          500,
+          75
+        ],
+        [
+          1000,
+          1050
+        ]
+      ],
+      "group_id": null,
+      "description": "Middle grid — container / looting inventory",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "inventory_grid",
+      "points": [
+        [
+          1010,
+          75
+        ],
+        [
+          1650,
+          1050
+        ]
+      ],
+      "group_id": null,
+      "description": "Right-side character gear grid (player's own inventory)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "weapon",
+      "points": [
+        [
+          175,
+          85
+        ],
+        [
+          260,
+          225
+        ]
+      ],
+      "group_id": null,
+      "description": "Pistol held up by character model (left panel)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "weapon",
+      "points": [
+        [
+          70,
+          520
+        ],
+        [
+          390,
+          730
+        ]
+      ],
+      "group_id": null,
+      "description": "Rifle slung on character (lower half, large)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1020,
+          85
+        ],
+        [
+          1125,
+          170
+        ]
+      ],
+      "group_id": null,
+      "description": "Helmet icon (upper-right grid)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1020,
+          190
+        ],
+        [
+          1320,
+          265
+        ]
+      ],
+      "group_id": null,
+      "description": "Rifle in horizontal slot (upper-right grid)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1420,
+          340
+        ],
+        [
+          1500,
+          420
+        ]
+      ],
+      "group_id": null,
+      "description": "Green medkit (right-side grid, cross-marked)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "medkit",
+      "points": [
+        [
+          1420,
+          340
+        ],
+        [
+          1500,
+          420
+        ]
+      ],
+      "group_id": null,
+      "description": "Same green cross item but classified by what's in the slot (dual-label for sprite-class test)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          1570,
+          250
+        ],
+        [
+          1650,
+          420
+        ]
+      ],
+      "group_id": null,
+      "description": "Knife / melee item (right-most column)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "item_in_slot",
+      "points": [
+        [
+          780,
+          345
+        ],
+        [
+          870,
+          420
+        ]
+      ],
+      "group_id": null,
+      "description": "Magazine / ammo stack (middle grid)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "health_hud",
+      "points": [
+        [
+          0,
+          940
+        ],
+        [
+          340,
+          1065
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-left health bar (minimized state, still visible: 11.0 label)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../task5.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
+}

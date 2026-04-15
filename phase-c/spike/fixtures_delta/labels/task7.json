@@ -1,0 +1,172 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "minimap",
+      "points": [
+        [
+          50,
+          30
+        ],
+        [
+          470,
+          370
+        ]
+      ],
+      "group_id": null,
+      "description": "Upper-left minimap",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "compass",
+      "points": [
+        [
+          415,
+          0
+        ],
+        [
+          1500,
+          110
+        ]
+      ],
+      "group_id": null,
+      "description": "Top-center compass bar (ammo '241' visible)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "loot_item",
+      "points": [
+        [
+          940,
+          530
+        ],
+        [
+          985,
+          615
+        ]
+      ],
+      "group_id": null,
+      "description": "Small loose loot item on ground (bullet/ammo icon) — interaction prompt visible next to it",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "ammo",
+      "points": [
+        [
+          940,
+          530
+        ],
+        [
+          985,
+          615
+        ]
+      ],
+      "group_id": null,
+      "description": "Same ground item dual-labeled as ammo (cylindrical stack icon)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "crosshair",
+      "points": [
+        [
+          955,
+          530
+        ],
+        [
+          970,
+          550
+        ]
+      ],
+      "group_id": null,
+      "description": "Center reticle (overlaps loot item)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "loot_container",
+      "points": [
+        [
+          135,
+          315
+        ],
+        [
+          555,
+          555
+        ]
+      ],
+      "group_id": null,
+      "description": "Sandbag wall + crate on left side (navigation/cover candidate)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "building",
+      "points": [
+        [
+          1075,
+          50
+        ],
+        [
+          1800,
+          790
+        ]
+      ],
+      "group_id": null,
+      "description": "Red shipping container wall on right (could also be classified as vehicle/container)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "health_hud",
+      "points": [
+        [
+          0,
+          940
+        ],
+        [
+          340,
+          1065
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-left health bar",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "ammo_count",
+      "points": [
+        [
+          1500,
+          830
+        ],
+        [
+          1890,
+          1060
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-right ammo/weapon icons row",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../task7.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
+}

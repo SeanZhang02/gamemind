@@ -1,0 +1,325 @@
+{
+  "config": {
+    "score_threshold": 0.2,
+    "iou_threshold": 0.5
+  },
+  "per_class": {
+    "ammo_count": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 9,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "building": {
+      "tp": 5,
+      "fp": 9,
+      "fn": 0,
+      "precision": 0.3571,
+      "recall": 1.0,
+      "f1": 0.5263,
+      "mean_iou": 0.7957
+    },
+    "character_model": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "compass": {
+      "tp": 0,
+      "fp": 12,
+      "fn": 9,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "crosshair": {
+      "tp": 0,
+      "fp": 7,
+      "fn": 3,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "door": {
+      "tp": 1,
+      "fp": 15,
+      "fn": 3,
+      "precision": 0.0625,
+      "recall": 0.25,
+      "f1": 0.1,
+      "mean_iou": 0.8107
+    },
+    "health_hud": {
+      "tp": 0,
+      "fp": 3,
+      "fn": 11,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "inventory_grid": {
+      "tp": 1,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.5,
+      "recall": 0.5,
+      "f1": 0.5,
+      "mean_iou": 0.628
+    },
+    "item_in_slot": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 10,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "loot_grid": {
+      "tp": 1,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6667,
+      "mean_iou": 0.9273
+    },
+    "loot_item": {
+      "tp": 0,
+      "fp": 5,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "lootable_container": {
+      "tp": 0,
+      "fp": 6,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "minimap": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 9,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "plant": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "player_enemy": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 3,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "safe_box": {
+      "tp": 0,
+      "fp": 11,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "stairs": {
+      "tp": 1,
+      "fp": 8,
+      "fn": 1,
+      "precision": 0.1111,
+      "recall": 0.5,
+      "f1": 0.1818,
+      "mean_iou": 0.7146
+    },
+    "status": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "unlootable_container": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 4,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "mean_iou": null
+    },
+    "vehicle": {
+      "tp": 1,
+      "fp": 2,
+      "fn": 1,
+      "precision": 0.3333,
+      "recall": 0.5,
+      "f1": 0.4,
+      "mean_iou": 0.6352
+    },
+    "weapon": {
+      "tp": 1,
+      "fp": 13,
+      "fn": 7,
+      "precision": 0.0714,
+      "recall": 0.125,
+      "f1": 0.0909,
+      "mean_iou": 0.6698
+    }
+  },
+  "micro": {
+    "tp": 11,
+    "fp": 98,
+    "fn": 80,
+    "precision": 0.1009,
+    "recall": 0.1209,
+    "f1": 0.11,
+    "mean_iou": 0.7604
+  },
+  "macro": {
+    "precision": 0.121,
+    "recall": 0.1845,
+    "f1": 0.3522,
+    "mean_iou": 0.7402,
+    "n_classes_with_support": 21
+  },
+  "images": [
+    {
+      "image": "task1.png",
+      "prompt_group": "world+hud",
+      "n_gt": 8,
+      "n_pred": 17,
+      "tp": 2,
+      "fp": 15,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task2.png",
+      "prompt_group": "world+hud",
+      "n_gt": 8,
+      "n_pred": 7,
+      "tp": 1,
+      "fp": 6,
+      "fn": 7,
+      "matches": []
+    },
+    {
+      "image": "task3.png",
+      "prompt_group": "world+hud",
+      "n_gt": 8,
+      "n_pred": 6,
+      "tp": 0,
+      "fp": 6,
+      "fn": 8,
+      "matches": []
+    },
+    {
+      "image": "task4.1.png",
+      "prompt_group": "world+hud",
+      "n_gt": 6,
+      "n_pred": 8,
+      "tp": 0,
+      "fp": 8,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task4.png",
+      "prompt_group": "world+hud",
+      "n_gt": 6,
+      "n_pred": 8,
+      "tp": 0,
+      "fp": 8,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task5.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 14,
+      "n_pred": 13,
+      "tp": 2,
+      "fp": 11,
+      "fn": 12,
+      "matches": []
+    },
+    {
+      "image": "task6.png",
+      "prompt_group": "world+ui+hud",
+      "n_gt": 10,
+      "n_pred": 14,
+      "tp": 1,
+      "fp": 13,
+      "fn": 9,
+      "matches": []
+    },
+    {
+      "image": "task7.png",
+      "prompt_group": "world+hud",
+      "n_gt": 9,
+      "n_pred": 13,
+      "tp": 1,
+      "fp": 12,
+      "fn": 8,
+      "matches": []
+    },
+    {
+      "image": "task8.1.png",
+      "prompt_group": "world+hud",
+      "n_gt": 7,
+      "n_pred": 10,
+      "tp": 1,
+      "fp": 9,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task8.png",
+      "prompt_group": "world+hud",
+      "n_gt": 7,
+      "n_pred": 7,
+      "tp": 1,
+      "fp": 6,
+      "fn": 6,
+      "matches": []
+    },
+    {
+      "image": "task9.png",
+      "prompt_group": "world+hud",
+      "n_gt": 8,
+      "n_pred": 6,
+      "tp": 2,
+      "fp": 4,
+      "fn": 6,
+      "matches": []
+    }
+  ]
+}

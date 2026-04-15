@@ -1,0 +1,154 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "minimap",
+      "points": [
+        [
+          50,
+          30
+        ],
+        [
+          470,
+          370
+        ]
+      ],
+      "group_id": null,
+      "description": "Upper-left minimap",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "compass",
+      "points": [
+        [
+          415,
+          0
+        ],
+        [
+          1500,
+          110
+        ]
+      ],
+      "group_id": null,
+      "description": "Top-center compass bar (showing 北 130° direction)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "weapon",
+      "points": [
+        [
+          690,
+          555
+        ],
+        [
+          1440,
+          1079
+        ]
+      ],
+      "group_id": null,
+      "description": "Rifle held by player, partial-ADS pose bottom-center to bottom-right",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "door",
+      "points": [
+        [
+          95,
+          275
+        ],
+        [
+          400,
+          900
+        ]
+      ],
+      "group_id": null,
+      "description": "Left doorway with green exit sign visible",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "stairs",
+      "points": [
+        [
+          1240,
+          330
+        ],
+        [
+          1720,
+          700
+        ]
+      ],
+      "group_id": null,
+      "description": "Background stairs/steps visible through far-right doorway",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "loot_container",
+      "points": [
+        [
+          860,
+          490
+        ],
+        [
+          1180,
+          700
+        ]
+      ],
+      "group_id": null,
+      "description": "Brown wooden cabinet/drawer unit center-background (candidate)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "health_hud",
+      "points": [
+        [
+          0,
+          940
+        ],
+        [
+          340,
+          1065
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-left health + character icon bar",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "ammo_count",
+      "points": [
+        [
+          1700,
+          870
+        ],
+        [
+          1900,
+          1020
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-right ammo number '018' visible",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../task2.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
+}

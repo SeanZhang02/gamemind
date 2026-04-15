@@ -1,0 +1,154 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "minimap",
+      "points": [
+        [
+          50,
+          30
+        ],
+        [
+          470,
+          370
+        ]
+      ],
+      "group_id": null,
+      "description": "Upper-left minimap",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "compass",
+      "points": [
+        [
+          415,
+          0
+        ],
+        [
+          1500,
+          110
+        ]
+      ],
+      "group_id": null,
+      "description": "Top-center compass bar (西北, 340°)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "player_body",
+      "points": [
+        [
+          300,
+          290
+        ],
+        [
+          410,
+          570
+        ]
+      ],
+      "group_id": null,
+      "description": "Possible distant figure in back-left of lobby (AMBIGUOUS — may be enemy, friendly, or scenery NPC, please verify or delete)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "plant",
+      "points": [
+        [
+          1380,
+          440
+        ],
+        [
+          1620,
+          720
+        ]
+      ],
+      "group_id": null,
+      "description": "Potted decorative plant on right side",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "door",
+      "points": [
+        [
+          1680,
+          335
+        ],
+        [
+          1900,
+          855
+        ]
+      ],
+      "group_id": null,
+      "description": "Right-side door opening (candidate)",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "building",
+      "points": [
+        [
+          0,
+          80
+        ],
+        [
+          1919,
+          970
+        ]
+      ],
+      "group_id": null,
+      "description": "Hotel lobby interior scene",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "health_hud",
+      "points": [
+        [
+          0,
+          940
+        ],
+        [
+          340,
+          1065
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-left health bar",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "ammo_count",
+      "points": [
+        [
+          1500,
+          830
+        ],
+        [
+          1890,
+          1060
+        ]
+      ],
+      "group_id": null,
+      "description": "Bottom-right ammo icons",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../task9.png",
+  "imageData": null,
+  "imageHeight": 1079,
+  "imageWidth": 1919
+}
