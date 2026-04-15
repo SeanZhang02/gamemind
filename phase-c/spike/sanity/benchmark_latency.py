@@ -44,14 +44,13 @@ UI_PROMPT = (
     "inventory_grid . crafting_grid_2x2 . crafting_grid_3x3 . hotbar . "
     "inventory_slot . item_in_slot . output_slot"
 )
-HUD_PROMPT = "health_bar . hunger_bar . xp_bar"
-
-# Production eval (eval_harness.evaluate --all-classes) runs MULTI-PASS:
-# one GD forward per prompt group whose classes overlap GT. Worst-case
-# realistic mixed-scene frame (inventory open + HUD visible + tree behind)
-# triggers all 3 groups → 3 forwards per frame. We measure that as the
-# prod-equivalent cost; single-pass world is reported for reference only.
-ALL_GROUPS = [("world", WORLD_PROMPT), ("ui", UI_PROMPT), ("hud", HUD_PROMPT)]
+# HUD group (health_bar/hunger_bar/xp_bar) removed 2026-04-14 — Day 2 eval
+# showed 0/21 TP across those classes, contributing zero F1 while costing
+# ~76ms per multi-pass frame. Production eval (eval_harness.evaluate
+# --all-classes) now runs TWO passes max (world + ui). Worst-case realistic
+# mixed-scene frame (inventory open + tree behind) = 2 forwards per frame.
+# Single-pass world is reported for reference only.
+ALL_GROUPS = [("world", WORLD_PROMPT), ("ui", UI_PROMPT)]
 
 GATE_P90_MS = 200.0
 N_WARMUP_DEFAULT = 100
@@ -131,9 +130,20 @@ def main() -> int:
     print(f"\n[3/4] Loading model {args.model}...")
     t0 = time.perf_counter()
     processor = AutoProcessor.from_pretrained(args.model)
-    model = AutoModelForZeroShotObjectDetection.from_pretrained(args.model).to("cuda")
+    # Match detect.py + eval_harness.py: try SDPA attn impl, fall back to default.
+    # Weights stay fp32 (HF #32672 breaks pure fp16/bf16 weight cast on GD text
+    # encoder); BF16 happens via autocast in forward_once below, compute-only.
+    try:
+        model = AutoModelForZeroShotObjectDetection.from_pretrained(
+            args.model, attn_implementation="sdpa"
+        ).to("cuda")
+        attn_impl = "sdpa"
+    except (ValueError, TypeError) as e:
+        print(f"      SDPA unavailable, falling back to default attn: {e}")
+        model = AutoModelForZeroShotObjectDetection.from_pretrained(args.model).to("cuda")
+        attn_impl = "default"
     model.eval()
-    print(f"      loaded in {time.perf_counter() - t0:.2f}s")
+    print(f"      loaded in {time.perf_counter() - t0:.2f}s  (attn_implementation={attn_impl})")
     vram_after_load = torch.cuda.memory_allocated() / 1e9
     print(f"      VRAM after load: {vram_after_load:.2f}GB")
 
@@ -147,12 +157,15 @@ def main() -> int:
     print(f"\n[4/4] Benchmark: {n_warmup} warmup + {n_timed} timed (round-robin)...")
 
     def forward_once(img, prompt: str) -> float:
-        """One processor+forward. Returns latency_ms (cuda-sync'd)."""
+        """One processor+forward. Returns latency_ms (cuda-sync'd).
+        BF16 autocast matches detect.py + eval_harness.py. Weights fp32;
+        compute bf16 on Blackwell Tensor cores.
+        """
         inputs = processor(images=img, text=prompt, return_tensors="pt").to("cuda")
         torch.cuda.synchronize()
         t = time.perf_counter()
-        with torch.no_grad():
-            _ = model(**inputs)
+        with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+            _ = model(**inputs, output_attentions=False, output_hidden_states=False)
         torch.cuda.synchronize()
         return (time.perf_counter() - t) * 1000.0
 
@@ -161,8 +174,9 @@ def main() -> int:
         return forward_once(images[idx % len(images)], WORLD_PROMPT)
 
     def step_multi(idx: int) -> float:
-        """Multi-pass = all 3 groups, summed. Mirrors eval_harness --all-classes
-        worst-case realistic mixed-scene frame cost."""
+        """Multi-pass = 2 groups (world + ui), summed. Mirrors eval_harness
+        --all-classes worst-case realistic mixed-scene frame cost after
+        dropping hud group on 2026-04-14 (0/21 TP in Day 2 eval)."""
         img = images[idx % len(images)]
         return sum(forward_once(img, p) for _, p in ALL_GROUPS)
 
@@ -233,23 +247,24 @@ def main() -> int:
         "prompts": {
             "world": WORLD_PROMPT,
             "ui": UI_PROMPT,
-            "hud": HUD_PROMPT,
         },
+        "attn_implementation": attn_impl,
+        "autocast_dtype": "bfloat16",
         "latency_ms": s_multi,  # headline = production-equivalent multi-pass
         "latency_ms_single_pass": s_single,
         "latency_ms_multi_pass": s_multi,
         "gate_p90_ms": GATE_P90_MS,
         "gate_status": gate_status,
-        "gate_basis": "multi-pass (3 prompt groups, mirrors eval_harness --all-classes)",
+        "gate_basis": "multi-pass (2 prompt groups: world+ui, mirrors eval_harness --all-classes post-HUD-drop)",
         "notes": (
             "Two distributions reported. SINGLE-PASS = world group only, the "
-            "Day-1-style measurement that gave a misleadingly low p90. "
-            "MULTI-PASS = sum of forwards on all 3 groups (world+ui+hud), "
-            "mirrors eval_harness --all-classes worst-case for a mixed-scene "
-            "frame (inventory open + HUD visible + world entities). The gate "
-            "is evaluated against multi-pass because that is the realistic "
-            "Phase 2 production cost. HF issue #31533 reports 378-528ms on "
-            "consumer GPUs (single forward) — sm_120 5090 well below that."
+            "Day-1-style measurement. MULTI-PASS = sum of forwards on world+ui "
+            "(hud group dropped 2026-04-14 per 0/21 TP Day 2 eval). "
+            "Optimizations enabled: SDPA attn (with graceful fallback), "
+            "BF16 autocast on forward (weights fp32, compute bf16 on Blackwell "
+            "Tensor cores), output_attentions/hidden_states=False. HF issue "
+            "#31533 reports 378-528ms on consumer GPUs (single forward); our "
+            "sm_120 5090 well below that."
         ),
     }
 
@@ -269,7 +284,7 @@ def main() -> int:
     print(f"    p50/p90/p95: {s_single['p50']:.1f} / {s_single['p90']:.1f} / {s_single['p95']:.1f} ms")
     print(f"    mean / min / max: {s_single['mean']:.1f} / {s_single['min']:.1f} / {s_single['max']:.1f} ms")
     print("")
-    print("  MULTI-PASS (3 groups summed = production-equivalent)")
+    print("  MULTI-PASS (world+ui, 2 groups summed = production-equivalent post-HUD-drop)")
     print(f"    p50/p90/p95: {s_multi['p50']:.1f} / {s_multi['p90']:.1f} / {s_multi['p95']:.1f} ms")
     print(f"    mean / min / max: {s_multi['mean']:.1f} / {s_multi['min']:.1f} / {s_multi['max']:.1f} ms")
     print("")

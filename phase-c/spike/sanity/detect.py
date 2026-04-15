@@ -88,7 +88,20 @@ def main() -> int:
     print(f"[3/5] Loading model {args.model}...")
     t0 = time.perf_counter()
     processor = AutoProcessor.from_pretrained(args.model)
-    model = AutoModelForZeroShotObjectDetection.from_pretrained(args.model).to("cuda")
+    # Try SDPA attention dispatch explicitly so the BERT text encoder doesn't
+    # silently fall back to eager. Weights stay fp32 (HF issue #32672 breaks
+    # GroundingDinoTextEnhancer under fp16/bf16 weight cast) — BF16 only via
+    # autocast on the forward pass below.
+    try:
+        model = AutoModelForZeroShotObjectDetection.from_pretrained(
+            args.model, attn_implementation="sdpa"
+        ).to("cuda")
+        print("      attn_implementation=sdpa")
+    except (ValueError, TypeError) as exc:
+        print(f"      [warn] sdpa unsupported ({exc}); falling back to default attn")
+        model = AutoModelForZeroShotObjectDetection.from_pretrained(args.model).to(
+            "cuda"
+        )
     load_dt = time.perf_counter() - t0
     print(f"      loaded in {load_dt:.2f}s")
     vram_after_load = torch.cuda.memory_allocated() / 1e9
@@ -102,17 +115,21 @@ def main() -> int:
     print("[5/5] Running inference (10 warmup + 10 timed)...")
     inputs = processor(images=image, text=args.prompts, return_tensors="pt").to("cuda")
 
-    # Warmup
-    with torch.no_grad():
+    # Warmup. BF16 autocast keeps weights fp32 but runs matmul on Tensor cores.
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
         for _ in range(10):
-            _ = model(**inputs)
+            _ = model(
+                **inputs, output_attentions=False, output_hidden_states=False
+            )
     torch.cuda.synchronize()
 
     # Timed
     t0 = time.perf_counter()
-    with torch.no_grad():
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
         for _ in range(10):
-            outputs = model(**inputs)
+            outputs = model(
+                **inputs, output_attentions=False, output_hidden_states=False
+            )
     torch.cuda.synchronize()
     avg_dt_ms = (time.perf_counter() - t0) / 10 * 1000
 

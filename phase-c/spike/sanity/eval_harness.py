@@ -312,9 +312,21 @@ class GDRunner:
             raise SystemExit("CUDA required for spike eval — GPU not available")
         self.torch = torch
         self.processor = AutoProcessor.from_pretrained(model_id)
-        self.model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(
-            "cuda"
-        )
+        # Force SDPA so BERT text encoder uses fused attention. Weights stay
+        # fp32 (HF #32672 breaks GroundingDinoTextEnhancer on fp16/bf16 weight
+        # cast); BF16 is applied via autocast in run() so F1 eval matches the
+        # latency-benchmark numerics.
+        try:
+            self.model = AutoModelForZeroShotObjectDetection.from_pretrained(
+                model_id, attn_implementation="sdpa"
+            ).to("cuda")
+        except (ValueError, TypeError) as exc:
+            print(
+                f"[GDRunner] sdpa unsupported ({exc}); falling back to default attn"
+            )
+            self.model = AutoModelForZeroShotObjectDetection.from_pretrained(
+                model_id
+            ).to("cuda")
         self.model.eval()
 
     def run(
@@ -328,8 +340,10 @@ class GDRunner:
         inputs = self.processor(images=image, text=prompt, return_tensors="pt").to(
             "cuda"
         )
-        with self.torch.no_grad():
-            outputs = self.model(**inputs)
+        with self.torch.no_grad(), self.torch.autocast("cuda", dtype=self.torch.bfloat16):
+            outputs = self.model(
+                **inputs, output_attentions=False, output_hidden_states=False
+            )
         # transformers 5.x: `threshold`, not `box_threshold`.
         results = self.processor.post_process_grounded_object_detection(
             outputs,

@@ -21,6 +21,7 @@ dependencies = [
     "mss>=9.0.0",             # screen capture (Minecraft window frames)
     "opencv-python>=4.10.0",  # CV2 overlay rendering
     "httpx>=0.28.0",          # Ollama HTTP client
+    "ultralytics>=8.3.0",     # YOLOE spike (Track B alternative OVOD)
 ]
 
 # Pin torch/torchvision to PyTorch's cu128 index for Blackwell (sm_120) support.

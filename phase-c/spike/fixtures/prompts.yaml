@@ -1,10 +1,15 @@
 # Phase 1 spike — Grounding DINO prompt sets.
 #
-# Three disjoint groups by scene type. The eval harness selects a group per
+# Two disjoint groups by scene type. The eval harness selects a group per
 # fixture by looking at which labels appear in the ground-truth .json:
-#   - any UI label  → use `ui` group
-#   - any HUD label → use `hud` group
-#   - otherwise     → use `world` group
+#   - any UI label → use `ui` group
+#   - otherwise    → use `world` group
+#
+# hud group removed 2026-04-14 — 0/21 TP on Day 2 eval (health_bar 0/5,
+# hunger_bar 0/5, xp_bar 0/0 + hotbar 0/11 while nominally in `ui`),
+# contributed zero F1 but cost ~76ms per multi-pass frame. Re-add if a
+# future fixture demonstrates HUD classes are recoverable (e.g. via
+# template matching or a dedicated HUD detector — not GD-tiny).
 #
 # Per Grounding DINO spec, classes in a single prompt are joined by " . "
 # (dot with spaces around it). GD matches each prompt *token* back to a
@@ -35,8 +40,3 @@ ui:
   - inventory_slot
   - item_in_slot
   - output_slot
-
-hud:
-  - health_bar
-  - hunger_bar
-  - xp_bar
